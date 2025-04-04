@@ -5,13 +5,26 @@ import {
   updateUser, 
   deleteUser, 
   updateUserRole, 
-  updateUserStatus 
+  updateUserStatus, 
+  updateUserProfile 
 } from '../controllers/adminController';
-import { admin } from '../middleware/authMiddleware';
+import { admin, protectAdmin } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Apply admin middleware to all routes
+// Debug middleware to log admin route access attempts
+router.use((req, res, next) => {
+  console.log(`Admin route access: ${req.method} ${req.originalUrl}`);
+  console.log('Authorization headers:', {
+    adminAuth: req.headers['adminauthorization'] || 'not provided',
+    adminRole: req.headers['x-admin-role'] || 'not provided', 
+    adminEmail: req.headers['x-admin-email'] || 'not provided'
+  });
+  next();
+});
+
+// Apply admin middlewares to all routes - first authenticate the admin, then check role
+router.use(protectAdmin);
 router.use(admin);
 
 // User management routes
@@ -21,5 +34,6 @@ router.put('/users/:id', updateUser);
 router.delete('/users/:id', deleteUser);
 router.patch('/users/:id/role', updateUserRole);
 router.patch('/users/:id/status', updateUserStatus);
+router.patch('/users/:id/profile', updateUserProfile);
 
 export default router; 

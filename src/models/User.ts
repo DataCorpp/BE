@@ -4,13 +4,81 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+// Manufacturer-specific settings
+const manufacturerSettingsSchema = new Schema({
+  productionCapacity: { type: Number, default: 0 },
+  certifications: [{ type: String }],
+  preferredCategories: [{ type: String }],
+  minimumOrderValue: { type: Number, default: 0 }
+});
+
+// Brand-specific settings
+const brandSettingsSchema = new Schema({
+  marketSegments: [{ type: String }],
+  brandValues: [{ type: String }],
+  targetDemographics: [{ type: String }],
+  productCategories: [{ type: String }]
+});
+
+// Retailer-specific settings
+const retailerSettingsSchema = new Schema({
+  storeLocations: { type: Number, default: 0 },
+  averageOrderValue: { type: Number, default: 0 },
+  customerBase: [{ type: String }],
+  preferredCategories: [{ type: String }]
+});
+
+// Connection preferences schema
+const connectionPreferencesSchema = new Schema({
+  connectWith: [{ type: String }],
+  industryInterests: [{ type: String }],
+  interests: [{ type: String }],
+  lookingFor: [{ type: String }]
+});
+
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: string;
   companyName: string;
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
+  role: string;
+  status: 'online' | 'away' | 'busy' | 'active' | 'inactive' | 'pending' | 'suspended';
+  profileComplete: boolean;
+  lastLogin: Date;
+  phone: string;
+  website: string;
+  address: string;
+  description: string;
+  avatar: string;
+  industry: string;
+  certificates: string;
+  websiteUrl: string;
+  companyDescription: string;
+  connectionPreferences: {
+    connectWith: string[];
+    industryInterests: string[];
+    interests: string[];
+    lookingFor: string[];
+  };
+  manufacturerSettings: {
+    productionCapacity: number;
+    certifications: string[];
+    preferredCategories: string[];
+    minimumOrderValue: number;
+  };
+  brandSettings: {
+    marketSegments: string[];
+    brandValues: string[];
+    targetDemographics: string[];
+    productCategories: string[];
+  };
+  retailerSettings: {
+    storeLocations: number;
+    averageOrderValue: number;
+    customerBase: string[];
+    preferredCategories: string[];
+  };
+  notifications: number;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -31,24 +99,58 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true
     },
+    companyName: {
+      type: String,
+      default: ''
+    },
     role: {
       type: String,
       required: true,
-      enum: ['manufacturer', 'brand', 'retailer', 'admin'],
+      enum: ['manufacturer', 'brand', 'retailer'],
       default: 'manufacturer'
-    },
-    companyName: {
-      type: String,
-      required: true
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'pending', 'suspended'],
+      enum: ['online', 'away', 'busy', 'active', 'inactive', 'pending', 'suspended'],
       default: 'pending'
+    },
+    profileComplete: {
+      type: Boolean,
+      default: false
+    },
+    lastLogin: {
+      type: Date,
+      default: Date.now
+    },
+    // Profile information
+    phone: { type: String },
+    website: { type: String },
+    address: { type: String },
+    description: { type: String },
+    avatar: { type: String },
+    
+    // Fields from ProfileSetup
+    industry: { type: String },
+    certificates: { type: String },
+    websiteUrl: { type: String },
+    companyDescription: { type: String },
+    
+    // Connection preferences
+    connectionPreferences: connectionPreferencesSchema,
+    
+    // Role-specific settings
+    manufacturerSettings: manufacturerSettingsSchema,
+    brandSettings: brandSettingsSchema,
+    retailerSettings: retailerSettingsSchema,
+    
+    // Notifications counter
+    notifications: {
+      type: Number,
+      default: 0
     }
   },
   {
-    timestamps: true
+    timestamps: true // Adds createdAt and updatedAt fields
   }
 );
 
