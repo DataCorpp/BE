@@ -52,28 +52,33 @@ export const protectAdmin = async (req: Request, res: Response, next: NextFuncti
   console.log('Admin auth middleware - Headers received:', 
     Object.keys(req.headers).map(h => `${h}: ${req.headers[h]}`));
   
-  // Get admin authorization header - case insensitive
-  const adminAuthHeader = Object.keys(req.headers)
-    .find(h => h.toLowerCase() === 'adminauthorization');
+  // Check for the admin authorization header (both direct and case-insensitive)
+  const adminAuth = req.headers.adminauthorization || req.headers.AdminAuthorization;
+  // If not found directly, try case-insensitive search
+  const adminAuthHeader = adminAuth || 
+    Object.keys(req.headers).find(h => h.toLowerCase() === 'adminauthorization');
   
-  if (adminAuthHeader && req.headers[adminAuthHeader]?.toString().startsWith('Bearer')) {
+  if ((adminAuthHeader && typeof adminAuthHeader === 'string' && adminAuthHeader.startsWith('Bearer')) || 
+      (req.headers[adminAuthHeader as string] && 
+       req.headers[adminAuthHeader as string]?.toString().startsWith('Bearer'))) {
     try {
-      // Lấy token từ header
-      token = req.headers[adminAuthHeader].toString().split(' ')[1];
+      // Get the token from the header (handle both direct access and via found header)
+      token = adminAuth ? 
+        (typeof adminAuth === 'string' ? adminAuth.split(' ')[1] : adminAuth.toString().split(' ')[1]) : 
+        req.headers[adminAuthHeader as string]?.toString().split(' ')[1];
+        
       console.log('Admin token received:', token ? 'Valid token' : 'Invalid token');
       
-      // Kiểm tra role từ header - case insensitive
-      const roleHeader = Object.keys(req.headers)
-        .find(h => h.toLowerCase() === 'x-admin-role');
-      const emailHeader = Object.keys(req.headers)
-        .find(h => h.toLowerCase() === 'x-admin-email');
-      
-      const adminRole = roleHeader ? req.headers[roleHeader]?.toString() : undefined;
-      const adminEmail = emailHeader ? req.headers[emailHeader]?.toString() : undefined;
+      // Get admin role and email from headers (try both direct and case-insensitive)
+      const adminRole = req.headers['x-admin-role'] || req.headers['X-Admin-Role'] || 
+        req.headers[Object.keys(req.headers).find(h => h.toLowerCase() === 'x-admin-role') || ''];
+        
+      const adminEmail = req.headers['x-admin-email'] || req.headers['X-Admin-Email'] || 
+        req.headers[Object.keys(req.headers).find(h => h.toLowerCase() === 'x-admin-email') || ''];
       
       console.log('Admin authentication - Role:', adminRole, 'Email:', adminEmail);
       
-      if (!adminRole || adminRole !== 'admin' || !adminEmail) {
+      if (!adminRole || adminRole.toString() !== 'admin' || !adminEmail) {
         console.log('Admin authentication failed - Invalid role or email');
         return res.status(401).json({ 
           message: 'Admin authentication failed, redirecting to login page' 
@@ -83,7 +88,7 @@ export const protectAdmin = async (req: Request, res: Response, next: NextFuncti
       // Set user object for admin role check middleware
       (req as any).user = {
         role: 'admin',
-        email: adminEmail
+        email: adminEmail.toString()
       };
       
       console.log('Admin authentication successful');

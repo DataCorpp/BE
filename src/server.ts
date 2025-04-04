@@ -18,7 +18,13 @@ app.use(
   cors({
     origin: ["http://localhost:8080", "http://localhost:3000"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type", 
+      "Authorization", 
+      "AdminAuthorization", 
+      "X-Admin-Role", 
+      "X-Admin-Email"
+    ],
     credentials: true,
   })
 );
