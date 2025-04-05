@@ -191,8 +191,17 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
       if (req.body.address) user.address = req.body.address;
       if (req.body.website) user.website = req.body.website; 
       if (req.body.websiteUrl) user.websiteUrl = req.body.websiteUrl;
-      if (req.body.description) user.description = req.body.description;
-      if (req.body.companyDescription) user.companyDescription = req.body.companyDescription;
+      
+      // Synchronize companyDescription and description fields
+      // Always prefer companyDescription when both are provided
+      if (req.body.companyDescription) {
+        user.companyDescription = req.body.companyDescription;
+        user.description = req.body.companyDescription; // Sync description to match companyDescription
+      } else if (req.body.description) {
+        user.companyDescription = req.body.description; // Use description value for companyDescription
+        user.description = req.body.description;
+      }
+      
       if (req.body.industry) user.industry = req.body.industry;
       if (req.body.certificates) user.certificates = req.body.certificates;
       if (req.body.avatar) user.avatar = req.body.avatar;

@@ -126,14 +126,14 @@ const userSchema = new Schema<IUser>(
     phone: { type: String },
     website: { type: String },
     address: { type: String },
-    description: { type: String },
+    description: { type: String }, // Synchronized with companyDescription
     avatar: { type: String },
     
     // Fields from ProfileSetup
     industry: { type: String },
     certificates: { type: String },
     websiteUrl: { type: String },
-    companyDescription: { type: String },
+    companyDescription: { type: String }, // Primary field, synchronized with description
     
     // Connection preferences
     connectionPreferences: connectionPreferencesSchema,
