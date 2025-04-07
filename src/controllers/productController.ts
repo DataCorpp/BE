@@ -1,10 +1,13 @@
-import { Request, Response } from 'express';
-import Product from '../models/Product';
+import { Request, Response } from "express";
+import Product from "../models/Product";
 
 // @desc    Lấy tất cả sản phẩm
 // @route   GET /api/products
 // @access  Public
-export const getProducts = async (req: Request, res: Response): Promise<void> => {
+export const getProducts = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const products = await Product.find({});
     res.json(products);
@@ -12,7 +15,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
-      res.status(500).json({ message: 'Unknown error occurred' });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
@@ -20,20 +23,23 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 // @desc    Lấy sản phẩm theo ID
 // @route   GET /api/products/:id
 // @access  Public
-export const getProductById = async (req: Request, res: Response): Promise<void> => {
+export const getProductById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (product) {
       res.json(product);
     } else {
-      res.status(404).json({ message: 'Product not found' });
+      res.status(404).json({ message: "Product not found" });
     }
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
-      res.status(500).json({ message: 'Unknown error occurred' });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
@@ -41,17 +47,13 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
 // @desc    Tạo sản phẩm mới
 // @route   POST /api/products
 // @access  Private/Manufacturer
-export const createProduct = async (req: Request, res: Response): Promise<void> => {
+export const createProduct = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const {
-      name,
-      brand,
-      category,
-      description,
-      price,
-      countInStock,
-      image
-    } = req.body;
+    const { name, brand, category, description, price, countInStock, image } =
+      req.body;
 
     const product = new Product({
       user: (req as any).user._id,
@@ -63,7 +65,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       countInStock,
       image,
       rating: 0,
-      numReviews: 0
+      numReviews: 0,
     });
 
     const createdProduct = await product.save();
@@ -72,7 +74,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
     if (error instanceof Error) {
       res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: 'Unknown error occurred' });
+      res.status(400).json({ message: "Unknown error occurred" });
     }
   }
 };
@@ -80,17 +82,13 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 // @desc    Cập nhật sản phẩm
 // @route   PUT /api/products/:id
 // @access  Private/Manufacturer
-export const updateProduct = async (req: Request, res: Response): Promise<void> => {
+export const updateProduct = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const {
-      name,
-      brand,
-      category,
-      description,
-      price,
-      countInStock,
-      image
-    } = req.body;
+    const { name, brand, category, description, price, countInStock, image } =
+      req.body;
 
     const product = await Product.findById(req.params.id);
 
@@ -106,13 +104,13 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
       const updatedProduct = await product.save();
       res.json(updatedProduct);
     } else {
-      res.status(404).json({ message: 'Product not found' });
+      res.status(404).json({ message: "Product not found" });
     }
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: 'Unknown error occurred' });
+      res.status(400).json({ message: "Unknown error occurred" });
     }
   }
 };
@@ -120,21 +118,24 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
 // @desc    Xóa sản phẩm
 // @route   DELETE /api/products/:id
 // @access  Private/Manufacturer
-export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
+export const deleteProduct = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (product) {
       await product.deleteOne();
-      res.json({ message: 'Product removed' });
+      res.json({ message: "Product removed" });
     } else {
-      res.status(404).json({ message: 'Product not found' });
+      res.status(404).json({ message: "Product not found" });
     }
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: 'Unknown error occurred' });
+      res.status(400).json({ message: "Unknown error occurred" });
     }
   }
-}; 
+};

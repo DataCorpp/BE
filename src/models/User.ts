@@ -1,15 +1,15 @@
 //Quang Anh đang làm đừng động vào file này nhé---------------------------
 //TO DO: Quang Anh đang làm đừng động vào file này nhé---------------------------
 
-import mongoose, { Document, Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
+import mongoose, { Document, Schema } from "mongoose";
+import bcrypt from "bcryptjs";
 
 // Manufacturer-specific settings
 const manufacturerSettingsSchema = new Schema({
   productionCapacity: { type: Number, default: 0 },
   certifications: [{ type: String }],
   preferredCategories: [{ type: String }],
-  minimumOrderValue: { type: Number, default: 0 }
+  minimumOrderValue: { type: Number, default: 0 },
 });
 
 // Brand-specific settings
@@ -17,7 +17,7 @@ const brandSettingsSchema = new Schema({
   marketSegments: [{ type: String }],
   brandValues: [{ type: String }],
   targetDemographics: [{ type: String }],
-  productCategories: [{ type: String }]
+  productCategories: [{ type: String }],
 });
 
 // Retailer-specific settings
@@ -25,7 +25,7 @@ const retailerSettingsSchema = new Schema({
   storeLocations: { type: Number, default: 0 },
   averageOrderValue: { type: Number, default: 0 },
   customerBase: [{ type: String }],
-  preferredCategories: [{ type: String }]
+  preferredCategories: [{ type: String }],
 });
 
 // Connection preferences schema
@@ -33,7 +33,7 @@ const connectionPreferencesSchema = new Schema({
   connectWith: [{ type: String }],
   industryInterests: [{ type: String }],
   interests: [{ type: String }],
-  lookingFor: [{ type: String }]
+  lookingFor: [{ type: String }],
 });
 
 export interface IUser extends Document {
@@ -42,7 +42,14 @@ export interface IUser extends Document {
   password: string;
   companyName: string;
   role: string;
-  status: 'online' | 'away' | 'busy' | 'active' | 'inactive' | 'pending' | 'suspended';
+  status:
+    | "online"
+    | "away"
+    | "busy"
+    | "active"
+    | "inactive"
+    | "pending"
+    | "suspended";
   profileComplete: boolean;
   lastLogin: Date;
   phone: string;
@@ -88,39 +95,47 @@ const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
-      required: true
+      required: true,
     },
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     password: {
       type: String,
-      required: true
+      required: true,
     },
     companyName: {
       type: String,
-      default: ''
+      default: "",
     },
     role: {
       type: String,
       required: true,
-      enum: ['manufacturer', 'brand', 'retailer'],
-      default: 'manufacturer'
+      enum: ["manufacturer", "brand", "retailer"],
+      default: "manufacturer",
     },
     status: {
       type: String,
-      enum: ['online', 'away', 'busy', 'active', 'inactive', 'pending', 'suspended'],
-      default: 'pending'
+      enum: [
+        "online",
+        "away",
+        "busy",
+        "active",
+        "inactive",
+        "pending",
+        "suspended",
+      ],
+      default: "pending",
     },
     profileComplete: {
       type: Boolean,
-      default: false
+      default: false,
     },
     lastLogin: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     // Profile information
     phone: { type: String },
@@ -128,35 +143,35 @@ const userSchema = new Schema<IUser>(
     address: { type: String },
     description: { type: String }, // Synchronized with companyDescription
     avatar: { type: String },
-    
+
     // Fields from ProfileSetup
     industry: { type: String },
     certificates: { type: String },
     websiteUrl: { type: String },
     companyDescription: { type: String }, // Primary field, synchronized with description
-    
+
     // Connection preferences
     connectionPreferences: connectionPreferencesSchema,
-    
+
     // Role-specific settings
     manufacturerSettings: manufacturerSettingsSchema,
     brandSettings: brandSettingsSchema,
     retailerSettings: retailerSettingsSchema,
-    
+
     // Notifications counter
     notifications: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
   {
-    timestamps: true // Adds createdAt and updatedAt fields
+    timestamps: true, // Adds createdAt and updatedAt fields
   }
 );
 
 // Mã hóa mật khẩu trước khi lưu
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     next();
   }
 
@@ -165,10 +180,12 @@ userSchema.pre('save', async function (next) {
 });
 
 // So sánh mật khẩu người dùng nhập với mật khẩu đã hash
-userSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
+userSchema.methods.matchPassword = async function (
+  enteredPassword: string
+): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model<IUser>('User', userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
 
-export default User; 
+export default User;
