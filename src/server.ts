@@ -46,8 +46,12 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
-  console.log(`User API available at http://localhost:${PORT}/api/users`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
+    console.log(`User API available at http://localhost:${PORT}/api/users`);
+  });
+}
+
+export default app;
