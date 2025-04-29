@@ -5,6 +5,7 @@ import connectDB from "./config/db";
 import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
 
+// Load environment variables from .env file
 dotenv.config();
 
 // Kết nối MongoDB

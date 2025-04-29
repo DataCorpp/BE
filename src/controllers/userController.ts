@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import User, { IUser } from "../models/User";
 import jwt from "jsonwebtoken";
+import { sendVerificationEmail } from "../utils/mailService";
+import { sendPasswordResetEmail } from "../utils/mailService";
+import { generatePasswordResetToken, hashToken, buildResetUrl } from "../utils/passwordResetUtils";
 
 // Define a custom Request type that includes the user property
 interface RequestWithUser extends Request {
@@ -15,6 +18,20 @@ const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
     expiresIn: "30d",
   });
+};
+
+// Store email verification codes in memory (for development purposes)
+// In production, you would use a database or cache like Redis
+interface VerificationCode {
+  code: string;
+  expires: Date;
+}
+
+const verificationCodes: Record<string, VerificationCode> = {};
+
+// Helper function to generate a random 6-digit code
+const generateVerificationCode = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // @desc    Đăng nhập người dùng & lấy token
@@ -87,16 +104,39 @@ export const registerUser = async (
       return;
     }
 
-    // Tạo người dùng mới
+    // Tạo người dùng mới với trạng thái 'pending'
     const user = await User.create({
       name,
       email,
       password,
       role,
+      status: 'pending', // Set initial status to pending until email verification
     });
 
     if (user) {
       const userId = user._id.toString();
+
+      // Generate a verification code for the new user
+      const verificationCode = generateVerificationCode();
+      
+      // Set expiration to 1 minute from now
+      const expiration = new Date();
+      expiration.setMinutes(expiration.getMinutes() + 1);
+      
+      // Store the code with its expiration
+      verificationCodes[email] = {
+        code: verificationCode,
+        expires: expiration
+      };
+
+      // Send verification email
+      try {
+        await sendVerificationEmail(email, verificationCode);
+        console.log(`Verification email sent to ${email}`);
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+        // Continue with registration even if email fails
+      }
 
       res.status(201).json({
         _id: user._id,
@@ -105,6 +145,8 @@ export const registerUser = async (
         role: user.role,
         status: user.status,
         token: generateToken(userId),
+        // For development purposes only
+        verificationCode: verificationCode
       });
     } else {
       res.status(400).json({ message: "Invalid user data" });
@@ -371,6 +413,230 @@ export const updateUserProfile = async (
       res.status(400).json({ message: error.message });
     } else {
       res.status(400).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Verify user email with verification code
+// @route   POST /api/users/verify-email
+// @access  Public
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, verificationCode } = req.body;
+
+    if (!email || !verificationCode) {
+      res.status(400).json({ message: "Email and verification code are required" });
+      return;
+    }
+
+    // Check if verification code exists and is valid
+    const storedVerification = verificationCodes[email];
+    
+    if (!storedVerification) {
+      res.status(400).json({ message: "Verification code not found or expired" });
+      return;
+    }
+
+    // Check if verification code is correct
+    if (storedVerification.code !== verificationCode) {
+      res.status(400).json({ message: "Invalid verification code" });
+      return;
+    }
+
+    // Check if verification code is expired
+    if (new Date() > storedVerification.expires) {
+      // Remove expired code
+      delete verificationCodes[email];
+      res.status(400).json({ message: "Verification code expired" });
+      return;
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Update user status to active
+    user.status = 'active';
+    await user.save();
+
+    // Remove the used verification code
+    delete verificationCodes[email];
+
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Resend verification code to user email
+// @route   POST /api/users/resend-verification
+// @access  Public
+export const resendVerificationCode = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required" });
+      return;
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Generate a new 6-digit verification code
+    const newCode = generateVerificationCode();
+    
+    // Set expiration to 1 minute from now
+    const expiration = new Date();
+    expiration.setMinutes(expiration.getMinutes() + 1);
+    
+    // Store the code with its expiration
+    verificationCodes[email] = {
+      code: newCode,
+      expires: expiration
+    };
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(email, newCode);
+      console.log(`Verification email resent to ${email}`);
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError);
+      // Return error if email sending fails
+      res.status(500).json({ message: "Failed to send verification email" });
+      return;
+    }
+
+    res.status(200).json({ 
+      message: "Verification code sent successfully",
+      // For development purposes only
+      code: newCode
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Request password reset email
+// @route   POST /api/users/forgot-password
+// @access  Public
+export const requestPasswordReset = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required" });
+      return;
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+
+    // If user doesn't exist, still return success but don't send email
+    // This prevents user enumeration attacks
+    if (!user) {
+      res.status(200).json({ 
+        message: "If an account with that email exists, we have sent password reset instructions." 
+      });
+      return;
+    }
+
+    // Generate a password reset token
+    const resetTokenData = generatePasswordResetToken();
+
+    // Save the hashed token to the database with expiry
+    user.resetPasswordToken = resetTokenData.token;
+    user.resetPasswordExpires = resetTokenData.expires;
+    await user.save();
+
+    // Build the reset URL
+    const resetUrl = buildResetUrl(resetTokenData.plainToken);
+
+    // Send the reset email
+    try {
+      await sendPasswordResetEmail(email, resetTokenData.plainToken, resetUrl);
+      
+      res.status(200).json({ 
+        message: "If an account with that email exists, we have sent password reset instructions." 
+      });
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+      
+      // Clear the reset token data since email failed
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      
+      res.status(500).json({ message: "Failed to send password reset email. Please try again later." });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Reset password with token
+// @route   POST /api/users/reset-password
+// @access  Public
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      res.status(400).json({ message: "Token and password are required" });
+      return;
+    }
+
+    // Hash the provided token for comparison
+    const hashedToken = hashToken(token);
+
+    // Find user with matching token that hasn't expired
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired password reset token" });
+      return;
+    }
+
+    // Set the new password
+    user.password = password;
+    
+    // Clear the reset token fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successful. You can now login with your new password." });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };

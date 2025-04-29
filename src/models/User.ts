@@ -86,6 +86,8 @@ export interface IUser extends Document {
     preferredCategories: string[];
   };
   notifications: number;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -163,6 +165,10 @@ const userSchema = new Schema<IUser>(
       type: Number,
       default: 0,
     },
+
+    // Password reset fields
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields
