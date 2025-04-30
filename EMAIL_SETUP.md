@@ -13,7 +13,7 @@ To use Gmail for sending emails in the application, you need to set up an App Pa
 
 2. **Create an App Password**:
    - After enabling 2-Step Verification, go back to the Security page
-   - Click on "App passwords" (under "Signing in to Google")
+   - Click on "App passwords" (under "Signing in to Google") - Link: https://myaccount.google.com/apppasswords
    - Select "Mail" as the app and "Other" as the device
    - Enter a name for the app (e.g., "Datacom Web App")
    - Click "Generate"
@@ -25,6 +25,7 @@ To use Gmail for sending emails in the application, you need to set up an App Pa
      ```
      EMAIL_USER=your_gmail_address@gmail.com
      EMAIL_PASSWORD=your_16_character_app_password
+
      EMAIL_FROM="Datacom Web <your_gmail_address@gmail.com>"
      ```
 

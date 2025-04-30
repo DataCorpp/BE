@@ -10,8 +10,8 @@ export const sendVerificationEmail = async (toEmail: string, verificationCode: s
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER || 'your_mail@gmail.com', // Use environment variable or default
-      pass: process.env.EMAIL_PASSWORD || 'your app password'  // Use environment variable or default
+      user: process.env.EMAIL_USER || 'yourgmail@gmail.com', // Use environment variable or default
+      pass: process.env.EMAIL_PASSWORD || 'app password'  // Use environment variable or default
     }
   });
 
@@ -108,7 +108,7 @@ export const sendVerificationEmail = async (toEmail: string, verificationCode: s
 
   // Set up email options
   const mailOptions = {
-    from: process.env.EMAIL_FROM || '"CPG Matching website" <yourgmail@gmail.com>',
+    from: process.env.EMAIL_FROM || '"DataCorp Solutions" <yourgmail@gmail.com>',
     to: toEmail,
     subject: 'Email Verification Code',
     text: `Your verification code is: ${verificationCode}. This code will expire in 1 minute.`,
@@ -135,8 +135,8 @@ export const sendPasswordResetEmail = async (toEmail: string, resetToken: string
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER || 'qahp955@gmail.com', // Use environment variable or default
-      pass: process.env.EMAIL_PASSWORD || 'jigk bdeo xiuw ftdi'  // Use environment variable or default
+      user: process.env.EMAIL_USER || 'yourgmail@gmail.com', // Use environment variable or default
+      pass: process.env.EMAIL_PASSWORD || 'app password'  // Use environment variable or default
     }
   });
 
