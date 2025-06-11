@@ -1,9 +1,10 @@
 import nodemailer from 'nodemailer';
+require('dotenv').config();
 
 // Email credentials
-const EMAIL_USER = 'qahp955@gmail.com';
-const EMAIL_PASSWORD = 'knwf tbic jjoo tflf';
-const EMAIL_FROM = '"Datacom Web" <qahp955@gmail.com>';
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
+const EMAIL_FROM = '"DataCorp Solutions" <no-reply@gmail.com>';
 
 // Tạo và export transporter để có thể kiểm tra kết nối
 export const createTransporter = async () => {
