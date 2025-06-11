@@ -58,95 +58,93 @@ export const protectAdmin = async (
   res: Response,
   next: NextFunction
 ) => {
-  let token;
-
+  // Log headers để dễ debug
   console.log(
     "Admin auth middleware - Headers received:",
-    Object.keys(req.headers).map((h) => `${h}: ${req.headers[h]}`)
+    Object.keys(req.headers)
+      .filter(h => !h.includes("sec-") && !h.includes("accept") && !h.includes("cache"))
+      .map((h) => `${h}: ${req.headers[h]}`)
   );
 
-  // Check for the admin authorization header (both direct and case-insensitive)
-  const adminAuth =
-    req.headers.adminauthorization || req.headers.AdminAuthorization;
-  // If not found directly, try case-insensitive search
-  const adminAuthHeader =
-    adminAuth ||
-    Object.keys(req.headers).find(
-      (h) => h.toLowerCase() === "adminauthorization"
-    );
+  try {
+    // Kiểm tra header AdminAuthorization (cả viết hoa và viết thường)
+    const adminAuthHeader = 
+      req.headers.adminauthorization || 
+      req.headers.AdminAuthorization || 
+      req.headers['admin-authorization'] ||
+      req.headers['adminauthorization'];
+    
+    // Kiểm tra header X-Admin-Role (cả viết hoa và viết thường)
+    const adminRole = 
+      req.headers['x-admin-role'] || 
+      req.headers['X-Admin-Role'] || 
+      req.headers['x-admin-role'] ||
+      req.headers['X-ADMIN-ROLE'];
+    
+    // Kiểm tra header X-Admin-Email (cả viết hoa và viết thường)
+    const adminEmail = 
+      req.headers['x-admin-email'] || 
+      req.headers['X-Admin-Email'] || 
+      req.headers['x-admin-email'] ||
+      req.headers['X-ADMIN-EMAIL'];
 
-  if (
-    (adminAuthHeader &&
-      typeof adminAuthHeader === "string" &&
-      adminAuthHeader.startsWith("Bearer")) ||
-    (req.headers[adminAuthHeader as string] &&
-      req.headers[adminAuthHeader as string]?.toString().startsWith("Bearer"))
-  ) {
-    try {
-      // Get the token from the header (handle both direct access and via found header)
-      token = adminAuth
-        ? typeof adminAuth === "string"
-          ? adminAuth.split(" ")[1]
-          : adminAuth.toString().split(" ")[1]
-        : req.headers[adminAuthHeader as string]?.toString().split(" ")[1];
+    console.log("Admin auth check - Headers processed:", {
+      adminAuthHeader: adminAuthHeader ? "Present" : "Missing",
+      adminRole: adminRole || "Missing",
+      adminEmail: adminEmail || "Missing"
+    });
 
-      console.log(
-        "Admin token received:",
-        token ? "Valid token" : "Invalid token"
-      );
-
-      // Get admin role and email from headers (try both direct and case-insensitive)
-      const adminRole =
-        req.headers["x-admin-role"] ||
-        req.headers["X-Admin-Role"] ||
-        req.headers[
-          Object.keys(req.headers).find(
-            (h) => h.toLowerCase() === "x-admin-role"
-          ) || ""
-        ];
-
-      const adminEmail =
-        req.headers["x-admin-email"] ||
-        req.headers["X-Admin-Email"] ||
-        req.headers[
-          Object.keys(req.headers).find(
-            (h) => h.toLowerCase() === "x-admin-email"
-          ) || ""
-        ];
-
-      console.log(
-        "Admin authentication - Role:",
-        adminRole,
-        "Email:",
-        adminEmail
-      );
-
-      if (!adminRole || adminRole.toString() !== "admin" || !adminEmail) {
-        console.log("Admin authentication failed - Invalid role or email");
-        return res.status(401).json({
-          message: "Admin authentication failed, redirecting to login page",
-        });
-      }
-
-      // Set user object for admin role check middleware
-      (req as any).user = {
-        role: "admin",
-        email: adminEmail.toString(),
-      };
-
-      console.log("Admin authentication successful");
-      next();
-    } catch (error) {
-      console.error("Admin auth error:", error);
+    // Kiểm tra sự tồn tại của các header bắt buộc
+    if (!adminAuthHeader) {
+      console.log("Admin authorization header missing");
       return res.status(401).json({
-        message: "Admin authentication failed, redirecting to login page",
+        success: false,
+        message: "Admin authentication failed: Missing authorization header"
       });
     }
-  } else {
-    console.log("Admin authorization header missing or invalid");
-    console.log("Available headers:", Object.keys(req.headers).join(", "));
+
+    if (!adminRole || (typeof adminRole === 'string' && adminRole.toLowerCase() !== 'admin')) {
+      console.log(`Admin role invalid: ${adminRole}`);
+      return res.status(401).json({
+        success: false,
+        message: "Admin authentication failed: Invalid admin role"
+      });
+    }
+
+    if (!adminEmail) {
+      console.log("Admin email missing");
+      return res.status(401).json({
+        success: false,
+        message: "Admin authentication failed: Missing admin email"
+      });
+    }
+
+    // Kiểm tra token format - dễ dàng hóa việc kiểm tra 
+    // Cả "Bearer token" và chỉ "token" đều được chấp nhận
+    let token;
+    if (typeof adminAuthHeader === 'string') {
+      token = adminAuthHeader.startsWith('Bearer ') 
+        ? adminAuthHeader.split(' ')[1] 
+        : adminAuthHeader;
+    } else {
+      token = adminAuthHeader.toString();
+    }
+
+    console.log("Admin token processed:", token ? "Valid format" : "Invalid format");
+
+    // Gán thông tin user admin vào request
+    (req as any).user = {
+      role: "admin",
+      email: typeof adminEmail === 'string' ? adminEmail : adminEmail.toString(),
+    };
+
+    console.log("Admin authentication successful for:", (req as any).user.email);
+    next();
+  } catch (error) {
+    console.error("Admin auth error:", error);
     return res.status(401).json({
-      message: "Admin authentication failed, redirecting to login page",
+      success: false,
+      message: "Admin authentication failed: Server error"
     });
   }
 };
