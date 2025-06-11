@@ -1,8 +1,8 @@
 import nodemailer from 'nodemailer';
 
 // Email credentials
-const EMAIL_USER = 'qahp955@gmail.com';
-const EMAIL_PASSWORD = 'knwf tbic jjoo tflf';
+const EMAIL_USER = 'mail';
+const EMAIL_PASSWORD = 'password';
 const EMAIL_FROM = '"DataCorp Solutions" <no-reply@gmail.com>';
 
 // Tạo và export transporter để có thể kiểm tra kết nối
