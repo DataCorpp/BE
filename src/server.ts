@@ -4,6 +4,7 @@ import cors from "cors";
 import connectDB from "./config/db";
 import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
+import foodProductRoutes from "./routes/foodProductRoutes";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -34,6 +35,7 @@ app.use(express.json());
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/foodproducts", foodProductRoutes);
 
 // Health check
 app.get("/health", (req: Request, res: Response) => {
@@ -52,6 +54,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`Server running on port ${PORT}`);
     console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
     console.log(`User API available at http://localhost:${PORT}/api/users`);
+    console.log(`Food Products API available at http://localhost:${PORT}/api/foodproducts`);
   });
 }
 
