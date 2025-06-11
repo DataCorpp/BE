@@ -31,7 +31,9 @@ const verificationCodes: Record<string, VerificationCode> = {};
 
 // Helper function to generate a random 6-digit code
 const generateVerificationCode = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Don't log the generated code for security
+  return code;
 };
 
 // @desc    Đăng nhập người dùng & lấy token
@@ -96,6 +98,25 @@ export const registerUser = async (
       companyDescription,
     } = req.body;
 
+    // Check for required fields
+    if (!name || !email || !password) {
+      res.status(400).json({ message: "Please provide name, email and password" });
+      return;
+    }
+
+    // Check if valid email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ message: "Please provide a valid email address" });
+      return;
+    }
+
+    // Check if valid password (at least 6 characters)
+    if (password.length < 6) {
+      res.status(400).json({ message: "Password must be at least 6 characters" });
+      return;
+    }
+
     // Kiểm tra xem người dùng đã tồn tại chưa
     const userExists = await User.findOne({ email });
 
@@ -104,13 +125,22 @@ export const registerUser = async (
       return;
     }
 
+    // Check if we're running in development mode without proper email setup
+    const isDevMode = process.env.NODE_ENV === 'development';
+    const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+
     // Tạo người dùng mới với trạng thái 'pending'
     const user = await User.create({
       name,
       email,
       password,
       role,
-      status: 'pending', // Set initial status to pending until email verification
+      status: isDevMode && !hasEmailConfig ? 'active' : 'pending', // Auto-activate in dev mode
+      companyName,
+      phone,
+      website,
+      address,
+      companyDescription,
     });
 
     if (user) {
@@ -130,24 +160,47 @@ export const registerUser = async (
       };
 
       // Send verification email
+      let emailSent = false;
       try {
         await sendVerificationEmail(email, verificationCode);
-        console.log(`Verification email sent to ${email}`);
+        console.log(`Verification email processing completed for ${email}`);
+        emailSent = true;
       } catch (emailError) {
-        console.error('Error sending verification email:', emailError);
-        // Continue with registration even if email fails
+        console.error('Error with email verification process');
+        // In production, we might want to handle this differently
+        if (process.env.NODE_ENV === 'production') {
+          // In production, email is critical - return an error
+          res.status(500).json({ message: "Failed to send verification email. Please try again later." });
+          return;
+        }
+        // In development, we'll continue with registration anyway
       }
 
-      res.status(201).json({
+      // Create response object
+      const responseObj: any = {
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         status: user.status,
         token: generateToken(userId),
-        // For development purposes only
-        verificationCode: verificationCode
-      });
+      };
+
+      // In development, include verification code to help with testing
+      if (process.env.NODE_ENV === 'development') {
+        // Send verification code in response but not in logs
+        responseObj.verificationCode = verificationCode;
+        
+        if (!emailSent) {
+          console.log('\n🧪 DEVELOPMENT MODE: Email service not configured or failed');
+          
+          if (!hasEmailConfig) {
+            console.log('ℹ️ User automatically activated in development mode without email verification');
+          }
+        }
+      }
+
+      res.status(201).json(responseObj);
     } else {
       res.status(400).json({ message: "Invalid user data" });
     }
@@ -417,7 +470,7 @@ export const updateUserProfile = async (
   }
 };
 
-// @desc    Verify user email with verification code
+// @desc    Verify user email with code
 // @route   POST /api/users/verify-email
 // @access  Public
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
@@ -429,28 +482,6 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Check if verification code exists and is valid
-    const storedVerification = verificationCodes[email];
-    
-    if (!storedVerification) {
-      res.status(400).json({ message: "Verification code not found or expired" });
-      return;
-    }
-
-    // Check if verification code is correct
-    if (storedVerification.code !== verificationCode) {
-      res.status(400).json({ message: "Invalid verification code" });
-      return;
-    }
-
-    // Check if verification code is expired
-    if (new Date() > storedVerification.expires) {
-      // Remove expired code
-      delete verificationCodes[email];
-      res.status(400).json({ message: "Verification code expired" });
-      return;
-    }
-
     // Find the user by email
     const user = await User.findOne({ email });
 
@@ -459,24 +490,122 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // If user is already active
+    if (user.status === 'active') {
+      res.json({
+        success: true,
+        message: "Your email has already been verified",
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+      return;
+    }
+
+    // Check if we have a verification code for this email
+    const storedVerification = verificationCodes[email];
+    const isDevMode = process.env.NODE_ENV === 'development';
+
+    // In development mode, accept any verification code that matches when email config is missing
+    const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+    if (isDevMode && !hasEmailConfig && storedVerification && verificationCode === storedVerification.code) {
+      // Update user status to active
+      user.status = 'active';
+      await user.save();
+
+      // Remove verification code from memory
+      delete verificationCodes[email];
+
+      console.log(`✅ Email verified in development mode: ${email}`);
+      
+      res.json({
+        success: true,
+        message: "Email verified successfully (development mode)",
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+      return;
+    }
+
+    if (!storedVerification) {
+      // Handle the case where verification code is missing or expired
+      if (isDevMode && !hasEmailConfig) {
+        // In dev mode without email config, auto-verify with any code
+        console.log('⚠️ DEV MODE: Auto-verifying user');
+        user.status = 'active';
+        await user.save();
+
+        res.json({
+          success: true,
+          message: "Auto-verified in development mode",
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
+        return;
+      } else {
+        res.status(400).json({ message: "Verification code is invalid or has expired" });
+        return;
+      }
+    }
+
+    // Check if code has expired (1 minute validity)
+    const now = new Date();
+    if (now > storedVerification.expires) {
+      // Remove expired code
+      delete verificationCodes[email];
+      res.status(400).json({ message: "Verification code has expired" });
+      return;
+    }
+
+    // Verify the code
+    if (verificationCode !== storedVerification.code) {
+      res.status(400).json({ message: "Invalid verification code" });
+      return;
+    }
+
     // Update user status to active
     user.status = 'active';
     await user.save();
 
-    // Remove the used verification code
+    // Remove used verification code
     delete verificationCodes[email];
+    
+    console.log(`✅ Email verified successfully: ${email}`);
 
-    res.status(200).json({ message: "Email verified successfully" });
+    res.json({
+      success: true,
+      message: "Email verified successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
   } catch (error) {
+    console.error('❌ Email verification error');
+    
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: "Verification failed" });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ message: "Unknown error occurred during verification" });
     }
   }
 };
 
-// @desc    Resend verification code to user email
+// @desc    Resend verification code
 // @route   POST /api/users/resend-verification
 // @access  Public
 export const resendVerificationCode = async (req: Request, res: Response): Promise<void> => {
@@ -496,8 +625,14 @@ export const resendVerificationCode = async (req: Request, res: Response): Promi
       return;
     }
 
-    // Generate a new 6-digit verification code
-    const newCode = generateVerificationCode();
+    // Check if the user is already verified
+    if (user.status === 'active') {
+      res.status(400).json({ message: "Email is already verified" });
+      return;
+    }
+
+    // Generate a new verification code
+    const verificationCode = generateVerificationCode();
     
     // Set expiration to 1 minute from now
     const expiration = new Date();
@@ -505,29 +640,50 @@ export const resendVerificationCode = async (req: Request, res: Response): Promi
     
     // Store the code with its expiration
     verificationCodes[email] = {
-      code: newCode,
+      code: verificationCode,
       expires: expiration
     };
 
     // Send verification email
     try {
-      await sendVerificationEmail(email, newCode);
+      await sendVerificationEmail(email, verificationCode);
       console.log(`Verification email resent to ${email}`);
-    } catch (emailError) {
-      console.error('Error sending verification email:', emailError);
-      // Return error if email sending fails
+      
+      // Create response object
+      const responseObj: any = {
+        success: true,
+        message: "Verification email sent successfully",
+      };
+      
+      // In development, include verification code but don't log it
+      if (process.env.NODE_ENV === 'development') {
+        responseObj.verificationCode = verificationCode;
+      }
+      
+      res.json(responseObj);
+    } catch (error) {
+      console.error('Error with email verification process');
+      
+      // In development mode, still return success but include the verification code
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧪 Development mode: Continuing despite email error');
+        
+        res.json({
+          success: true,
+          message: "Verification email simulation successful (development mode)",
+          verificationCode: verificationCode
+        });
+        return;
+      }
+      
+      // In production, return error
       res.status(500).json({ message: "Failed to send verification email" });
-      return;
     }
-
-    res.status(200).json({ 
-      message: "Verification code sent successfully",
-      // For development purposes only
-      code: newCode
-    });
   } catch (error) {
+    console.error('Resend verification error');
+    
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: "Failed to resend verification email" });
     } else {
       res.status(500).json({ message: "Unknown error occurred" });
     }
