@@ -1,9 +1,8 @@
 import nodemailer from 'nodemailer';
-require('dotenv').config();
 
 // Email credentials
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
+const EMAIL_USER = 'your_email';
+const EMAIL_PASSWORD = 'your_password';
 const EMAIL_FROM = '"DataCorp Solutions" <no-reply@gmail.com>';
 
 // Tạo và export transporter để có thể kiểm tra kết nối
