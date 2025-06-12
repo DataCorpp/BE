@@ -196,6 +196,10 @@ export const registerUser = async (
           
           if (!hasEmailConfig) {
             console.log('ℹ️ User automatically activated in development mode without email verification');
+            
+            // Automatically activate the user in development mode if email fails
+            await User.findByIdAndUpdate(user._id, { status: 'active' });
+            responseObj.status = 'active';
           }
         }
       }

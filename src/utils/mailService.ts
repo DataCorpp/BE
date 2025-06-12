@@ -1,9 +1,9 @@
 import nodemailer from 'nodemailer';
 
-// Email credentials
-const EMAIL_USER = 'mail';
-const EMAIL_PASSWORD = 'password';
-const EMAIL_FROM = '"DataCorp Solutions" <no-reply@gmail.com>';
+// Email credentials - Use environment variables with fallbacks
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
+const EMAIL_FROM = process.env.EMAIL_FROM;
 
 // Tạo và export transporter để có thể kiểm tra kết nối
 export const createTransporter = async () => {
@@ -12,14 +12,19 @@ export const createTransporter = async () => {
   try {
     // Create transporter with direct credentials instead of environment variables
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true, // use SSL
       auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASSWORD,
       },
       // Disable debug logs to prevent showing credentials in terminal
       debug: false,
-      logger: false
+      logger: false,
+      tls: {
+        rejectUnauthorized: false // Bypass certificate verification (not recommended for production)
+      }
     });
     
     console.log('✅ Email transporter created');
@@ -97,6 +102,10 @@ export const sendVerificationEmail = async (toEmail: string, verificationCode: s
       isTestAccount = true;
     } else {
       try {
+        console.log('Verifying SMTP connection...');
+        console.log('Email user:', EMAIL_USER ? 'Set' : 'Not set');
+        console.log('Email password:', EMAIL_PASSWORD ? 'Set' : 'Not set');
+        
         const isConnected = await transporter.verify();
         
         if (!isConnected) {
@@ -106,6 +115,8 @@ export const sendVerificationEmail = async (toEmail: string, verificationCode: s
         console.log('✅ SMTP Connection verified');
       } catch (verifyErr) {
         console.error('❌ SMTP Connection verification failed');
+        console.error('Error details:', verifyErr);
+        
         if (process.env.NODE_ENV !== 'development') {
           throw verifyErr;
         } else {
