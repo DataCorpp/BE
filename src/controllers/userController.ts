@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../utils/mailService";
 import { sendPasswordResetEmail } from "../utils/mailService";
 import { generatePasswordResetToken, hashToken, buildResetUrl } from "../utils/passwordResetUtils";
+import axios from "axios";
 
 // Define a custom Request type that includes the user property
 interface RequestWithUser extends Request {
@@ -59,15 +60,18 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const userId = user._id.toString();
+    // Lưu thông tin người dùng vào session
+    if (req.session) {
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+    }
 
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      status: user.status,
-      token: generateToken(userId),
+      status: user.status
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -793,6 +797,136 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json({ message: "Password reset successful. You can now login with your new password." });
   } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Authenticate user with Google OAuth
+// @route   POST /api/users/google-login
+// @access  Public
+export const googleLogin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, email, name, picture } = req.body;
+    
+    console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
+    
+    if (!token || !email) {
+      res.status(400).json({ message: "Token and email are required" });
+      return;
+    }
+    
+    // Verify token with Google (additional security)
+    try {
+      await axios.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+      console.log("Google token verification successful");
+    } catch (verificationError) {
+      console.error("Google token verification failed:", verificationError);
+      res.status(401).json({ message: "Invalid Google token" });
+      return;
+    }
+    
+    // Check if user with this email already exists
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+    
+    if (user) {
+      console.log("Existing user found:", { id: user._id, role: user.role });
+      // Existing user - update their information
+      user.name = name || user.name; // Keep existing name if new one not provided
+      user.lastLogin = new Date();
+      
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+      }
+      
+      await user.save();
+    } else {
+      console.log("Creating new user with email:", email);
+      // Create new user
+      // Generate a random password since we won't use it for OAuth users
+      const randomPassword = Math.random().toString(36).slice(-10);
+      
+      user = await User.create({
+        name,
+        email,
+        password: randomPassword, // This will be hashed by the User model pre-save hook
+        role: "manufacturer", // Default role, can be changed during profile setup
+        status: "active", // OAuth users are pre-verified by Google
+        avatar: picture
+      });
+      
+      isNewUser = true;
+      console.log("New user created:", { id: user._id, role: user.role });
+    }
+    
+    // Save user info to session
+    if (req.session) {
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+      console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+      
+      // Ensure the session is saved before sending response
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+        }
+      });
+    } else {
+      console.warn("No session object available - session-based auth may not work");
+    }
+    
+    // Prepare response data
+    const userData = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      profileComplete: user.profileComplete,
+      avatar: user.avatar
+    };
+    
+    console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+    
+    // Send response with user data directly at top level
+    res.json({
+      ...userData,
+      isNewUser
+    });
+    
+  } catch (error) {
+    console.error("Google login error:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred during Google authentication" });
+    }
+  }
+};
+
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+export const logoutUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Xóa session
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          res.status(500).json({ message: "Could not log out, please try again" });
+        } else {
+          res.json({ message: "Logout successful" });
+        }
+      });
+    } else {
+      res.json({ message: "No active session" });
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {

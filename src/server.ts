@@ -2,6 +2,8 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
@@ -31,6 +33,25 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "fallback_session_secret",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI || "mongodb://localhost:27017/datacom",
+      collectionName: "sessions",
+    }),
+    cookie: {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    }
+  })
+);
 
 // Routes
 app.use("/api/admin", adminRoutes);
