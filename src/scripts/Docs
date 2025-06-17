@@ -1,0 +1,5 @@
+npm run seed:seasoningsJP
+npm run seed:seasonings
+npm run seed:manufacturers
+
+npm run seed

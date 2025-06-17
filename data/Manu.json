@@ -1,0 +1,152 @@
+[
+    {
+      "_id": "68504311bd7da6832650547a",
+      "name": "Kikkoman Corporation",
+      "location": "250 Noda, Noda-shi, Chiba 278-8601, Japan; Tokyo: 2-1-1 Nishi-Shinbashi, Minato-ku, Tokyo 105-8428, Japan",
+      "establish": 1917,
+      "industry": "Food and Beverage",
+      "certification": ["ISO 9001", "FSSC 22000", "Halal", "GFSI"],
+      "contact": {
+        "email": "info@kikkoman.com",
+        "phone": "+81-4-7123-5111"
+      },
+      "website": "https://www.kikkoman.com",
+      "image": "https://www.kikkoman.com/_resources/images/logo.png",
+      "description": "Global leader in naturally brewed soy sauce and seasonings, world’s largest producer as of 2002." 
+    },
+    {
+      "_id": "68504311bd7da6832650547b",
+      "name": "Yamasa Corporation",
+      "location": "2-10-1 Araoicho, Choshi, Chiba 288-0056, Japan",
+      "establish": 1645,
+      "industry": "Food and Beverage",
+      "certification": ["FSSC 22000", "HACCP", "GFSI"],
+      "contact": {
+        "email": "",
+        "phone": "+81-479-22-0095"
+      },
+      "website": "https://www.yamasa.com",
+      "image": "",
+      "description": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings." 
+    },
+    {
+      "_id": "68504311bd7da6832650547c",
+      "name": "Marunaka Shoyu Co., Ltd.",
+      "location": "229, HIGASHIDE, AISHOCHO, ECHI-GUN, SHIGA 529-1233, Japan",
+      "establish": 1820,
+      "industry": "Food and Beverage",
+      "certification": ["National Tangible Cultural Property"],
+      "contact": {
+        "email": "info@marunaka-shouyu.com",
+        "phone": "0749-37-2719"
+      },
+      "website": "https://www.marunaka-shouyu.com",
+      "image": "",
+      "description": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods." 
+    },
+    {
+      "_id": "68504311bd7da6832650547d",
+      "name": "Marukome Co., Ltd.",
+      "location": "883 Amori, Nagano-shi, Nagano Prefecture 380-8533, Japan",
+      "establish": 1854,
+      "industry": "Food and Beverage",
+      "certification": ["ISO 22000"],
+      "contact": {
+        "email": "",
+        "phone": "0120-060-070"
+      },
+      "website": "http://www.marukome.co.jp",
+      "image": "",
+      "description": "Japanese miso soup paste producer, one of the top in Japan, founded 1854." 
+    },
+    {
+      "_id": "68504311bd7da6832650547e",
+      "name": "Hikari Miso Co., Ltd.",
+      "location": "4848-1 Shimosuwa, Suwa-gun, Nagano 393-0041, Japan",
+      "establish": 1936,
+      "industry": "Food and Beverage",
+      "certification": ["JAS Organic", "USDA Certified Organic", "EU Organic", "OCIA"],
+      "contact": {
+        "email": "info@hikarimiso.co.jp",
+        "phone": ""
+      },
+      "website": "https://hikarimiso.com",
+      "image": "",
+      "description": "Japan’s leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano." 
+    },
+    {
+      "_id": "68504311bd7da6832650547f",
+      "name": "Shinsyuichi Miso Co., Ltd.",
+      "location": "Yebisu Garden Place, 4-20-1 Ebisu, Shibuya-ku, Tokyo 150-0013, Japan",
+      "establish": 1661,
+      "industry": "Food and Beverage",
+      "certification": ["USDA Organic", "Kosher"],
+      "contact": {
+        "email": "",
+        "phone": "+81-3-5796-1176"
+      },
+      "website": "https://www.shinsyuichi.jp/english",
+      "image": "",
+      "description": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662." 
+    },
+    {
+      "_id": "68504311bd7da68326505480",
+      "name": "Kenko Mayonnaise Co., Ltd.",
+      "location": "3-8-13 Takaido-Higashi No.3 Bldg., Suginami-ku, Tokyo 168-0072, Japan",
+      "establish": 1958,
+      "industry": "Food and Beverage",
+      "certification": ["Halal (MUI)", "ISO 22000"],
+      "contact": {
+        "email": "",
+        "phone": "+81-3-5962-7777"
+      },
+      "website": "https://www.kenkomayo.co.jp",
+      "image": "",
+      "description": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958." 
+    },
+    {
+      "_id": "68504311bd7da68326505481",
+      "name": "Kewpie Corporation",
+      "location": "1-4-13 Shibuya, Shibuya-ku, Tokyo 150-0002, Japan",
+      "establish": 1919,
+      "industry": "Food and Beverage",
+      "certification": ["GFSI", "ISO 14001", "Outstanding Health and Productivity Management"],
+      "contact": {
+        "email": "makoto_onodera@kewpie.co.jp",
+        "phone": "+81-3-3486-3331"
+      },
+      "website": "https://www.kewpie.com/en/",
+      "image": "",
+      "description": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation." 
+    },
+    {
+      "_id": "68504311bd7da68326505482",
+      "name": "Mizkan Holdings Co., Ltd.",
+      "location": "2-6 Nakamura-cho, Handa City, Aichi Prefecture 475-8585, Japan",
+      "establish": 1804,
+      "industry": "Food and Beverage",
+      "certification": ["ISO 22000", "GFSI", "ISO 14001", "Outstanding Health and Productivity Management"],
+      "contact": {
+        "email": "info@mizkan.co.jp",
+        "phone": "+81-569-21-3331"
+      },
+      "website": "https://www.mizkan.com",
+      "image": "",
+      "description": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804." 
+    },
+    {
+      "_id": "68504311bd7da68326505483",
+      "name": "Otafuku Sauce Co., Ltd.",
+      "location": "1-1-10 Higashi-Shinbashi, Minato-ku, Tokyo 105-0004, Japan",
+      "establish": 1922,
+      "industry": "Food and Beverage",
+      "certification": ["ISO 22000", "GFSI", "ISO 14001", "Outstanding Health and Productivity Management"],
+      "contact": {
+        "email": "info@otafukusauce.com",
+        "phone": "+81-3-5796-1176"
+      },
+      "website": "https://otafukusauce.com/e",
+      "image": "",
+      "description": "One of Japan’s largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces." 
+    }
+]
