@@ -7,7 +7,9 @@ import {
   verifyEmail,
   resendVerificationCode,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  googleLogin,
+  logoutUser
 } from "../controllers/userController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -20,9 +22,12 @@ router.post("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationCode);
 router.post("/forgot-password", requestPasswordReset);
 router.post("/reset-password", resetPassword);
+router.post("/google-login", googleLogin);
+router.post("/logout", logoutUser);
 
 // Protected routes
 router.get("/profile", protect, getUserProfile);
+router.get("/me", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
 
 export default router;

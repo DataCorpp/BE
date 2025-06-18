@@ -1,9 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { Session } from 'express-session';
 
 interface JwtPayload {
   id: string;
+}
+
+// Extend SessionData
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string;
+    userRole?: string;
+  }
 }
 
 // Mở rộng interface Request để thêm trường user
@@ -15,40 +24,40 @@ declare global {
   }
 }
 
-// Middleware bảo vệ route
+// Middleware bảo vệ route sử dụng session
 export const protect = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  let token;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      // Lấy token từ header
-      token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "fallbacksecret"
-      ) as JwtPayload;
-
-      // Lấy user từ token
-      (req as any).user = await User.findById(decoded.id).select("-password");
-
+  try {
+    console.log("Protect middleware - Session check:", req.session ? "Session exists" : "No session");
+    
+    // Kiểm tra xem có userId trong session không
+    if (req.session && req.session.userId) {
+      console.log(`Session user ID found: ${req.session.userId}`);
+      
+      // Tìm user từ session
+      const user = await User.findById(req.session.userId).select("-password");
+      
+      if (!user) {
+        console.log("User not found in database despite having session ID");
+        res.status(401).json({ message: "User not found, please login again" });
+        return;
+      }
+      
+      console.log(`User found: ${user.email}, role: ${user.role}`);
+      
+      // Thêm thông tin user vào request
+      (req as any).user = user;
       next();
-    } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: "Not authorized, token failed" });
+    } else {
+      console.log("No user session found");
+      res.status(401).json({ message: "Not authorized, please login" });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+  } catch (error) {
+    console.error("Session authentication error:", error);
+    res.status(401).json({ message: "Authentication failed" });
   }
 };
 
