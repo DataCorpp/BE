@@ -9,7 +9,8 @@ import {
   requestPasswordReset,
   resetPassword,
   googleLogin,
-  logoutUser
+  logoutUser,
+  getManufacturers
 } from "../controllers/userController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -24,6 +25,7 @@ router.post("/forgot-password", requestPasswordReset);
 router.post("/reset-password", resetPassword);
 router.post("/google-login", googleLogin);
 router.post("/logout", logoutUser);
+router.get("/manufacturers", getManufacturers);
 
 // Protected routes
 router.get("/profile", protect, getUserProfile);

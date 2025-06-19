@@ -2,21 +2,34 @@ import mongoose, { Document, Schema } from "mongoose";
 
 // Định nghĩa interface cho FoodProduct
 export interface IFoodProduct extends Document {
-  productName: string;
+  name: string;
   category: string;
-  flavorType: string[];
-  ingredients: string[];
-  usage: string[];
-  packagingSize: string;
-  shelfLife: string;
-  manufacturerName: string;
-  manufacturerRegion: string;
+  manufacturer: string;
+  image: string;
+  price: string;
+  pricePerUnit?: number;
+  rating: number;
+  productType: string;
+  description: string;
+  minOrderQuantity: number;
+  leadTime: string;
+  leadTimeUnit?: string;
+  sustainable: boolean;
+  sku?: string;
+  unitType?: string;
+  currentAvailable?: number;
+  ingredients?: string[];
+  flavorType?: string[];
+  usage?: string[];
+  packagingSize?: string;
+  shelfLife?: string;
+  manufacturerRegion?: string;
 }
 
 // Schema cho FoodProduct
 const foodProductSchema = new Schema(
   {
-    productName: {
+    name: {
       type: String,
       required: true,
     },
@@ -24,34 +37,77 @@ const foodProductSchema = new Schema(
       type: String,
       required: true,
     },
+    manufacturer: {
+      type: String,
+      required: true,
+    },
+    image: {
+      type: String,
+      default: "/placeholder.svg",
+    },
+    price: {
+      type: String,
+      required: true,
+    },
+    pricePerUnit: {
+      type: Number,
+    },
+    rating: {
+      type: Number,
+      default: 4.0,
+    },
+    productType: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    minOrderQuantity: {
+      type: Number,
+      required: true,
+    },
+    leadTime: {
+      type: String,
+      required: true,
+    },
+    leadTimeUnit: {
+      type: String,
+      default: "weeks",
+    },
+    sustainable: {
+      type: Boolean,
+      default: false,
+    },
+    sku: {
+      type: String,
+    },
+    unitType: {
+      type: String,
+      default: "units",
+    },
+    currentAvailable: {
+      type: Number,
+    },
+    ingredients: [{
+      type: String,
+    }],
     flavorType: [{
       type: String,
       enum: ["salty", "sweet", "spicy", "umami", "sour"],
-      required: true,
-    }],
-    ingredients: [{
-      type: String,
-      required: true,
     }],
     usage: [{
       type: String,
-      required: true,
     }],
     packagingSize: {
       type: String,
-      required: true,
     },
     shelfLife: {
       type: String,
-      required: true,
-    },
-    manufacturerName: {
-      type: String,
-      required: true,
     },
     manufacturerRegion: {
       type: String,
-      required: true,
     },
   },
   {

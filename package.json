@@ -5,11 +5,16 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "nodemon",
+    "dev": "nodemon src/server.ts",
     "build": "tsc",
+    "data:seed": "node src/data/seedFoodProducts.js",
+    "data:destroy": "node src/data/destroyFoodProducts.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "seed:manufacturers": "ts-node src/scripts/seedManufacturers.ts",
+    "seed:seasoningsJP": "ts-node src/scripts/seedSeasoningsJP.ts",
+    "seed:seasonings": "ts-node src/scripts/seedSeasonings.ts"
   },
   "keywords": [
     "nodejs",
@@ -23,13 +28,14 @@
     "@react-oauth/google": "^0.12.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/express-session": "^1.18.2",
-    "axios": "^1.9.0",
+    "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "express-validator": "^7.2.1",
     "google-auth-library": "^10.1.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",
@@ -39,6 +45,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
+    "@types/express-validator": "^2.20.33",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/node": "^18.15.11",
