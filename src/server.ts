@@ -37,11 +37,11 @@ app.use(express.json());
 // Session configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "fallback_session_secret",
+    secret: process.env.GOOGLE_CLIENT_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI || "mongodb://localhost:27017/datacom",
+      mongoUrl: process.env.MONGODB_URI,
       collectionName: "sessions",
     }),
     cookie: {
