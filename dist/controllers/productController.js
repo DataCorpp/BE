@@ -12,305 +12,209 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProductsByManufacturer = exports.getProductTypes = exports.getCategories = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductById = exports.getProducts = void 0;
+exports.getProductStats = exports.getManufacturers = exports.getProductTypes = exports.getProductDetails = exports.getProductById = exports.getProducts = void 0;
 const Product_1 = __importDefault(require("../models/Product"));
-const Manufacturer_1 = __importDefault(require("../models/Manufacturer"));
-const mongoose_1 = __importDefault(require("mongoose"));
-// @desc    Get all products with filtering and pagination
+// @desc    Lấy tất cả sản phẩm cơ bản với discriminator routing
 // @route   GET /api/products
 // @access  Public
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { search, category, productType, sustainable, sortBy, minPrice, maxPrice, minRating, leadTimeUnit, maxLeadTime, status, manufacturer, page = 1, limit = 10 } = req.query;
+        const { search, productType, includeDetails = false, // Flag để include detail models
+        page = 1, limit = 10 } = req.query;
         // Build query
         const query = {};
         // Search functionality
         if (search) {
-            query.$text = { $search: search };
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { manufacturerName: { $regex: search, $options: 'i' } }
+            ];
         }
-        // Filter by category
-        if (category && category !== 'All Categories') {
-            query.category = category;
-        }
-        // Filter by productType (can be an array)
-        if (productType && Array.isArray(productType) && productType.length > 0) {
-            query.productType = { $in: productType };
-        }
-        else if (productType && !Array.isArray(productType)) {
+        // Filter by productType (discriminator)
+        if (productType && productType !== 'all') {
             query.productType = productType;
-        }
-        // Filter by sustainable
-        if (sustainable === 'true') {
-            query.sustainable = true;
-        }
-        // Filter by price range
-        if (minPrice || maxPrice) {
-            query.price = {};
-            if (minPrice)
-                query.price.$gte = Number(minPrice);
-            if (maxPrice)
-                query.price.$lte = Number(maxPrice);
-        }
-        // Filter by rating
-        if (minRating) {
-            query.rating = { $gte: Number(minRating) };
-        }
-        // Filter by lead time
-        if (leadTimeUnit || maxLeadTime) {
-            if (leadTimeUnit) {
-                query['leadTimeDetailed.unit'] = leadTimeUnit;
-            }
-            if (maxLeadTime) {
-                query['leadTimeDetailed.max'] = { $lte: Number(maxLeadTime) };
-            }
-        }
-        // Filter by status
-        if (status) {
-            if (Array.isArray(status) && status.length > 0) {
-                query.status = { $in: status };
-            }
-            else if (typeof status === 'string') {
-                query.status = status;
-            }
-        }
-        // Filter by manufacturer
-        if (manufacturer) {
-            if (Array.isArray(manufacturer) && manufacturer.length > 0) {
-                query.manufacturer = { $in: manufacturer.map(id => new mongoose_1.default.Types.ObjectId(id)) };
-            }
-            else if (typeof manufacturer === 'string') {
-                query.manufacturer = new mongoose_1.default.Types.ObjectId(manufacturer);
-            }
         }
         // Pagination
         const pageNum = Number(page);
         const limitNum = Number(limit);
         const skip = (pageNum - 1) * limitNum;
-        // Create sort object
-        let sortOptions = {};
-        if (sortBy) {
-            switch (sortBy) {
-                case 'price-asc':
-                    sortOptions = { price: 1 };
-                    break;
-                case 'price-desc':
-                    sortOptions = { price: -1 };
-                    break;
-                case 'rating':
-                    sortOptions = { rating: -1 };
-                    break;
-                case 'name':
-                    sortOptions = { name: 1 };
-                    break;
-                default:
-                    // Default sort by relevance if searching, otherwise by newest first
-                    sortOptions = search ? { score: { $meta: 'textScore' } } : { createdAt: -1 };
-            }
-        }
-        else {
-            // Default sort
-            sortOptions = search ? { score: { $meta: 'textScore' } } : { createdAt: -1 };
-        }
         const totalCount = yield Product_1.default.countDocuments(query);
+        // Chỉ select các field cơ bản từ Product
         const products = yield Product_1.default.find(query)
-            .populate('manufacturer', 'name location industry website')
-            .sort(sortOptions)
+            .select('name manufacturerName productType createdAt updatedAt')
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum);
+        // Nếu yêu cầu include details, route đến đúng detail collection
+        let detailedProducts = products.map(product => product.toObject());
+        if (includeDetails === 'true') {
+            detailedProducts = yield Promise.all(products.map((product) => __awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    const details = yield product.getDetails();
+                    return Object.assign(Object.assign({}, product.toObject()), { details: details });
+                }
+                catch (error) {
+                    // Nếu không tìm thấy detail model, trả về product cơ bản
+                    return product.toObject();
+                }
+            })));
+        }
         res.json({
-            success: true,
-            products,
+            products: detailedProducts,
             page: pageNum,
             pages: Math.ceil(totalCount / limitNum),
-            total: totalCount
+            total: totalCount,
+            discriminator: {
+                enabled: true,
+                supportedTypes: ['food', 'beverage', 'health', 'other']
+            }
         });
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
 exports.getProducts = getProducts;
-// @desc    Get product by ID
+// @desc    Lấy sản phẩm theo ID với discriminator routing
 // @route   GET /api/products/:id
 // @access  Public
 const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        const product = yield Product_1.default.findById(id)
-            .populate('manufacturer', 'name location industry certification contact website image description');
+        const { includeDetails = false } = req.query;
+        const product = yield Product_1.default.findById(req.params.id)
+            .select('name manufacturerName productType createdAt updatedAt');
         if (!product) {
-            res.status(404).json({ success: false, message: "Product not found" });
+            res.status(404).json({ message: "Product not found" });
             return;
         }
-        res.json({ success: true, data: product });
+        // Nếu yêu cầu include details, sử dụng discriminator routing
+        if (includeDetails === 'true') {
+            try {
+                const details = yield product.getDetails();
+                res.json({
+                    product: product.toObject(),
+                    details: details,
+                    discriminator: product.productType
+                });
+            }
+            catch (error) {
+                // Nếu không tìm thấy detail model, trả về product cơ bản
+                res.json({
+                    product: product.toObject(),
+                    details: null,
+                    discriminator: product.productType,
+                    warning: `No detail model found for productType: ${product.productType}`
+                });
+            }
+        }
+        else {
+            res.json({
+                product: product.toObject(),
+                discriminator: product.productType
+            });
+        }
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
 exports.getProductById = getProductById;
-// @desc    Create new product
-// @route   POST /api/products
-// @access  Private/Manufacturer
-const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        // Validate manufacturer exists
-        if (req.body.manufacturer && !mongoose_1.default.Types.ObjectId.isValid(req.body.manufacturer)) {
-            res.status(400).json({ success: false, message: "Invalid manufacturer ID" });
-            return;
-        }
-        if (req.body.manufacturer) {
-            const manufacturerExists = yield Manufacturer_1.default.findById(req.body.manufacturer);
-            if (!manufacturerExists) {
-                res.status(400).json({ success: false, message: "Manufacturer not found" });
-                return;
-            }
-        }
-        const product = new Product_1.default(req.body);
-        const createdProduct = yield product.save();
-        // Populate manufacturer data for response
-        yield createdProduct.populate('manufacturer', 'name location industry website');
-        res.status(201).json({
-            success: true,
-            message: "Product created successfully",
-            data: createdProduct
-        });
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            res.status(400).json({ success: false, message: error.message });
-        }
-        else {
-            res.status(400).json({ success: false, message: "Unknown error occurred" });
-        }
-    }
-});
-exports.createProduct = createProduct;
-// @desc    Update product
-// @route   PUT /api/products/:id
-// @access  Private/Manufacturer
-const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        // Validate manufacturer if provided
-        if (req.body.manufacturer && !mongoose_1.default.Types.ObjectId.isValid(req.body.manufacturer)) {
-            res.status(400).json({ success: false, message: "Invalid manufacturer ID" });
-            return;
-        }
-        if (req.body.manufacturer) {
-            const manufacturerExists = yield Manufacturer_1.default.findById(req.body.manufacturer);
-            if (!manufacturerExists) {
-                res.status(400).json({ success: false, message: "Manufacturer not found" });
-                return;
-            }
-        }
-        const product = yield Product_1.default.findById(id);
-        if (!product) {
-            res.status(404).json({ success: false, message: "Product not found" });
-            return;
-        }
-        // Update all fields from request body
-        Object.assign(product, req.body);
-        const updatedProduct = yield product.save();
-        yield updatedProduct.populate('manufacturer', 'name location industry website');
-        res.json({
-            success: true,
-            message: "Product updated successfully",
-            data: updatedProduct
-        });
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            res.status(400).json({ success: false, message: error.message });
-        }
-        else {
-            res.status(400).json({ success: false, message: "Unknown error occurred" });
-        }
-    }
-});
-exports.updateProduct = updateProduct;
-// @desc    Delete product
-// @route   DELETE /api/products/:id
-// @access  Private/Manufacturer
-const deleteProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        const product = yield Product_1.default.findById(id);
-        if (!product) {
-            res.status(404).json({ success: false, message: "Product not found" });
-            return;
-        }
-        yield Product_1.default.deleteOne({ _id: id });
-        res.json({
-            success: true,
-            message: "Product deleted successfully"
-        });
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
-        }
-        else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
-        }
-    }
-});
-exports.deleteProduct = deleteProduct;
-// @desc    Get unique categories
-// @route   GET /api/products/categories
+// @desc    Route đến detail collection dựa trên discriminator
+// @route   GET /api/products/:id/details
 // @access  Public
-const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getProductDetails = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const categories = yield Product_1.default.distinct('category');
-        res.json({
-            success: true,
-            data: ['All Categories', ...categories.filter(category => category)]
-        });
+        const product = yield Product_1.default.findById(req.params.id);
+        if (!product) {
+            res.status(404).json({ message: "Product not found" });
+            return;
+        }
+        try {
+            // Sử dụng discriminator routing để lấy detail
+            const DetailModel = Product_1.default.getDetailModel(product.productType);
+            const details = yield DetailModel.findOne({ productId: product._id })
+                .populate('productId');
+            if (!details) {
+                res.status(404).json({
+                    message: `No details found for ${product.productType} product`,
+                    productType: product.productType
+                });
+                return;
+            }
+            res.json({
+                product: product.toObject(),
+                details: details,
+                discriminator: product.productType
+            });
+        }
+        catch (error) {
+            res.status(400).json({
+                message: `Unsupported product type: ${product.productType}`,
+                supportedTypes: ['food', 'beverage', 'health']
+            });
+        }
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
-exports.getCategories = getCategories;
-// @desc    Get unique product types
+exports.getProductDetails = getProductDetails;
+// @desc    Lấy unique product types (discriminators)
 // @route   GET /api/products/types
 // @access  Public
 const getProductTypes = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const productTypes = yield Product_1.default.distinct('productType');
+        // Thống kê theo từng type
+        const stats = yield Product_1.default.aggregate([
+            {
+                $group: {
+                    _id: '$productType',
+                    count: { $sum: 1 },
+                    manufacturers: { $addToSet: '$manufacturerName' }
+                }
+            },
+            {
+                $project: {
+                    type: '$_id',
+                    count: 1,
+                    manufacturerCount: { $size: '$manufacturers' },
+                    _id: 0
+                }
+            },
+            {
+                $sort: { count: -1 }
+            }
+        ]);
         res.json({
             success: true,
-            data: productTypes.filter(type => type)
+            data: {
+                types: productTypes.filter(type => type),
+                stats: stats,
+                discriminator: {
+                    enabled: true,
+                    detailCollections: {
+                        food: 'FoodProduct',
+                        beverage: 'BeverageProduct',
+                        health: 'HealthProduct'
+                    }
+                }
+            }
         });
     }
     catch (error) {
@@ -323,35 +227,43 @@ const getProductTypes = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getProductTypes = getProductTypes;
-// @desc    Get products by manufacturer
-// @route   GET /api/products/manufacturer/:manufacturerId
+// @desc    Lấy unique manufacturers với discriminator grouping
+// @route   GET /api/products/manufacturers
 // @access  Public
-const getProductsByManufacturer = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { manufacturerId } = req.params;
-        const { page = 1, limit = 10 } = req.query;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(manufacturerId)) {
-            res.status(400).json({ success: false, message: "Invalid manufacturer ID" });
-            return;
+        const { productType } = req.query;
+        const pipeline = [
+            {
+                $group: {
+                    _id: '$manufacturerName',
+                    productTypes: { $addToSet: '$productType' },
+                    totalProducts: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    manufacturer: '$_id',
+                    productTypes: 1,
+                    totalProducts: 1,
+                    _id: 0
+                }
+            },
+            {
+                $sort: { totalProducts: -1 }
+            }
+        ];
+        // Filter theo productType nếu có
+        if (productType && productType !== 'all') {
+            pipeline.unshift({
+                $match: { productType: productType }
+            });
         }
-        // Pagination
-        const pageNum = Number(page);
-        const limitNum = Number(limit);
-        const skip = (pageNum - 1) * limitNum;
-        const query = { manufacturer: new mongoose_1.default.Types.ObjectId(manufacturerId) };
-        const totalCount = yield Product_1.default.countDocuments(query);
-        const products = yield Product_1.default.find(query)
-            .populate('manufacturer', 'name location industry website')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNum);
+        const manufacturers = yield Product_1.default.aggregate(pipeline);
         res.json({
             success: true,
-            products,
-            page: pageNum,
-            pages: Math.ceil(totalCount / limitNum),
-            total: totalCount
+            data: manufacturers,
+            discriminator: productType || 'all'
         });
     }
     catch (error) {
@@ -363,4 +275,70 @@ const getProductsByManufacturer = (req, res) => __awaiter(void 0, void 0, void 0
         }
     }
 });
-exports.getProductsByManufacturer = getProductsByManufacturer;
+exports.getManufacturers = getManufacturers;
+// @desc    Lấy product statistics với discriminator breakdown
+// @route   GET /api/products/stats
+// @access  Public
+const getProductStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const stats = yield Product_1.default.aggregate([
+            {
+                $group: {
+                    _id: '$productType',
+                    count: { $sum: 1 },
+                    manufacturers: { $addToSet: '$manufacturerName' }
+                }
+            },
+            {
+                $project: {
+                    type: '$_id',
+                    count: 1,
+                    manufacturerCount: { $size: '$manufacturers' },
+                    _id: 0
+                }
+            },
+            {
+                $sort: { count: -1 }
+            }
+        ]);
+        // Total statistics
+        const totalStats = yield Product_1.default.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalProducts: { $sum: 1 },
+                    totalManufacturers: { $addToSet: '$manufacturerName' },
+                    productTypes: { $addToSet: '$productType' }
+                }
+            },
+            {
+                $project: {
+                    totalProducts: 1,
+                    totalManufacturers: { $size: '$totalManufacturers' },
+                    totalTypes: { $size: '$productTypes' },
+                    _id: 0
+                }
+            }
+        ]);
+        res.json({
+            success: true,
+            data: {
+                byType: stats,
+                total: totalStats[0] || { totalProducts: 0, totalManufacturers: 0, totalTypes: 0 },
+                discriminator: {
+                    enabled: true,
+                    supportedTypes: ['food', 'beverage', 'health', 'other']
+                }
+            }
+        });
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+        else {
+            res.status(500).json({ success: false, message: "Unknown error occurred" });
+        }
+    }
+});
+exports.getProductStats = getProductStats;

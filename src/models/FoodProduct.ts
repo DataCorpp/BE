@@ -1,8 +1,20 @@
 import mongoose, { Document, Schema } from "mongoose";
-import Product, { IProduct } from "./Product";
+import Product from "./Product";
 
-// Định nghĩa interface cho FoodProduct - extend từ IProduct
-export interface IFoodProduct extends IProduct {
+// Định nghĩa interface cho FoodProduct - collection độc lập
+export interface IFoodProduct extends Document {
+  // Basic Product Info (cho việc display, search nhanh)
+  user: mongoose.Types.ObjectId;
+  name: string;
+  brand: string;
+  category: string;
+  description: string;
+  price: number;
+  countInStock: number;
+  image: string;
+  rating: number;
+  numReviews: number;
+
   // Manufacturer & Origin Details
   manufacturer: string; // tên nhà sản xuất (manufacturerName trong form)
   originCountry: string; // quốc gia xuất xứ
@@ -46,8 +58,55 @@ export interface IFoodProduct extends IProduct {
   storageInstruction: string; // hướng dẫn bảo quản
 }
 
-// Schema cho FoodProduct - extend từ Product base schema
+// Schema cho FoodProduct - collection độc lập
 const foodProductSchema = new Schema({
+  // Basic Product Info
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "User",
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  brand: {
+    type: String,
+    required: true,
+  },
+  category: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  countInStock: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+  rating: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  numReviews: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+
   // Manufacturer & Origin Details
   manufacturer: {
     type: String,
@@ -142,7 +201,6 @@ const foodProductSchema = new Schema({
   }],
   ingredients: [{
     type: String,
-    required: true,
   }],
   allergens: [{
     type: String,
@@ -185,6 +243,8 @@ const foodProductSchema = new Schema({
     type: String,
     required: true,
   },
+}, {
+  timestamps: true,
 });
 
 // Index cho tìm kiếm hiệu quả
@@ -194,6 +254,7 @@ foodProductSchema.index({ allergens: 1 });
 foodProductSchema.index({ manufacturer: 1 });
 foodProductSchema.index({ originCountry: 1 });
 foodProductSchema.index({ sku: 1 });
+foodProductSchema.index({ name: 'text', description: 'text', manufacturer: 'text' });
 
 // Validation middleware
 foodProductSchema.pre('save', function(next) {
@@ -215,7 +276,126 @@ foodProductSchema.pre('save', function(next) {
   next();
 });
 
-// Tạo discriminator từ Product base model
-const FoodProduct = Product.discriminator<IFoodProduct>("food", foodProductSchema);
+
+// Static method để tạo product với error handling (không dùng transaction)
+foodProductSchema.statics.createWithProduct = async function(
+  productData: { manufacturerName: string; productName: string; [key: string]: any },
+  foodProductData: any
+) {
+  let foodProduct = null;
+  let product = null;
+
+  try {
+    // Tạo FoodProduct trước
+    foodProduct = new this(foodProductData);
+    await foodProduct.save();
+
+    // Tạo Product reference
+    product = new Product({
+      manufacturerName: productData.manufacturerName,
+      productName: productData.productName,
+      type: 'food',
+      productId: foodProduct._id,
+    });
+    
+    await product.save();
+    return { product, foodProduct };
+  } catch (error) {
+    // Cleanup nếu có lỗi
+    if (foodProduct && foodProduct._id) {
+      try {
+        await this.findByIdAndDelete(foodProduct._id);
+      } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
+      }
+    }
+    throw error;
+  }
+};
+
+// Static method để lấy product với reference
+foodProductSchema.statics.findWithProduct = async function(query: any) {
+  const products = await Product.find({ type: 'food', ...query });
+  const productIds = products.map(p => p.productId);
+  const foodProducts = await this.find({ _id: { $in: productIds } });
+  
+  return foodProducts.map(fp => {
+    const product = products.find(p => p.productId.toString() === fp._id.toString());
+    return {
+      ...fp.toObject(),
+      productInfo: product
+    };
+  });
+};
+
+// Static method để update product với error handling
+foodProductSchema.statics.updateWithProduct = async function(
+  foodProductId: string,
+  productData: { manufacturerName?: string; productName?: string },
+  foodProductData: any
+) {
+  try {
+    // Update FoodProduct
+    const foodProduct = await this.findByIdAndUpdate(
+      foodProductId,
+      foodProductData,
+      { new: true }
+    );
+
+    if (!foodProduct) {
+      throw new Error('Food product not found');
+    }
+
+    // Update Product reference nếu có thay đổi
+    if (productData.manufacturerName || productData.productName) {
+      const productUpdate = {
+        ...(productData.manufacturerName && { manufacturerName: productData.manufacturerName }),
+        ...(productData.productName && { productName: productData.productName }),
+      };
+      
+      const updatedProduct = await Product.findOneAndUpdate(
+        { productId: foodProductId, type: 'food' },
+        productUpdate,
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
+      }
+    }
+
+    return foodProduct;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Static method để delete product với error handling
+foodProductSchema.statics.deleteWithProduct = async function(foodProductId: string) {
+  try {
+    // Delete FoodProduct
+    const foodProduct = await this.findByIdAndDelete(foodProductId);
+    
+    if (!foodProduct) {
+      throw new Error('Food product not found');
+    }
+
+    // Delete Product reference
+    const deletedProduct = await Product.findOneAndDelete({ 
+      productId: foodProductId, 
+      type: 'food' 
+    });
+
+    if (!deletedProduct) {
+      console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
+    }
+
+    return foodProduct;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const FoodProduct = mongoose.model<IFoodProduct>("FoodProduct", foodProductSchema);
 
 export default FoodProduct; 

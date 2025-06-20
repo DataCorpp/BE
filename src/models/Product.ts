@@ -12,19 +12,14 @@ interface IInventoryItem extends Document {
   location: string;
 }
 
-// Định nghĩa interface cho Product cơ bản
+// Định nghĩa interface cho Product cơ bản - chỉ lưu thông tin chung
 export interface IProduct extends Document {
-  user: mongoose.Types.ObjectId;
-  name: string;
-  brand: string;
-  category: string;
-  description: string;
-  price: number;
-  countInStock: number;
-  image: string;
-  rating: number;
-  numReviews: number;
-  productType: string; // Để phân biệt loại sản phẩm (food, beverage, etc.)
+  manufacturerName: string; // tên nhà sản xuất
+  productName: string; // tên sản phẩm
+  type: string; // discriminator: 'food', 'beverage', 'health', 'other'
+  productId: mongoose.Types.ObjectId; // ID tham chiếu đến collection con
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Schema cho Inventory
@@ -39,65 +34,44 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   location: { type: String, required: true },
 });
 
-// Schema cơ bản cho Product
+// Schema cơ bản cho Product - chỉ lưu thông tin chung
 const productSchema = new Schema(
   {
-    user: {
+    manufacturerName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    productName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      required: true,
+      enum: ['food', 'beverage', 'health', 'other'],
+    },
+    productId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: "User",
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-    brand: {
-      type: String,
-      required: true,
-    },
-    category: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    countInStock: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    image: {
-      type: String,
-      required: true,
-    },
-    rating: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    numReviews: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    productType: {
-      type: String,
-      required: true,
-      enum: ['food', 'beverage', 'health', 'other'], // Có thể mở rộng thêm
+      // Reference sẽ được set động dựa trên type
     },
   },
   {
     timestamps: true,
-    discriminatorKey: 'productType', // Key để phân biệt các loại sản phẩm
   }
 );
+
+// Index cho tìm kiếm hiệu quả
+productSchema.index({ type: 1 });
+productSchema.index({ manufacturerName: 1 });
+productSchema.index({ productName: 1 });
+productSchema.index({ productId: 1 });
+
+// Compound index cho tìm kiếm kết hợp
+productSchema.index({ type: 1, manufacturerName: 1 });
+productSchema.index({ type: 1, productName: 'text', manufacturerName: 'text' });
 
 const Product = mongoose.model<IProduct>("Product", productSchema);
 

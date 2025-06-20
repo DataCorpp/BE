@@ -6,6 +6,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
+import productRoutes from "./routes/productRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
 
 // Load environment variables from .env file
@@ -56,6 +57,7 @@ app.use(
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/foodproducts", foodProductRoutes);
 
 // Health check
@@ -75,6 +77,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`Server running on port ${PORT}`);
     console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
     console.log(`User API available at http://localhost:${PORT}/api/users`);
+    console.log(`Products API available at http://localhost:${PORT}/api/products`);
     console.log(`Food Products API available at http://localhost:${PORT}/api/foodproducts`);
   });
 }

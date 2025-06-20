@@ -13,29 +13,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.retailer = exports.brand = exports.manufacturer = exports.admin = exports.authorize = exports.protectAdmin = exports.protect = void 0;
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
-// Middleware bảo vệ route
+// Middleware bảo vệ route sử dụng session
 const protect = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    let token;
-    if (req.headers.authorization &&
-        req.headers.authorization.startsWith("Bearer")) {
-        try {
-            // Lấy token từ header
-            token = req.headers.authorization.split(" ")[1];
-            // Verify token
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || "fallbacksecret");
-            // Lấy user từ token
-            req.user = yield User_1.default.findById(decoded.id).select("-password");
+    try {
+        console.log("Protect middleware - Session check:", req.session ? "Session exists" : "No session");
+        // Kiểm tra xem có userId trong session không
+        if (req.session && req.session.userId) {
+            console.log(`Session user ID found: ${req.session.userId}`);
+            // Tìm user từ session
+            const user = yield User_1.default.findById(req.session.userId).select("-password");
+            if (!user) {
+                console.log("User not found in database despite having session ID");
+                res.status(401).json({ message: "User not found, please login again" });
+                return;
+            }
+            console.log(`User found: ${user.email}, role: ${user.role}`);
+            // Thêm thông tin user vào request
+            req.user = user;
             next();
         }
-        catch (error) {
-            console.error(error);
-            res.status(401).json({ message: "Not authorized, token failed" });
+        else {
+            console.log("No user session found");
+            res.status(401).json({ message: "Not authorized, please login" });
         }
     }
-    if (!token) {
-        res.status(401).json({ message: "Not authorized, no token" });
+    catch (error) {
+        console.error("Session authentication error:", error);
+        res.status(401).json({ message: "Authentication failed" });
     }
 });
 exports.protect = protect;

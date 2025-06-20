@@ -14,7 +14,11 @@ router.post("/verify-email", userController_1.verifyEmail);
 router.post("/resend-verification", userController_1.resendVerificationCode);
 router.post("/forgot-password", userController_1.requestPasswordReset);
 router.post("/reset-password", userController_1.resetPassword);
+router.post("/google-login", userController_1.googleLogin);
+router.post("/logout", userController_1.logoutUser);
+router.get("/manufacturers", userController_1.getManufacturers);
 // Protected routes
 router.get("/profile", authMiddleware_1.protect, userController_1.getUserProfile);
+router.get("/me", authMiddleware_1.protect, userController_1.getUserProfile);
 router.put("/profile", authMiddleware_1.protect, userController_1.updateUserProfile);
 exports.default = router;

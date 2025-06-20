@@ -5,21 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const productController_1 = require("../controllers/productController");
-const authMiddleware_1 = require("../middleware/authMiddleware");
-const productValidation_1 = require("../middleware/productValidation");
 const router = express_1.default.Router();
-// Route /api/products
-router.route("/")
-    .get(productController_1.getProducts)
-    .post(authMiddleware_1.protect, authMiddleware_1.manufacturer, productValidation_1.validateCreateProduct, productController_1.createProduct);
-// Get metadata routes
-router.get("/categories", productController_1.getCategories);
-router.get("/types", productController_1.getProductTypes);
-// Get products by manufacturer
-router.get("/manufacturer/:manufacturerId", productController_1.getProductsByManufacturer);
-// Route /api/products/:id
-router.route("/:id")
-    .get(productController_1.getProductById)
-    .put(authMiddleware_1.protect, authMiddleware_1.manufacturer, productValidation_1.validateUpdateProduct, productController_1.updateProduct)
-    .delete(authMiddleware_1.protect, authMiddleware_1.manufacturer, productController_1.deleteProduct);
+// Route /api/products - lấy thông tin cơ bản với discriminator support
+router.route("/").get(productController_1.getProducts);
+// Route /api/products/types - lấy danh sách product types (discriminators)
+router.route("/types").get(productController_1.getProductTypes);
+// Route /api/products/manufacturers - lấy danh sách manufacturers với discriminator grouping
+router.route("/manufacturers").get(productController_1.getManufacturers);
+// Route /api/products/stats - lấy thống kê products với discriminator breakdown
+router.route("/stats").get(productController_1.getProductStats);
+// Route /api/products/:id - lấy thông tin cơ bản
+router.route("/:id").get(productController_1.getProductById);
+// Route /api/products/:id/details - discriminator-based routing đến detail collection
+router.route("/:id/details").get(productController_1.getProductDetails);
 exports.default = router;

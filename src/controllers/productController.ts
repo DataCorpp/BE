@@ -1,7 +1,18 @@
 import { Request, Response } from "express";
-import { Product, getProductModel, createProduct as createProductHelper, mapFormDataToFoodProduct } from "../models";
+import { 
+  Product, 
+  FoodProduct, 
+  getProductModel, 
+  createProduct as createProductHelper,
+  getProductWithReference,
+  updateProductWithReference,
+  deleteProductWithReference,
+  isValidProductType,
+  mapFormDataToFoodProduct 
+} from "../models";
+import mongoose from "mongoose";
 
-// @desc    Lấy tất cả sản phẩm
+// @desc    Lấy tất cả sản phẩm từ Product collection (chỉ thông tin chung)
 // @route   GET /api/products
 // @access  Public
 export const getProducts = async (
@@ -9,12 +20,52 @@ export const getProducts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { productType } = req.query;
-    
-    // Nếu có productType, filter theo loại, nếu không thì lấy tất cả
-    const filter = productType ? { productType } : {};
-    const products = await Product.find(filter);
-    res.json(products);
+    const { 
+      search, 
+      type, 
+      manufacturer,
+      page = 1,
+      limit = 10 
+    } = req.query;
+
+    // Build query cho Product collection
+    const query: any = {};
+
+    // Search functionality
+    if (search) {
+      query.$or = [
+        { productName: { $regex: search, $options: 'i' } },
+        { manufacturerName: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Filter by type
+    if (type && isValidProductType(type as string)) {
+      query.type = type;
+    }
+
+    // Filter by manufacturer
+    if (manufacturer) {
+      query.manufacturerName = { $regex: manufacturer, $options: 'i' };
+    }
+
+    // Pagination
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalCount = await Product.countDocuments(query);
+    const products = await Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json({
+      products,
+      page: pageNum,
+      pages: Math.ceil(totalCount / limitNum),
+      total: totalCount
+    });
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
@@ -24,21 +75,42 @@ export const getProducts = async (
   }
 };
 
-// @desc    Lấy sản phẩm theo ID
-// @route   GET /api/products/:id
+// @desc    Lấy chi tiết sản phẩm (bao gồm thông tin từ collection con)
+// @route   GET /api/products/:id/details
 // @access  Public
-export const getProductById = async (
+export const getProductDetails = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
+    // Tìm Product reference trước
     const product = await Product.findById(req.params.id);
 
-    if (product) {
-      res.json(product);
-    } else {
+    if (!product) {
       res.status(404).json({ message: "Product not found" });
+      return;
     }
+
+    // Lấy chi tiết từ collection con tương ứng
+    let productDetails;
+    switch (product.type) {
+      case 'food':
+        productDetails = await FoodProduct.findById(product.productId);
+        break;
+      default:
+        res.status(400).json({ message: `Product type ${product.type} is not yet supported` });
+        return;
+    }
+
+    if (!productDetails) {
+      res.status(404).json({ message: "Product details not found" });
+      return;
+    }
+
+    res.json({
+      productReference: product,
+      productDetails: productDetails
+    });
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
@@ -48,129 +120,187 @@ export const getProductById = async (
   }
 };
 
-// @desc    Tạo sản phẩm mới
+// @desc    Tạo sản phẩm mới (tự động phân loại theo type)
 // @route   POST /api/products
-// @access  Private/Manufacturer
-export const createProduct = async (
+// @access  Private
+export const createProductGeneric = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { productType = 'other', ...requestData } = req.body;
+    const { type, manufacturerName, productName, ...otherData } = req.body;
 
-    // Chuẩn bị data với user info
-    let productData = {
-      user: (req as any).user._id,
-      rating: 0,
-      numReviews: 0,
-      ...requestData,
-    };
-
-    // Xử lý mapping đặc biệt cho food products
-    if (productType === 'food') {
-      productData = mapFormDataToFoodProduct(productData);
+    // Validate product type
+    if (!isValidProductType(type)) {
+      res.status(400).json({ 
+        message: "Invalid product type", 
+        validTypes: ['food', 'beverage', 'health', 'other'] 
+      });
+      return;
     }
 
-    // Sử dụng helper function để tạo sản phẩm với loại phù hợp
-    const product = createProductHelper(productType, productData);
+    // Validate required fields
+    if (!manufacturerName || !productName) {
+      res.status(400).json({
+        message: 'Manufacturer name and product name are required',
+        missingFields: [
+          ...(manufacturerName ? [] : ['manufacturerName']),
+          ...(productName ? [] : ['productName'])
+        ]
+      });
+      return;
+    }
 
-    const createdProduct = await product.save();
-    res.status(201).json(createdProduct);
+    // Lấy user ID
+    let userId;
+    if ((req as any).user && (req as any).user._id) {
+      userId = (req as any).user._id;
+    } else {
+      userId = new mongoose.Types.ObjectId('000000000000000000000000');
+    }
+
+    const productData = { manufacturerName, productName };
+    
+    // Chuẩn bị detail data dựa trên type
+    let detailData;
+    switch (type) {
+      case 'food':
+        const mappedData = mapFormDataToFoodProduct({ 
+          manufacturerName, 
+          productName, 
+          user: userId,
+          ...otherData 
+        });
+        detailData = mappedData.foodProductData;
+        break;
+      default:
+        res.status(400).json({ message: `Product type ${type} is not yet supported` });
+        return;
+    }
+
+    // Tạo product với transaction
+    const result = await createProductHelper(type, productData, detailData);
+
+    res.status(201).json({
+      message: 'Product created successfully',
+      product: result.product,
+      productDetails: result.foodProduct || result.productDetails
+    });
   } catch (error) {
     console.error('Error creating product:', error);
     if (error instanceof Error) {
-      res.status(400).json({ 
-        message: error.message,
-        details: error.name === 'ValidationError' ? error.message : undefined
-      });
+      res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: "Unknown error occurred" });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
 
 // @desc    Cập nhật sản phẩm
 // @route   PUT /api/products/:id
-// @access  Private/Manufacturer
+// @access  Private
 export const updateProduct = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
+    // Tìm Product reference
     const product = await Product.findById(req.params.id);
 
-    if (product) {
-      const { productType, ...updateData } = req.body;
-      
-      // Xử lý mapping đặc biệt cho food products
-      let finalUpdateData = updateData;
-      if (product.productType === 'food' || productType === 'food') {
-        finalUpdateData = mapFormDataToFoodProduct(updateData);
-      }
-
-      // Cập nhật các field được gửi trong request
-      Object.keys(finalUpdateData).forEach(key => {
-        if (finalUpdateData[key] !== undefined && key !== '_id' && key !== '__v') {
-          (product as any)[key] = finalUpdateData[key];
-        }
-      });
-
-      const updatedProduct = await product.save();
-      res.json(updatedProduct);
-    } else {
+    if (!product) {
       res.status(404).json({ message: "Product not found" });
+      return;
     }
+
+    const { manufacturerName, productName, ...detailData } = req.body;
+
+    const productData = {
+      ...(manufacturerName && { manufacturerName }),
+      ...(productName && { productName }),
+    };
+
+    // Update với transaction
+    const updatedProduct = await updateProductWithReference(
+      product.type,
+      product.productId.toString(),
+      productData,
+      detailData
+    );
+
+    // Lấy thông tin Product reference mới
+    const updatedProductRef = await Product.findById(req.params.id);
+
+    res.json({
+      productReference: updatedProductRef,
+      productDetails: updatedProduct
+    });
   } catch (error) {
-    console.error('Error updating product:', error);
     if (error instanceof Error) {
-      res.status(400).json({ 
-        message: error.message,
-        details: error.name === 'ValidationError' ? error.message : undefined
-      });
+      res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: "Unknown error occurred" });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
 
 // @desc    Xóa sản phẩm
 // @route   DELETE /api/products/:id
-// @access  Private/Manufacturer
+// @access  Private
 export const deleteProduct = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
+    // Tìm Product reference
     const product = await Product.findById(req.params.id);
 
-    if (product) {
-      await product.deleteOne();
-      res.json({ message: "Product removed" });
-    } else {
+    if (!product) {
       res.status(404).json({ message: "Product not found" });
+      return;
     }
+
+    // Delete với transaction
+    await deleteProductWithReference(product.type, product.productId.toString());
+
+    // Delete Product reference
+    await Product.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "Product deleted successfully" });
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ message: error.message });
     } else {
-      res.status(400).json({ message: "Unknown error occurred" });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
 
-// @desc    Lấy sản phẩm theo loại
-// @route   GET /api/products/type/:productType
+// @desc    Lấy thống kê sản phẩm theo type
+// @route   GET /api/products/stats
 // @access  Public
-export const getProductsByType = async (
+export const getProductStats = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { productType } = req.params;
-    const Model = getProductModel(productType as any);
-    
-    const products = await Model.find({ productType });
-    res.json(products);
+    const stats = await Product.aggregate([
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    const totalProducts = await Product.countDocuments();
+
+    res.json({
+      totalProducts,
+      byType: stats
+    });
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });

@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
+exports.getManufacturers = exports.logoutUser = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mailService_1 = require("../utils/mailService");
 const mailService_2 = require("../utils/mailService");
 const passwordResetUtils_1 = require("../utils/passwordResetUtils");
+const axios_1 = __importDefault(require("axios"));
 // Helper function để tạo JWT
 const generateToken = (id) => {
     return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
@@ -49,14 +50,17 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             res.status(401).json({ message: "Invalid email or password" });
             return;
         }
-        const userId = user._id.toString();
+        // Lưu thông tin người dùng vào session
+        if (req.session) {
+            req.session.userId = user._id.toString();
+            req.session.userRole = user.role;
+        }
         res.json({
             _id: user._id,
             name: user.name,
             email: user.email,
             role: user.role,
-            status: user.status,
-            token: generateToken(userId),
+            status: user.status
         });
     }
     catch (error) {
@@ -706,3 +710,200 @@ const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.resetPassword = resetPassword;
+// @desc    Authenticate user with Google OAuth
+// @route   POST /api/users/google-login
+// @access  Public
+const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { token, email, name, picture } = req.body;
+        console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
+        if (!token || !email) {
+            res.status(400).json({ message: "Token and email are required" });
+            return;
+        }
+        // Verify token with Google (additional security)
+        try {
+            yield axios_1.default.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+            console.log("Google token verification successful");
+        }
+        catch (verificationError) {
+            console.error("Google token verification failed:", verificationError);
+            res.status(401).json({ message: "Invalid Google token" });
+            return;
+        }
+        console.time("GoogleLoginProcess");
+        // Check if user with this email already exists
+        let user = yield User_1.default.findOne({ email });
+        let isNewUser = false;
+        if (user) {
+            console.log("Existing user found:", { id: user._id, role: user.role });
+            // Existing user - update their information
+            user.name = name || user.name; // Keep existing name if new one not provided
+            user.lastLogin = new Date();
+            if (picture && !user.avatar) {
+                user.avatar = picture;
+            }
+            yield user.save();
+        }
+        else {
+            console.log("Creating new user with email:", email);
+            // Create new user
+            // Generate a random password since we won't use it for OAuth users
+            const randomPassword = Math.random().toString(36).slice(-10);
+            user = yield User_1.default.create({
+                name,
+                email,
+                password: randomPassword, // This will be hashed by the User model pre-save hook
+                role: "manufacturer", // Default role, can be changed during profile setup
+                status: "active", // OAuth users are pre-verified by Google
+                avatar: picture
+            });
+            isNewUser = true;
+            console.log("New user created:", { id: user._id, role: user.role });
+        }
+        console.timeEnd("GoogleLoginProcess");
+        // Save user info to session
+        if (req.session) {
+            req.session.userId = user._id.toString();
+            req.session.userRole = user.role;
+            console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+            // Ensure the session is saved before sending response
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Error saving session:", err);
+                }
+            });
+        }
+        else {
+            console.warn("No session object available - session-based auth may not work");
+        }
+        // Prepare response data
+        const userData = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            profileComplete: user.profileComplete,
+            avatar: user.avatar
+        };
+        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+        // Send response with user data directly at top level
+        res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
+    }
+    catch (error) {
+        console.error("Google login error:", error);
+        if (error instanceof Error) {
+            res.status(500).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: "Unknown error occurred during Google authentication" });
+        }
+    }
+});
+exports.googleLogin = googleLogin;
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Xóa session
+        if (req.session) {
+            req.session.destroy((err) => {
+                if (err) {
+                    res.status(500).json({ message: "Could not log out, please try again" });
+                }
+                else {
+                    res.json({ message: "Logout successful" });
+                }
+            });
+        }
+        else {
+            res.json({ message: "No active session" });
+        }
+    }
+    catch (error) {
+        console.error("Logout error:", error);
+        if (error instanceof Error) {
+            res.status(500).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: "Unknown error occurred" });
+        }
+    }
+});
+exports.logoutUser = logoutUser;
+// @desc    Lấy danh sách manufacturers
+// @route   GET /api/users/manufacturers
+// @access  Public
+const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+        // Build filter object
+        const filter = {
+            role: "manufacturer",
+            status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
+        };
+        // Optional filters
+        if (req.query.industry) {
+            filter.industry = new RegExp(req.query.industry, 'i');
+        }
+        if (req.query.location) {
+            filter.address = new RegExp(req.query.location, 'i');
+        }
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i');
+            filter.$or = [
+                { name: searchRegex },
+                { companyName: searchRegex },
+                { industry: searchRegex },
+                { description: searchRegex },
+                { companyDescription: searchRegex }
+            ];
+        }
+        // Get total count for pagination
+        const total = yield User_1.default.countDocuments(filter);
+        // Get manufacturers with pagination
+        const manufacturers = yield User_1.default.find(filter)
+            .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .skip(skip)
+            .limit(limit)
+            .lean(); // Use lean for better performance
+        // Calculate pagination info
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        res.json({
+            success: true,
+            manufacturers,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: total,
+                itemsPerPage: limit,
+                hasNextPage,
+                hasPrevPage
+            },
+            total // Keep this for backward compatibility
+        });
+    }
+    catch (error) {
+        console.error('Error in getManufacturers:', error);
+        if (error instanceof Error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+        else {
+            res.status(500).json({
+                success: false,
+                message: "Unknown error occurred"
+            });
+        }
+    }
+});
+exports.getManufacturers = getManufacturers;
