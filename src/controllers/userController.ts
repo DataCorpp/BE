@@ -100,6 +100,7 @@ export const registerUser = async (
       website,
       address,
       companyDescription,
+      establish,
     } = req.body;
 
     // Check for required fields
@@ -145,6 +146,7 @@ export const registerUser = async (
       website,
       address,
       companyDescription,
+      establish,
     });
 
     if (user) {
@@ -251,6 +253,7 @@ export const getUserProfile = async (
         industry: user.industry,
         certificates: user.certificates,
         avatar: user.avatar,
+        establish: user.establish,
         connectionPreferences: user.connectionPreferences,
         manufacturerSettings: user.manufacturerSettings,
         brandSettings: user.brandSettings,
@@ -327,6 +330,7 @@ export const updateUserProfile = async (
       if (req.body.industry) user.industry = req.body.industry;
       if (req.body.certificates) user.certificates = req.body.certificates;
       if (req.body.avatar) user.avatar = req.body.avatar;
+      if (req.body.establish !== undefined) user.establish = req.body.establish;
 
       // Update profileComplete flag if provided
       if (req.body.profileComplete !== undefined) {
@@ -460,6 +464,7 @@ export const updateUserProfile = async (
         industry: updatedUser.industry,
         certificates: updatedUser.certificates,
         avatar: updatedUser.avatar,
+        establish: updatedUser.establish,
         connectionPreferences: updatedUser.connectionPreferences,
         manufacturerSettings: updatedUser.manufacturerSettings,
         brandSettings: updatedUser.brandSettings,
@@ -964,6 +969,15 @@ export const getManufacturers = async (
     
     if (req.query.location) {
       filter.address = new RegExp(req.query.location as string, 'i');
+    }
+
+    // Add establish year filtering
+    if (req.query.establish_gte) {
+      filter.establish = { ...filter.establish, $gte: parseInt(req.query.establish_gte as string) };
+    }
+    
+    if (req.query.establish_lte) {
+      filter.establish = { ...filter.establish, $lte: parseInt(req.query.establish_lte as string) };
     }
 
     if (req.query.search) {

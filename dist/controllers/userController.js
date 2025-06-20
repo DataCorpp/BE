@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
+exports.getManufacturers = exports.logoutUser = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mailService_1 = require("../utils/mailService");
 const mailService_2 = require("../utils/mailService");
 const passwordResetUtils_1 = require("../utils/passwordResetUtils");
+const axios_1 = __importDefault(require("axios"));
 // Helper function để tạo JWT
 const generateToken = (id) => {
     return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
@@ -49,14 +50,17 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             res.status(401).json({ message: "Invalid email or password" });
             return;
         }
-        const userId = user._id.toString();
+        // Lưu thông tin người dùng vào session
+        if (req.session) {
+            req.session.userId = user._id.toString();
+            req.session.userRole = user.role;
+        }
         res.json({
             _id: user._id,
             name: user.name,
             email: user.email,
             role: user.role,
-            status: user.status,
-            token: generateToken(userId),
+            status: user.status
         });
     }
     catch (error) {
@@ -74,7 +78,7 @@ exports.loginUser = loginUser;
 // @access  Public
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, email, password, role, companyName, phone, website, address, companyDescription, } = req.body;
+        const { name, email, password, role, companyName, phone, website, address, companyDescription, establish, } = req.body;
         // Check for required fields
         if (!name || !email || !password) {
             res.status(400).json({ message: "Please provide name, email and password" });
@@ -112,6 +116,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             website,
             address,
             companyDescription,
+            establish,
         });
         if (user) {
             const userId = user._id.toString();
@@ -207,6 +212,7 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 industry: user.industry,
                 certificates: user.certificates,
                 avatar: user.avatar,
+                establish: user.establish,
                 connectionPreferences: user.connectionPreferences,
                 manufacturerSettings: user.manufacturerSettings,
                 brandSettings: user.brandSettings,
@@ -283,6 +289,8 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 user.certificates = req.body.certificates;
             if (req.body.avatar)
                 user.avatar = req.body.avatar;
+            if (req.body.establish !== undefined)
+                user.establish = req.body.establish;
             // Update profileComplete flag if provided
             if (req.body.profileComplete !== undefined) {
                 user.profileComplete = req.body.profileComplete;
@@ -399,6 +407,7 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 industry: updatedUser.industry,
                 certificates: updatedUser.certificates,
                 avatar: updatedUser.avatar,
+                establish: updatedUser.establish,
                 connectionPreferences: updatedUser.connectionPreferences,
                 manufacturerSettings: updatedUser.manufacturerSettings,
                 brandSettings: updatedUser.brandSettings,
@@ -706,3 +715,198 @@ const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.resetPassword = resetPassword;
+// @desc    Authenticate user with Google OAuth
+// @route   POST /api/users/google-login
+// @access  Public
+const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { token, email, name, picture } = req.body;
+        console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
+        if (!token || !email) {
+            res.status(400).json({ message: "Token and email are required" });
+            return;
+        }
+        // Verify token with Google (additional security)
+        try {
+            yield axios_1.default.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+            console.log("Google token verification successful");
+        }
+        catch (verificationError) {
+            console.error("Google token verification failed:", verificationError);
+            res.status(401).json({ message: "Invalid Google token" });
+            return;
+        }
+        console.time("GoogleLoginProcess");
+        // Check if user with this email already exists
+        let user = yield User_1.default.findOne({ email });
+        let isNewUser = false;
+        if (user) {
+            console.log("Existing user found:", { id: user._id, role: user.role });
+            // Existing user - update their information
+            user.name = name || user.name; // Keep existing name if new one not provided
+            user.lastLogin = new Date();
+            if (picture && !user.avatar) {
+                user.avatar = picture;
+            }
+            yield user.save();
+        }
+        else {
+            console.log("Creating new user with email:", email);
+            // Create new user
+            // Generate a random password since we won't use it for OAuth users
+            const randomPassword = Math.random().toString(36).slice(-10);
+            user = yield User_1.default.create({
+                name,
+                email,
+                password: randomPassword, // This will be hashed by the User model pre-save hook
+                role: "manufacturer", // Default role, can be changed during profile setup
+                status: "active", // OAuth users are pre-verified by Google
+                avatar: picture
+            });
+            isNewUser = true;
+            console.log("New user created:", { id: user._id, role: user.role });
+        }
+        console.timeEnd("GoogleLoginProcess");
+        // Save user info to session
+        if (req.session) {
+            req.session.userId = user._id.toString();
+            req.session.userRole = user.role;
+            console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+            // Ensure the session is saved before sending response
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Error saving session:", err);
+                }
+            });
+        }
+        else {
+            console.warn("No session object available - session-based auth may not work");
+        }
+        // Prepare response data
+        const userData = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            profileComplete: user.profileComplete,
+            avatar: user.avatar
+        };
+        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+        // Send response with user data directly at top level
+        res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
+    }
+    catch (error) {
+        console.error("Google login error:", error);
+        if (error instanceof Error) {
+            res.status(500).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: "Unknown error occurred during Google authentication" });
+        }
+    }
+});
+exports.googleLogin = googleLogin;
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Xóa session
+        if (req.session) {
+            req.session.destroy((err) => {
+                if (err) {
+                    res.status(500).json({ message: "Could not log out, please try again" });
+                }
+                else {
+                    res.json({ message: "Logout successful" });
+                }
+            });
+        }
+        else {
+            res.json({ message: "No active session" });
+        }
+    }
+    catch (error) {
+        console.error("Logout error:", error);
+        if (error instanceof Error) {
+            res.status(500).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: "Unknown error occurred" });
+        }
+    }
+});
+exports.logoutUser = logoutUser;
+// @desc    Lấy danh sách manufacturers
+// @route   GET /api/users/manufacturers
+// @access  Public
+const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+        // Add support for including all status
+        const includeAllStatus = req.query.include_all_status === 'true';
+        // Extract filter parameters
+        const industry = req.query.industry;
+        const location = req.query.location;
+        const establishYear = req.query.establishYear;
+        // Build filter object
+        const filter = {
+            role: 'manufacturer'
+        };
+        // Add status filter only if not including all status
+        if (!includeAllStatus) {
+            filter.status = { $in: ['active', 'online', 'away', 'busy'] };
+        }
+        // Add optional filters
+        if (industry) {
+            filter.industry = new RegExp(industry, 'i');
+        }
+        if (location) {
+            filter.address = new RegExp(location, 'i');
+        }
+        if (establishYear) {
+            const year = parseInt(establishYear);
+            if (!isNaN(year)) {
+                filter.establish = year;
+            }
+        }
+        // Get total count with filters
+        const total = yield User_1.default.countDocuments(filter);
+        // Get manufacturers with pagination
+        const manufacturers = yield User_1.default.find(filter)
+            .select('-password -refreshToken')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+        // Calculate pagination info
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        res.json({
+            success: true,
+            manufacturers,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: total,
+                itemsPerPage: limit,
+                hasNextPage,
+                hasPrevPage
+            },
+            total // Include total for backward compatibility
+        });
+    }
+    catch (error) {
+        console.error('Error fetching manufacturers:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching manufacturers',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+exports.getManufacturers = getManufacturers;

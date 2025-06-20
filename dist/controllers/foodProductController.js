@@ -12,11 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getManufacturersFromProducts = exports.getProductTypes = exports.getCategories = exports.deleteFoodProduct = exports.updateFoodProduct = exports.createFoodProduct = exports.getFoodProductById = exports.getFoodProducts = void 0;
+exports.getManufacturers = exports.getProductTypes = exports.getCategories = exports.deleteFoodProduct = exports.updateFoodProduct = exports.createFoodProduct = exports.getFoodProductById = exports.getFoodProducts = void 0;
 const FoodProduct_1 = __importDefault(require("../models/FoodProduct"));
-const Manufacturer_1 = __importDefault(require("../models/Manufacturer"));
-const mongoose_1 = __importDefault(require("mongoose"));
-// @desc    Lấy tất cả sản phẩm thực phẩm với manufacturer details
+// @desc    Lấy tất cả sản phẩm thực phẩm
 // @route   GET /api/foodproducts
 // @access  Public
 const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -29,6 +27,7 @@ const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { description: { $regex: search, $options: 'i' } },
+                { manufacturer: { $regex: search, $options: 'i' } },
                 { category: { $regex: search, $options: 'i' } }
             ];
         }
@@ -59,63 +58,27 @@ const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function
         if (minRating) {
             query.rating = { $gte: Number(minRating) };
         }
-        // Filter by lead time - cập nhật để hỗ trợ leadTimeDetailed
+        // Filter by lead time
         if (leadTime) {
             if (Array.isArray(leadTime) && leadTime.length > 0) {
-                const leadTimeValues = leadTime.map((time) => {
-                    if (typeof time === 'string') {
-                        return time.split(' ')[0];
-                    }
-                    return time;
-                });
-                // Tìm kiếm theo cả leadTime cũ và leadTimeDetailed.average mới
-                query.$or = [
-                    { leadTime: { $in: leadTimeValues } },
-                    { 'leadTimeDetailed.average': { $in: leadTimeValues.map(v => Number(v)) } }
-                ];
+                const leadTimeValues = leadTime.map((time) => time.split(' ')[0]);
+                query.leadTime = { $in: leadTimeValues };
             }
             else if (typeof leadTime === 'string') {
-                const leadTimeValue = leadTime.split(' ')[0];
-                query.$or = [
-                    { leadTime: leadTimeValue },
-                    { 'leadTimeDetailed.average': Number(leadTimeValue) }
-                ];
+                query.leadTime = leadTime.split(' ')[0];
             }
         }
         // Filter by stock status
         if (inStockOnly === 'true') {
-            query.$or = [
-                { currentAvailable: { $gt: 0 } },
-                { status: 'available' }
-            ];
+            query.currentAvailable = { $gt: 0 };
         }
-        // Filter by manufacturer - cập nhật để hỗ trợ ObjectId
+        // Filter by manufacturer
         if (manufacturer) {
             if (Array.isArray(manufacturer) && manufacturer.length > 0) {
-                // Kiểm tra xem manufacturer là ObjectId hay string
-                const manufacturerIds = yield Promise.all(manufacturer.map((mfr) => __awaiter(void 0, void 0, void 0, function* () {
-                    if (mongoose_1.default.Types.ObjectId.isValid(mfr)) {
-                        return new mongoose_1.default.Types.ObjectId(mfr);
-                    }
-                    else {
-                        // Tìm manufacturer theo name
-                        const foundMfr = yield Manufacturer_1.default.findOne({ name: { $regex: mfr, $options: 'i' } });
-                        return foundMfr ? foundMfr._id : null;
-                    }
-                })));
-                query.manufacturer = { $in: manufacturerIds.filter(id => id !== null) };
+                query.manufacturer = { $in: manufacturer };
             }
             else if (typeof manufacturer === 'string') {
-                if (mongoose_1.default.Types.ObjectId.isValid(manufacturer)) {
-                    query.manufacturer = new mongoose_1.default.Types.ObjectId(manufacturer);
-                }
-                else {
-                    // Tìm manufacturer theo name
-                    const foundMfr = yield Manufacturer_1.default.findOne({ name: { $regex: manufacturer, $options: 'i' } });
-                    if (foundMfr) {
-                        query.manufacturer = foundMfr._id;
-                    }
-                }
+                query.manufacturer = manufacturer;
             }
         }
         // Pagination
@@ -135,9 +98,6 @@ const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function
                 case 'rating':
                     sortOptions = { rating: -1 };
                     break;
-                case 'name':
-                    sortOptions = { name: 1 };
-                    break;
                 default:
                     // Default sort by relevance (newest first)
                     sortOptions = { createdAt: -1 };
@@ -149,12 +109,10 @@ const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function
         }
         const totalCount = yield FoodProduct_1.default.countDocuments(query);
         const foodProducts = yield FoodProduct_1.default.find(query)
-            .populate('manufacturer', 'name location industry website')
             .sort(sortOptions)
             .skip(skip)
             .limit(limitNum);
         res.json({
-            success: true,
             products: foodProducts,
             page: pageNum,
             pages: Math.ceil(totalCount / limitNum),
@@ -163,40 +121,33 @@ const getFoodProducts = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
 exports.getFoodProducts = getFoodProducts;
-// @desc    Lấy sản phẩm thực phẩm theo ID với manufacturer details
+// @desc    Lấy sản phẩm thực phẩm theo ID
 // @route   GET /api/foodproducts/:id
 // @access  Public
 const getFoodProductById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        const foodProduct = yield FoodProduct_1.default.findById(id)
-            .populate('manufacturer', 'name location industry certification contact website image description');
+        const foodProduct = yield FoodProduct_1.default.findById(req.params.id);
         if (foodProduct) {
-            res.json({ success: true, data: foodProduct });
+            res.json(foodProduct);
         }
         else {
-            res.status(404).json({ success: false, message: "Food product not found" });
+            res.status(404).json({ message: "Food product not found" });
         }
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
@@ -206,34 +157,16 @@ exports.getFoodProductById = getFoodProductById;
 // @access  Private/Manufacturer
 const createFoodProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Validate manufacturer exists
-        if (req.body.manufacturer && !mongoose_1.default.Types.ObjectId.isValid(req.body.manufacturer)) {
-            res.status(400).json({ success: false, message: "Invalid manufacturer ID" });
-            return;
-        }
-        if (req.body.manufacturer) {
-            const manufacturer = yield Manufacturer_1.default.findById(req.body.manufacturer);
-            if (!manufacturer) {
-                res.status(400).json({ success: false, message: "Manufacturer not found" });
-                return;
-            }
-        }
         const foodProduct = new FoodProduct_1.default(req.body);
         const createdFoodProduct = yield foodProduct.save();
-        // Populate manufacturer before returning
-        yield createdFoodProduct.populate('manufacturer', 'name location industry website');
-        res.status(201).json({
-            success: true,
-            message: "Food product created successfully",
-            data: createdFoodProduct
-        });
+        res.status(201).json(createdFoodProduct);
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(400).json({ success: false, message: error.message });
+            res.status(400).json({ message: error.message });
         }
         else {
-            res.status(400).json({ success: false, message: "Unknown error occurred" });
+            res.status(400).json({ message: "Unknown error occurred" });
         }
     }
 });
@@ -243,46 +176,23 @@ exports.createFoodProduct = createFoodProduct;
 // @access  Private/Manufacturer
 const updateFoodProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        // Validate manufacturer if provided
-        if (req.body.manufacturer && !mongoose_1.default.Types.ObjectId.isValid(req.body.manufacturer)) {
-            res.status(400).json({ success: false, message: "Invalid manufacturer ID" });
-            return;
-        }
-        if (req.body.manufacturer) {
-            const manufacturer = yield Manufacturer_1.default.findById(req.body.manufacturer);
-            if (!manufacturer) {
-                res.status(400).json({ success: false, message: "Manufacturer not found" });
-                return;
-            }
-        }
-        const foodProduct = yield FoodProduct_1.default.findById(id);
+        const foodProduct = yield FoodProduct_1.default.findById(req.params.id);
         if (foodProduct) {
             // Update all fields from request body
             Object.assign(foodProduct, req.body);
             const updatedFoodProduct = yield foodProduct.save();
-            yield updatedFoodProduct.populate('manufacturer', 'name location industry website');
-            res.json({
-                success: true,
-                message: "Food product updated successfully",
-                data: updatedFoodProduct
-            });
+            res.json(updatedFoodProduct);
         }
         else {
-            res.status(404).json({ success: false, message: "Food product not found" });
+            res.status(404).json({ message: "Food product not found" });
         }
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(400).json({ success: false, message: error.message });
+            res.status(400).json({ message: error.message });
         }
         else {
-            res.status(400).json({ success: false, message: "Unknown error occurred" });
+            res.status(400).json({ message: "Unknown error occurred" });
         }
     }
 });
@@ -292,30 +202,21 @@ exports.updateFoodProduct = updateFoodProduct;
 // @access  Private/Manufacturer
 const deleteFoodProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
-        // Validate ObjectId
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            res.status(400).json({ success: false, message: "Invalid product ID" });
-            return;
-        }
-        const foodProduct = yield FoodProduct_1.default.findById(id);
+        const foodProduct = yield FoodProduct_1.default.findById(req.params.id);
         if (foodProduct) {
-            yield FoodProduct_1.default.deleteOne({ _id: id });
-            res.json({
-                success: true,
-                message: "Food product removed successfully"
-            });
+            yield foodProduct.deleteOne();
+            res.json({ message: "Food product removed" });
         }
         else {
-            res.status(404).json({ success: false, message: "Food product not found" });
+            res.status(404).json({ message: "Food product not found" });
         }
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(400).json({ success: false, message: error.message });
+            res.status(400).json({ message: error.message });
         }
         else {
-            res.status(400).json({ success: false, message: "Unknown error occurred" });
+            res.status(400).json({ message: "Unknown error occurred" });
         }
     }
 });
@@ -326,17 +227,14 @@ exports.deleteFoodProduct = deleteFoodProduct;
 const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const categories = yield FoodProduct_1.default.distinct('category');
-        res.json({
-            success: true,
-            data: ['All Categories', ...categories.filter(cat => cat)]
-        });
+        res.json(['All Categories', ...categories]);
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
@@ -347,44 +245,33 @@ exports.getCategories = getCategories;
 const getProductTypes = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const productTypes = yield FoodProduct_1.default.distinct('productType');
-        res.json({
-            success: true,
-            data: productTypes.filter(type => type)
-        });
+        res.json(productTypes);
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
 exports.getProductTypes = getProductTypes;
-// @desc    Get manufacturers from food products
+// @desc    Get unique manufacturers
 // @route   GET /api/foodproducts/manufacturers
 // @access  Public
-const getManufacturersFromProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get unique manufacturer IDs from products
-        const manufacturerIds = yield FoodProduct_1.default.distinct('manufacturer');
-        // Get manufacturer details
-        const manufacturers = yield Manufacturer_1.default.find({
-            _id: { $in: manufacturerIds }
-        }).select('name location industry');
-        res.json({
-            success: true,
-            data: manufacturers
-        });
+        const manufacturers = yield FoodProduct_1.default.distinct('manufacturer');
+        res.json(manufacturers);
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(500).json({ message: error.message });
         }
         else {
-            res.status(500).json({ success: false, message: "Unknown error occurred" });
+            res.status(500).json({ message: "Unknown error occurred" });
         }
     }
 });
-exports.getManufacturersFromProducts = getManufacturersFromProducts;
+exports.getManufacturers = getManufacturers;

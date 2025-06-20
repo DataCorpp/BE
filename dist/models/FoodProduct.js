@@ -1,184 +1,166 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = __importStar(require("mongoose"));
-// Schema cho FoodProduct theo format mới
+const mongoose_1 = require("mongoose");
+const Product_1 = __importDefault(require("./Product"));
+// Schema cho FoodProduct - extend từ Product base schema
 const foodProductSchema = new mongoose_1.Schema({
-    name: {
+    // Manufacturer & Origin Details
+    manufacturer: {
         type: String,
-        required: [true, "Product name is required"],
-        trim: true,
-    },
-    category: {
-        type: String,
-        trim: true,
+        required: true,
     },
     originCountry: {
         type: String,
-        trim: true,
+        required: true,
     },
-    manufacturer: {
-        type: mongoose_1.Types.ObjectId,
-        ref: 'Manufacturer',
-        required: [true, "Manufacturer is required"],
-    },
-    image: {
+    manufacturerRegion: {
         type: String,
-        default: "/placeholder.svg",
     },
-    price: {
-        type: String,
-        trim: true,
-    },
-    currency: {
-        type: String,
-        trim: true,
-        default: "USD",
-    },
-    pricePerUnit: {
+    // Production Details
+    minOrderQuantity: {
         type: Number,
-        min: [0, "Price per unit cannot be negative"],
+        required: true,
+        min: 1,
+    },
+    dailyCapacity: {
+        type: Number,
+        required: true,
+        min: 1,
+    },
+    currentAvailable: {
+        type: Number,
+        default: 0,
+        min: 0,
     },
     unitType: {
         type: String,
-        trim: true,
-        default: "units",
+        required: true,
+        enum: ["units", "kg", "g", "liters", "ml", "packs", "bottles", "boxes", "bags", "cans"],
     },
-    packagingSize: {
-        type: String,
-        trim: true,
-    },
-    rating: {
+    // Pricing
+    pricePerUnit: {
         type: Number,
-        min: [0, "Rating cannot be less than 0"],
-        max: [5, "Rating cannot be more than 5"],
-        default: 4.0,
+        required: true,
+        min: 0,
     },
-    reviewsCount: {
-        type: Number,
-        min: [0, "Reviews count cannot be negative"],
-        default: 0,
-    },
-    productType: {
+    priceCurrency: {
         type: String,
-        trim: true,
-        default: "seasoning",
+        required: true,
+        enum: ["USD", "JPY", "EUR", "CNY"],
+        default: "USD",
     },
-    description: {
+    // Lead Time
+    leadTime: {
         type: String,
-        trim: true,
-        maxlength: [2000, "Description cannot exceed 2000 characters"],
+        required: true,
     },
-    minOrderQuantity: {
-        type: Number,
-        min: [1, "Minimum order quantity must be at least 1"],
-        default: 1,
+    leadTimeUnit: {
+        type: String,
+        required: true,
+        enum: ["days", "weeks", "months"],
+        default: "weeks",
     },
-    leadTimeDetailed: {
-        average: {
-            type: Number,
-            min: [0, "Lead time average cannot be negative"],
-        },
-        max: {
-            type: Number,
-            min: [0, "Lead time max cannot be negative"],
-        },
-        unit: {
-            type: String,
-            enum: ["days", "weeks", "months"],
-            default: "weeks",
-        },
-    },
+    // Sustainability
     sustainable: {
         type: Boolean,
         default: false,
     },
+    // Product Code
+    sku: {
+        type: String,
+        unique: true,
+        sparse: true, // cho phép null/undefined và vẫn unique
+    },
+    // Food-specific Details
+    foodType: {
+        type: String,
+        required: true,
+        enum: [
+            "Miso", "Soy Sauce", "Dressing", "Vinegar", "Cooking Oil",
+            "Paste", "Marinade", "Soup Base", "Seasoning Mix", "Sauce",
+            "Pickle", "Fermented", "Instant Food", "Snack", "Dessert",
+            "Beverage Mix", "Health Food", "Other"
+        ],
+    },
+    flavorType: [{
+            type: String,
+            enum: [
+                "Sweet", "Salty", "Sour", "Bitter", "Umami", "Spicy",
+                "Mild", "Rich", "Fresh", "Smoky", "Nutty", "Fruity",
+                "Herbal", "Earthy", "Floral", "Creamy", "Tangy", "Aromatic"
+            ],
+        }],
     ingredients: [{
             type: String,
-            trim: true,
+            required: true,
         }],
     allergens: [{
             type: String,
-            trim: true,
-        }],
-    flavorType: [{
-            type: String,
-            enum: ["salty", "sweet", "spicy", "umami", "sour", "aromatic", "creamy", "nutty", "savory", "citrus", "tangy", "rich", "mild", "complex"],
-            trim: true,
+            enum: [
+                "Gluten", "Peanuts", "Tree Nuts", "Soy", "Dairy", "Eggs",
+                "Fish", "Shellfish", "Sesame", "Mustard", "Celery", "Sulphites",
+                "Lupin", "Molluscs"
+            ],
         }],
     usage: [{
             type: String,
-            trim: true,
         }],
+    // Packaging Details
+    packagingType: {
+        type: String,
+        required: true,
+        enum: [
+            "Bottle", "Can", "Jar", "Pouch", "Box", "Bag",
+            "Vacuum Pack", "Tube", "Tray", "Sachet"
+        ],
+    },
+    packagingSize: {
+        type: String,
+        required: true,
+    },
+    // Storage & Shelf Life
     shelfLife: {
         type: String,
-        trim: true,
+        required: true,
     },
-    status: {
+    shelfLifeStartDate: {
+        type: Date,
+    },
+    shelfLifeEndDate: {
+        type: Date,
+    },
+    storageInstruction: {
         type: String,
-        enum: ['available', 'discontinued', 'preorder'],
-        default: 'available',
+        required: true,
     },
-    // Backwards compatibility fields
-    leadTime: {
-        type: String,
-        trim: true,
-    },
-    leadTimeUnit: {
-        type: String,
-        default: "weeks",
-    },
-    sku: {
-        type: String,
-        trim: true,
-    },
-    currentAvailable: {
-        type: Number,
-        min: [0, "Current available cannot be negative"],
-    },
-    manufacturerRegion: {
-        type: String,
-        trim: true,
-    },
-}, {
-    timestamps: true,
 });
-// Add index for better performance
+// Index cho tìm kiếm hiệu quả
+foodProductSchema.index({ foodType: 1 });
+foodProductSchema.index({ flavorType: 1 });
+foodProductSchema.index({ allergens: 1 });
 foodProductSchema.index({ manufacturer: 1 });
-foodProductSchema.index({ category: 1 });
-foodProductSchema.index({ status: 1 });
-foodProductSchema.index({ name: 'text', description: 'text' });
-const FoodProduct = mongoose_1.default.model("FoodProduct", foodProductSchema);
+foodProductSchema.index({ originCountry: 1 });
+foodProductSchema.index({ sku: 1 });
+// Validation middleware
+foodProductSchema.pre('save', function (next) {
+    // Validate shelf life dates if provided
+    if (this.shelfLifeStartDate && this.shelfLifeEndDate) {
+        if (this.shelfLifeStartDate >= this.shelfLifeEndDate) {
+            next(new Error('Shelf life start date must be before end date'));
+            return;
+        }
+    }
+    // Auto-generate SKU if not provided
+    if (!this.sku && this.isNew) {
+        const prefix = this.foodType.substring(0, 3).toUpperCase();
+        const timestamp = Date.now().toString().slice(-6);
+        this.sku = `${prefix}${timestamp}`;
+    }
+    next();
+});
+// Tạo discriminator từ Product base model
+const FoodProduct = Product_1.default.discriminator("food", foodProductSchema);
 exports.default = FoodProduct;

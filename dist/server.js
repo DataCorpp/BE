@@ -7,10 +7,11 @@ const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const db_1 = __importDefault(require("./config/db"));
+const express_session_1 = __importDefault(require("express-session"));
+const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
-const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
-const manufacturerRoutes_1 = __importDefault(require("./routes/manufacturerRoutes"));
+const foodProductRoutes_1 = __importDefault(require("./routes/foodProductRoutes"));
 // Load environment variables from .env file
 dotenv_1.default.config();
 // Kết nối MongoDB
@@ -31,11 +32,26 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 app.use(express_1.default.json());
+// Session configuration
+app.use((0, express_session_1.default)({
+    secret: process.env.GOOGLE_CLIENT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: connect_mongo_1.default.create({
+        mongoUrl: process.env.MONGODB_URI,
+        collectionName: "sessions",
+    }),
+    cookie: {
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    }
+}));
 // Routes
 app.use("/api/admin", adminRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
-app.use("/api/products", productRoutes_1.default);
-app.use("/api/manufacturers", manufacturerRoutes_1.default);
+app.use("/api/foodproducts", foodProductRoutes_1.default);
 // Health check
 app.get("/health", (req, res) => {
     res.json({ status: "ok" });
@@ -51,8 +67,7 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`Server running on port ${PORT}`);
         console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
         console.log(`User API available at http://localhost:${PORT}/api/users`);
-        console.log(`Products API available at http://localhost:${PORT}/api/products`);
-        console.log(`Manufacturers API available at http://localhost:${PORT}/api/manufacturers`);
+        console.log(`Food Products API available at http://localhost:${PORT}/api/foodproducts`);
     });
 }
 exports.default = app;

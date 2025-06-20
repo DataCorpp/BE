@@ -14,7 +14,7 @@ router.route("/")
 // Get metadata routes
 router.get("/categories", foodProductController_1.getCategories);
 router.get("/types", foodProductController_1.getProductTypes);
-router.get("/manufacturers", foodProductController_1.getManufacturersFromProducts);
+router.get("/manufacturers", foodProductController_1.getManufacturers);
 // Route /api/foodproducts/:id
 router.route("/:id")
     .get(foodProductController_1.getFoodProductById)

@@ -6,7 +6,7 @@ dotenv.config();
 const connectDB = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(
-      process.env.MONGO_URI || "mongodb://localhost:27017/cpg-matching"
+      process.env.MONGODB_URI
     );
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
