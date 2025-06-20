@@ -12,7 +12,7 @@ interface IInventoryItem extends Document {
   location: string;
 }
 
-// Định nghĩa interface cho Product
+// Định nghĩa interface cho Product cơ bản
 export interface IProduct extends Document {
   user: mongoose.Types.ObjectId;
   name: string;
@@ -24,6 +24,7 @@ export interface IProduct extends Document {
   image: string;
   rating: number;
   numReviews: number;
+  productType: string; // Để phân biệt loại sản phẩm (food, beverage, etc.)
 }
 
 // Schema cho Inventory
@@ -38,7 +39,7 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   location: { type: String, required: true },
 });
 
-// Schema cho Product
+// Schema cơ bản cho Product
 const productSchema = new Schema(
   {
     user: {
@@ -86,9 +87,15 @@ const productSchema = new Schema(
       required: true,
       default: 0,
     },
+    productType: {
+      type: String,
+      required: true,
+      enum: ['food', 'beverage', 'health', 'other'], // Có thể mở rộng thêm
+    },
   },
   {
     timestamps: true,
+    discriminatorKey: 'productType', // Key để phân biệt các loại sản phẩm
   }
 );
 

@@ -938,3 +938,87 @@ export const logoutUser = async (req: Request, res: Response): Promise<void> => 
     }
   }
 };
+
+// @desc    Lấy danh sách manufacturers
+// @route   GET /api/users/manufacturers
+// @access  Public
+export const getManufacturers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const skip = (page - 1) * limit;
+
+    // Build filter object
+    const filter: any = { 
+      role: "manufacturer",
+      status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
+    };
+
+    // Optional filters
+    if (req.query.industry) {
+      filter.industry = new RegExp(req.query.industry as string, 'i');
+    }
+    
+    if (req.query.location) {
+      filter.address = new RegExp(req.query.location as string, 'i');
+    }
+
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search as string, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { companyName: searchRegex },
+        { industry: searchRegex },
+        { description: searchRegex },
+        { companyDescription: searchRegex }
+      ];
+    }
+
+    // Get total count for pagination
+    const total = await User.countDocuments(filter);
+    
+    // Get manufacturers with pagination
+    const manufacturers = await User.find(filter)
+      .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(limit)
+      .lean(); // Use lean for better performance
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.json({
+      success: true,
+      manufacturers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNextPage,
+        hasPrevPage
+      },
+      total // Keep this for backward compatibility
+    });
+
+  } catch (error) {
+    console.error('Error in getManufacturers:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        message: "Unknown error occurred" 
+      });
+    }
+  }
+};

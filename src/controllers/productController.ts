@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Product from "../models/Product";
+import { Product, getProductModel, createProduct as createProductHelper, mapFormDataToFoodProduct } from "../models";
 
 // @desc    Lấy tất cả sản phẩm
 // @route   GET /api/products
@@ -9,7 +9,11 @@ export const getProducts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const products = await Product.find({});
+    const { productType } = req.query;
+    
+    // Nếu có productType, filter theo loại, nếu không thì lấy tất cả
+    const filter = productType ? { productType } : {};
+    const products = await Product.find(filter);
     res.json(products);
   } catch (error) {
     if (error instanceof Error) {
@@ -52,27 +56,33 @@ export const createProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, brand, category, description, price, countInStock, image } =
-      req.body;
+    const { productType = 'other', ...requestData } = req.body;
 
-    const product = new Product({
+    // Chuẩn bị data với user info
+    let productData = {
       user: (req as any).user._id,
-      name,
-      brand,
-      category,
-      description,
-      price,
-      countInStock,
-      image,
       rating: 0,
       numReviews: 0,
-    });
+      ...requestData,
+    };
+
+    // Xử lý mapping đặc biệt cho food products
+    if (productType === 'food') {
+      productData = mapFormDataToFoodProduct(productData);
+    }
+
+    // Sử dụng helper function để tạo sản phẩm với loại phù hợp
+    const product = createProductHelper(productType, productData);
 
     const createdProduct = await product.save();
     res.status(201).json(createdProduct);
   } catch (error) {
+    console.error('Error creating product:', error);
     if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ 
+        message: error.message,
+        details: error.name === 'ValidationError' ? error.message : undefined
+      });
     } else {
       res.status(400).json({ message: "Unknown error occurred" });
     }
@@ -87,19 +97,23 @@ export const updateProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, brand, category, description, price, countInStock, image } =
-      req.body;
-
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      product.name = name || product.name;
-      product.brand = brand || product.brand;
-      product.category = category || product.category;
-      product.description = description || product.description;
-      product.price = price || product.price;
-      product.countInStock = countInStock || product.countInStock;
-      product.image = image || product.image;
+      const { productType, ...updateData } = req.body;
+      
+      // Xử lý mapping đặc biệt cho food products
+      let finalUpdateData = updateData;
+      if (product.productType === 'food' || productType === 'food') {
+        finalUpdateData = mapFormDataToFoodProduct(updateData);
+      }
+
+      // Cập nhật các field được gửi trong request
+      Object.keys(finalUpdateData).forEach(key => {
+        if (finalUpdateData[key] !== undefined && key !== '_id' && key !== '__v') {
+          (product as any)[key] = finalUpdateData[key];
+        }
+      });
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);
@@ -107,8 +121,12 @@ export const updateProduct = async (
       res.status(404).json({ message: "Product not found" });
     }
   } catch (error) {
+    console.error('Error updating product:', error);
     if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ 
+        message: error.message,
+        details: error.name === 'ValidationError' ? error.message : undefined
+      });
     } else {
       res.status(400).json({ message: "Unknown error occurred" });
     }
@@ -136,6 +154,28 @@ export const deleteProduct = async (
       res.status(400).json({ message: error.message });
     } else {
       res.status(400).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Lấy sản phẩm theo loại
+// @route   GET /api/products/type/:productType
+// @access  Public
+export const getProductsByType = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { productType } = req.params;
+    const Model = getProductModel(productType as any);
+    
+    const products = await Model.find({ productType });
+    res.json(products);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };

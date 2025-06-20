@@ -7,7 +7,6 @@ import MongoStore from "connect-mongo";
 import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
-import manufacturerRoutes from "./routes/manufacturerRoutes";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -38,7 +37,7 @@ app.use(express.json());
 // Session configuration
 app.use(
   session({
-    secret: process.env.VITE_GOOGLE_CLIENT_SECRET,    
+    secret: process.env.GOOGLE_CLIENT_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -58,7 +57,6 @@ app.use(
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/foodproducts", foodProductRoutes);
-app.use("/api/manufacturers", manufacturerRoutes);
 
 // Health check
 app.get("/health", (req: Request, res: Response) => {
@@ -78,7 +76,6 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
     console.log(`User API available at http://localhost:${PORT}/api/users`);
     console.log(`Food Products API available at http://localhost:${PORT}/api/foodproducts`);
-    console.log(`Manufacturers API available at http://localhost:${PORT}/api/manufacturers`);
   });
 }
 
