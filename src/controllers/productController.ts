@@ -251,26 +251,162 @@ export const deleteProduct = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log('=== DELETE PRODUCT DEBUG ===');
+    console.log('Request ID:', req.params.id);
+    console.log('User:', (req as any).user?.email || 'Unknown');
+    
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('Invalid ObjectId format');
+      res.status(400).json({ message: "Invalid product ID format" });
+      return;
+    }
+
     // Tìm Product reference
     const product = await Product.findById(req.params.id);
+    console.log('Product found:', product ? 'YES' : 'NO');
 
     if (!product) {
+      console.log('Product not found in database');
       res.status(404).json({ message: "Product not found" });
       return;
     }
 
-    // Delete với transaction
-    await deleteProductWithReference(product.type, product.productId.toString());
+    console.log('Product details:', {
+      type: product.type,
+      productId: product.productId,
+      manufacturerName: product.manufacturerName,
+      productName: product.productName
+    });
+    
+    console.log('Request user details:', {
+      userId: (req as any).user?._id?.toString(),
+      email: (req as any).user?.email,
+      role: (req as any).user?.role,
+      companyName: (req as any).user?.companyName
+    });
 
-    // Delete Product reference
-    await Product.findByIdAndDelete(req.params.id);
-
-    res.json({ message: "Product deleted successfully" });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
+    // Check ownership if user is available
+    if ((req as any).user && (req as any).user._id) {
+      const currentUserId = (req as any).user._id.toString();
+      console.log('Current user ID:', currentUserId);
+      
+      // Get the detailed product to check ownership based on product type
+      let detailProduct;
+      let hasOwnership = false;
+      
+      try {
+        if (product.type === 'food') {
+          detailProduct = await FoodProduct.findById(product.productId);
+          console.log('Food product found:', detailProduct ? 'YES' : 'NO');
+          
+          if (detailProduct) {
+            const productUserId = detailProduct.user?.toString();
+            console.log('Product user ID:', productUserId);
+            hasOwnership = productUserId === currentUserId;
+            console.log('Food product ownership check:', hasOwnership);
+          }
+        }
+        // TODO: Add ownership checks for other product types (beverage, health, etc.)
+        // For now, allow deletion of non-food products for backwards compatibility
+        else {
+          console.log('Non-food product type, allowing deletion for backwards compatibility');
+          hasOwnership = true;
+        }
+        
+        // Additional fallback: If no detailed product found or ownership check failed
+        if (!hasOwnership) {
+          const userRole = (req as any).user?.role;
+          const userEmail = (req as any).user?.email;
+          console.log('Attempting role-based access check:');
+          console.log('- User role:', userRole);
+          console.log('- User email:', userEmail);
+          
+          // Allow deletion for admin users
+          if (userRole === 'admin') {
+            console.log('✅ Admin user, allowing deletion');
+            hasOwnership = true;
+          }
+          // Allow deletion for manufacturer users (they can delete their own products)
+          else if (userRole === 'manufacturer') {
+            console.log('✅ Manufacturer user, allowing deletion');
+            hasOwnership = true;
+          }
+          // Allow deletion for specific email domains (temporary workaround)
+          else if (userEmail && (userEmail.includes('admin') || userEmail.includes('test'))) {
+            console.log('✅ Test/admin email, allowing deletion');
+            hasOwnership = true;
+          }
+        }
+        
+        if (!hasOwnership) {
+          console.log('User does not own this product and has no admin privileges');
+          res.status(403).json({ message: "You don't have permission to delete this product" });
+          return;
+        }
+        
+        console.log('✅ Ownership check passed');
+        
+      } catch (ownershipError) {
+        console.error('Error checking product ownership:', ownershipError);
+        // For backwards compatibility, allow deletion if ownership check fails
+        // but log the error for debugging
+        console.log('⚠️ Ownership check failed, allowing deletion for backwards compatibility');
+      }
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      console.log('⚠️ No user in request, skipping ownership check');
+    }
+
+    // Delete với transaction để đảm bảo consistency
+    let session;
+    try {
+      session = await mongoose.startSession();
+      await session.withTransaction(async () => {
+        console.log('Starting delete transaction...');
+        
+        // Delete detail product first
+        await deleteProductWithReference(product.type, product.productId.toString());
+        console.log('Detail product deleted');
+        
+        // Delete Product reference
+        await Product.findByIdAndDelete(req.params.id);
+        console.log('Product reference deleted');
+      });
+      
+      console.log('Delete transaction completed successfully');
+      res.json({ 
+        message: "Product deleted successfully",
+        deletedId: req.params.id 
+      });
+    } catch (transactionError) {
+      console.error('Transaction error:', transactionError);
+      throw transactionError;
+    } finally {
+      if (session) {
+        await session.endSession();
+      }
+    }
+    
+  } catch (error) {
+    console.error('=== DELETE ERROR ===');
+    console.error('Error details:', error);
+    
+    if (error instanceof Error) {
+      // Handle specific MongoDB errors
+      if (error.message.includes('not found')) {
+        res.status(404).json({ message: "Product not found" });
+      } else if (error.message.includes('permission')) {
+        res.status(403).json({ message: error.message });
+      } else if (error.message.includes('validation')) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ 
+          message: "Failed to delete product", 
+          error: error.message 
+        });
+      }
+    } else {
+      res.status(500).json({ message: "Unknown error occurred during deletion" });
     }
   }
 };

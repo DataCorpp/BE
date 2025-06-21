@@ -373,25 +373,59 @@ foodProductSchema.statics.updateWithProduct = async function(
 // Static method để delete product với error handling
 foodProductSchema.statics.deleteWithProduct = async function(foodProductId: string) {
   try {
-    // Delete FoodProduct
-    const foodProduct = await this.findByIdAndDelete(foodProductId);
-    
+    console.log('=== DELETE FOOD PRODUCT WITH REFERENCE ===');
+    console.log('Food Product ID:', foodProductId);
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(foodProductId)) {
+      throw new Error('Invalid food product ID format');
+    }
+
+    // Check if FoodProduct exists
+    const foodProduct = await this.findById(foodProductId);
     if (!foodProduct) {
+      console.log('Food product not found for deletion');
       throw new Error('Food product not found');
     }
 
-    // Delete Product reference
-    const deletedProduct = await Product.findOneAndDelete({ 
+    console.log('Food product found:', {
+      name: foodProduct.name,
+      manufacturer: foodProduct.manufacturer,
+      user: foodProduct.user
+    });
+
+    // Delete FoodProduct first
+    console.log('Deleting FoodProduct document...');
+    const deletedFoodProduct = await this.findByIdAndDelete(foodProductId);
+    
+    if (!deletedFoodProduct) {
+      throw new Error('Failed to delete food product from database');
+    }
+    console.log('FoodProduct deleted successfully');
+
+    // Find and delete Product reference
+    console.log('Looking for Product reference...');
+    const productReference = await Product.findOne({ 
       productId: foodProductId, 
       type: 'food' 
     });
 
-    if (!deletedProduct) {
+    if (productReference) {
+      console.log('Product reference found:', productReference._id);
+      const deletedReference = await Product.findByIdAndDelete(productReference._id);
+      if (deletedReference) {
+        console.log('Product reference deleted successfully');
+      } else {
+        console.warn('Failed to delete Product reference');
+      }
+    } else {
       console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
     }
 
-    return foodProduct;
+    console.log('Delete operation completed');
+    return deletedFoodProduct;
   } catch (error) {
+    console.error('Error in deleteWithProduct:', error);
     throw error;
   }
 };
