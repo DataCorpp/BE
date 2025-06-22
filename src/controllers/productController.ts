@@ -155,8 +155,10 @@ export const createProductGeneric = async (
     let userId;
     if ((req as any).user && (req as any).user._id) {
       userId = (req as any).user._id;
+      console.log("Using authenticated user ID:", userId);
     } else {
       userId = new mongoose.Types.ObjectId('000000000000000000000000');
+      console.log("Using default user ID:", userId);
     }
 
     const productData = { manufacturerName, productName };
@@ -171,7 +173,16 @@ export const createProductGeneric = async (
           user: userId,
           ...otherData 
         });
-        detailData = mappedData.foodProductData;
+        // Đảm bảo trường user được đặt đúng
+        detailData = {
+          ...mappedData.foodProductData,
+          user: userId // Đảm bảo trường user luôn được đặt
+        };
+        console.log("Food product data with user:", {
+          userId: userId,
+          name: detailData.name,
+          manufacturer: detailData.manufacturer
+        });
         break;
       default:
         res.status(400).json({ message: `Product type ${type} is not yet supported` });

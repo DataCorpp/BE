@@ -43,16 +43,16 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
     console.log('=== AUTH MIDDLEWARE DEBUG ===');
     console.log('Headers:', req.headers);
     console.log('Session:', req.session ? 'EXISTS' : 'NONE');
-    console.log('Session userId:', (req.session as any)?.userId || 'NONE');
+    console.log('Session userId:', req.session?.userId || 'NONE');
     
     // Kiểm tra Session authentication
-    if (req.session && (req.session as any).userId) {
+    if (req.session && req.session.userId) {
       console.log('Session authentication attempt...');
-      console.log('Session userId:', (req.session as any).userId);
+      console.log('Session userId:', req.session.userId);
       
       try {
         // Tìm user từ session
-        user = await User.findById((req.session as any).userId).select("-password");
+        user = await User.findById(req.session.userId).select("-password");
         
         if (user) {
           console.log('Session User found:', {
@@ -85,7 +85,7 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
     res.status(401).json({ 
       message: "Not authorized, please login again",
       authType: "session_failed",
-      hasSession: !!(req.session && (req.session as any).userId)
+      hasSession: !!(req.session && req.session.userId)
     });
     
   } catch (error) {

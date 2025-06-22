@@ -104,6 +104,8 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         if (err2) return next(err2);
         
         console.log(`User logged in successfully: ${user.email}`);
+        console.log(`Session created with userId: ${req.session.userId}, userRole: ${req.session.userRole}`);
+        console.log(`Session ID: ${req.sessionID}`);
         
         res.json({
           success: true,
@@ -953,6 +955,7 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
         if (err2) return next(err2);
         
         console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+        console.log(`Google login session created with ID: ${req.sessionID}`);
         
         // Prepare response data
         const userData = {

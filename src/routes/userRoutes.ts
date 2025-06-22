@@ -51,4 +51,21 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json(user);
 });
 
+// Add a test route to check session
+router.get('/check-session', (req, res) => {
+  console.log('=== SESSION CHECK ===');
+  console.log('Session exists:', !!req.session);
+  console.log('Session ID:', req.sessionID);
+  console.log('Session userId:', req.session?.userId || 'NONE');
+  console.log('Session userRole:', req.session?.userRole || 'NONE');
+  
+  res.json({
+    sessionExists: !!req.session,
+    sessionID: req.sessionID,
+    userId: req.session?.userId || null,
+    userRole: req.session?.userRole || null,
+    isAuthenticated: !!req.session?.userId
+  });
+});
+
 export default router;
