@@ -10,24 +10,18 @@ import {
   resetPassword,
   googleLogin,
   logoutUser,
-  refreshAccessToken,
-  logoutUserWithTokens,
   getManufacturers
 } from "../controllers/userController";
-import { protect, protectWithAccessToken } from "../middleware/authMiddleware";
+import { protect, requireAuth } from "../middleware/authMiddleware";
+import User from "../models/User";
 
 const router = express.Router();
 
 // ========== AUTHENTICATION ROUTES ==========
 
-// Legacy authentication (session-based)
+// Session-based authentication
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
-
-// JWT authentication routes
-router.post("/auth/login", loginUser); // Same function but different endpoint
-router.post("/auth/refresh-token", refreshAccessToken);
-router.post("/auth/logout", logoutUserWithTokens);
 
 // ========== REGISTRATION & VERIFICATION ==========
 router.post("/", registerUser);
@@ -45,39 +39,16 @@ router.post("/google-login", googleLogin);
 // ========== PUBLIC ROUTES ==========
 router.get("/manufacturers", getManufacturers);
 
-// ========== PROTECTED ROUTES ==========
+// ========== PROTECTED ROUTES (SESSION-BASED) ==========
 
-// Legacy protected routes (support both JWT and session)
+// Protected routes using session authentication
 router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
 
-// JWT-only protected routes
-router.get("/auth/me", protectWithAccessToken, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    res.json({
-      success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        companyName: user.companyName,
-        profileComplete: user.profileComplete,
-        lastLogin: user.lastLogin,
-        createdAt: user.createdAt
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error getting user info"
-    });
-  }
+// User info endpoint (session-based)
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.session.userId).lean();
+  res.json(user);
 });
-
-// Alternative endpoint for getUserProfile (legacy compatibility)
-router.get("/me", protect, getUserProfile);
 
 export default router;

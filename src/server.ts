@@ -37,7 +37,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(cookieParser()); // Cookie parser for handling HTTP-only cookies
+app.use(cookieParser()); // Cookie parser for handling cookies
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -51,22 +51,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Session configuration
+// Session configuration with MongoDB storage
 app.use(
   session({
-    secret: process.env.GOOGLE_CLIENT_SECRET,
+    secret: process.env.SESSION_SECRET || process.env.GOOGLE_CLIENT_SECRET || "fallback-session-secret",
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
       collectionName: "sessions",
+      touchAfter: 24 * 3600, // Lazy session update - only update session every 24 hours
     }),
     cookie: {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    }
+    },
+    name: "sessionId", // Custom session name for security
   })
 );
 
@@ -76,7 +78,7 @@ console.log('=== MOUNTING ROUTES ===');
 app.use("/api/admin", adminRoutes);
 console.log('✓ Admin routes mounted at /api/admin');
 
-app.use("/api/users", userRoutes); // Includes both legacy and JWT auth routes
+app.use("/api/users", userRoutes); // Session-based authentication
 console.log('✓ User routes mounted at /api/users');
 
 app.use("/api/products", productRoutes);
@@ -99,15 +101,9 @@ app.get("/api", (req: Request, res: Response) => {
     version: "1.0.0",
     endpoints: {
       authentication: {
-        // Legacy session-based auth
-        legacyLogin: "POST /api/users/login",
-        legacyLogout: "POST /api/users/logout",
-        
-        // JWT-based auth
-        jwtLogin: "POST /api/users/auth/login",
-        refreshToken: "POST /api/users/auth/refresh-token",
-        jwtLogout: "POST /api/users/auth/logout",
-        getCurrentUser: "GET /api/users/auth/me (JWT protected)",
+        login: "POST /api/users/login",
+        logout: "POST /api/users/logout",
+        googleLogin: "POST /api/users/google-login",
       },
       users: {
         register: "POST /api/users/register",
@@ -115,9 +111,9 @@ app.get("/api", (req: Request, res: Response) => {
         resendVerification: "POST /api/users/resend-verification",
         forgotPassword: "POST /api/users/forgot-password",
         resetPassword: "POST /api/users/reset-password",
-        googleLogin: "POST /api/users/google-login",
-        profile: "GET /api/users/profile (protected)",
-        updateProfile: "PUT /api/users/profile (protected)",
+        profile: "GET /api/users/profile (session protected)",
+        updateProfile: "PUT /api/users/profile (session protected)",
+        getCurrentUser: "GET /api/users/me (session protected)",
         manufacturers: "GET /api/users/manufacturers"
       },
       admin: "/api/admin",
@@ -125,13 +121,15 @@ app.get("/api", (req: Request, res: Response) => {
       foodProducts: "/api/foodproducts"
     },
     authenticationGuide: {
-      accessToken: "Include 'Authorization: Bearer <token>' header for JWT routes",
-      refreshToken: "Send to /api/users/auth/refresh-token when access token expires",
-      expirations: {
-        accessToken: "15 minutes",
-        refreshToken: "7 days"
+      sessionBased: "Uses express-session with MongoDB storage",
+      sessionStorage: "Sessions stored in MongoDB 'sessions' collection",
+      sessionDuration: "7 days",
+      cookieSettings: {
+        httpOnly: true,
+        secure: "HTTPS in production only",
+        sameSite: "none in production, lax in development"
       },
-      cookieSupport: "Refresh tokens are also stored in HTTP-only cookies"
+      protectedRoutes: "Include session cookie with requests to protected endpoints"
     }
   });
 });
@@ -148,12 +146,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
     console.log(`👥 User API: http://localhost:${PORT}/api/users`);
-    console.log(`  ├── Legacy Auth: /api/users/login, /api/users/logout`);
-    console.log(`  └── JWT Auth: /api/users/auth/login, /api/users/auth/refresh-token`);
+    console.log(`  ├── Session Auth: /api/users/login, /api/users/logout`);
+    console.log(`  └── Google OAuth: /api/users/google-login`);
     console.log(`🛡️  Admin API: http://localhost:${PORT}/api/admin`);
     console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
     console.log(`🍎 Food Products API: http://localhost:${PORT}/api/foodproducts`);
     console.log(`💚 Health Check: http://localhost:${PORT}/health`);
+    console.log(`🗄️  Session Storage: MongoDB`);
   });
 }
 

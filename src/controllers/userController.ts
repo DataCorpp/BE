@@ -1,17 +1,9 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import User, { IUser } from "../models/User";
-import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../utils/mailService";
 import { sendPasswordResetEmail } from "../utils/mailService";
 import { generatePasswordResetToken, hashToken, buildResetUrl } from "../utils/passwordResetUtils";
-import { 
-  generateAccessToken, 
-  generateRefreshToken, 
-  storeRefreshToken, 
-  validateRefreshToken, 
-  removeRefreshToken 
-} from "../middleware/authMiddleware";
 import axios from "axios";
 
 // Define a custom Request type that includes the user property
@@ -20,13 +12,6 @@ interface RequestWithUser extends Request {
     _id: mongoose.Types.ObjectId | string;
   };
 }
-
-// Helper function để tạo JWT (legacy - giữ để backward compatibility)
-const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
-    expiresIn: "30d",
-  });
-};
 
 // Store email verification codes in memory (for development purposes)
 // In production, you would use a database or cache like Redis
@@ -44,12 +29,21 @@ const generateVerificationCode = (): string => {
   return code;
 };
 
-// @desc    Đăng nhập người dùng & lấy JWT tokens
+// @desc    Đăng nhập người dùng với session
 // @route   POST /api/users/login
 // @access  Public
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
+
+    // Kiểm tra email + password có tồn tại không
+    if (!email || !password) {
+      res.status(400).json({ 
+        success: false,
+        message: "Email and password are required." 
+      });
+      return;
+    }
 
     // Kiểm tra xem có email hay không
     const user = await User.findOne({ email });
@@ -82,40 +76,20 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Tạo access token và refresh token
-    const userId = user._id.toString();
-    const accessToken = generateAccessToken(userId, user.role);
-    const refreshToken = generateRefreshToken(userId);
-
-    // Lưu refresh token
-    storeRefreshToken(userId, refreshToken);
-
     // Cập nhật lastLogin
     user.lastLogin = new Date();
     await user.save();
 
-    // Lưu thông tin người dùng vào session (để backward compatibility)
-    if (req.session) {
+    // Sau khi đã xác thực email + password thành công
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
       req.session.userId = user._id.toString();
       req.session.userRole = user.role;
-    }
-
-    // Set refresh token as HTTP-only cookie (tùy chọn)
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction, // HTTPS in production
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/auth'
-    });
-
-    console.log(`User logged in successfully: ${user.email}`);
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      user: {
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
+      
+      // Store additional user info in session
+      (req.session as any).user = {
         _id: user._id,
         name: user.name,
         email: user.email,
@@ -123,13 +97,28 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         status: user.status,
         companyName: user.companyName,
         profileComplete: user.profileComplete
-      },
-      tokens: {
-        accessToken,
-        refreshToken, // Cũng trả về trong response body để FE có thể lưu
-        accessTokenExpiresIn: "15m",
-        refreshTokenExpiresIn: "7d"
-      }
+      };
+      
+      // 👇 Quan trọng: lưu & gửi cookie
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log(`User logged in successfully: ${user.email}`);
+        
+        res.json({
+          success: true,
+          message: "Login successful",
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            companyName: user.companyName,
+            profileComplete: user.profileComplete
+          }
+        });
+      });
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -144,208 +133,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         message: "Unknown error occurred"
       });
     }
-  }
-};
-
-// @desc    Refresh access token using refresh token
-// @route   POST /api/auth/refresh-token
-// @access  Public
-export const refreshAccessToken = async (req: Request, res: Response): Promise<void> => {
-  try {
-    let refreshToken: string | undefined;
-
-    // Kiểm tra refresh token từ body request hoặc cookie
-    if (req.body.refreshToken) {
-      refreshToken = req.body.refreshToken;
-    } else if (req.cookies && req.cookies.refreshToken) {
-      refreshToken = req.cookies.refreshToken;
-    }
-
-    if (!refreshToken) {
-      res.status(401).json({
-        success: false,
-        message: "Refresh token required",
-        code: "NO_REFRESH_TOKEN"
-      });
-      return;
-    }
-
-    try {
-      // Verify refresh token
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET || "fallbackrefreshsecret"
-      ) as { id: string; type: string };
-
-      // Kiểm tra token type
-      if (decoded.type !== 'refresh') {
-        res.status(401).json({
-          success: false,
-          message: "Invalid token type",
-          code: "INVALID_TOKEN_TYPE"
-        });
-        return;
-      }
-
-      // Kiểm tra refresh token trong store
-      const tokenData = validateRefreshToken(refreshToken);
-      if (!tokenData) {
-        res.status(401).json({
-          success: false,
-          message: "Invalid or expired refresh token",
-          code: "INVALID_REFRESH_TOKEN"
-        });
-        return;
-      }
-
-      // Tìm user
-      const user = await User.findById(decoded.id).select("-password");
-      if (!user) {
-        // Remove invalid refresh token
-        removeRefreshToken(refreshToken);
-        res.status(401).json({
-          success: false,
-          message: "User not found",
-          code: "USER_NOT_FOUND"
-        });
-        return;
-      }
-
-      if (user.status !== 'active') {
-        // Remove refresh token for inactive user
-        removeRefreshToken(refreshToken);
-        res.status(401).json({
-          success: false,
-          message: "User account is not active",
-          code: "USER_INACTIVE"
-        });
-        return;
-      }
-
-      // Tạo access token mới
-      const newAccessToken = generateAccessToken(user._id.toString(), user.role);
-
-      // Có thể tạo refresh token mới (optional - rotation)
-      const shouldRotateRefreshToken = process.env.ROTATE_REFRESH_TOKENS === 'true';
-      let newRefreshToken = refreshToken;
-
-      if (shouldRotateRefreshToken) {
-        // Remove old refresh token
-        removeRefreshToken(refreshToken);
-
-        // Generate new refresh token
-        newRefreshToken = generateRefreshToken(user._id.toString());
-        storeRefreshToken(user._id.toString(), newRefreshToken);
-
-        // Update cookie
-        const isProduction = process.env.NODE_ENV === 'production';
-        res.cookie('refreshToken', newRefreshToken, {
-          httpOnly: true,
-          secure: isProduction,
-          sameSite: isProduction ? 'strict' : 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          path: '/api/auth'
-        });
-      }
-
-      console.log(`Access token refreshed for user: ${user.email}`);
-
-      res.json({
-        success: true,
-        message: "Token refreshed successfully",
-        tokens: {
-          accessToken: newAccessToken,
-          ...(shouldRotateRefreshToken && { refreshToken: newRefreshToken }),
-          accessTokenExpiresIn: "15m"
-        }
-      });
-
-    } catch (jwtError: any) {
-      console.log("Refresh token verification failed:", jwtError.message);
-
-      // Remove invalid refresh token from store
-      if (refreshToken) {
-        removeRefreshToken(refreshToken);
-      }
-
-      if (jwtError.name === 'TokenExpiredError') {
-        res.status(401).json({
-          success: false,
-          message: "Refresh token expired",
-          code: "REFRESH_TOKEN_EXPIRED"
-        });
-        return;
-      }
-
-      if (jwtError.name === 'JsonWebTokenError') {
-        res.status(401).json({
-          success: false,
-          message: "Invalid refresh token",
-          code: "INVALID_REFRESH_TOKEN"
-        });
-        return;
-      }
-
-      res.status(401).json({
-        success: false,
-        message: "Refresh token verification failed",
-        code: "REFRESH_TOKEN_VERIFICATION_FAILED"
-      });
-    }
-  } catch (error) {
-    console.error("Refresh token error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during token refresh",
-      code: "SERVER_ERROR"
-    });
-  }
-};
-
-// @desc    Logout user and invalidate refresh token
-// @route   POST /api/auth/logout
-// @access  Public
-export const logoutUserWithTokens = async (req: Request, res: Response): Promise<void> => {
-  try {
-    let refreshToken: string | undefined;
-
-    // Lấy refresh token từ body hoặc cookie
-    if (req.body.refreshToken) {
-      refreshToken = req.body.refreshToken;
-    } else if (req.cookies && req.cookies.refreshToken) {
-      refreshToken = req.cookies.refreshToken;
-    }
-
-    // Remove refresh token từ store nếu có
-    if (refreshToken) {
-      removeRefreshToken(refreshToken);
-    }
-
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken', { path: '/api/auth' });
-
-    // Xóa session (legacy support)
-    if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destroy error:", err);
-        }
-      });
-    }
-
-    console.log("User logged out successfully");
-
-    res.json({
-      success: true,
-      message: "Logout successful"
-    });
-
-  } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during logout"
-    });
   }
 };
 
@@ -415,8 +202,6 @@ export const registerUser = async (
     });
 
     if (user) {
-      const userId = user._id.toString();
-
       // Generate a verification code for the new user
       const verificationCode = generateVerificationCode();
       
@@ -454,7 +239,6 @@ export const registerUser = async (
         email: user.email,
         role: user.role,
         status: user.status,
-        token: generateToken(userId),
       };
 
       // In development, include verification code to help with testing
@@ -708,7 +492,19 @@ export const updateUserProfile = async (
       }
 
       const updatedUser = await user.save();
-      const userId = updatedUser._id.toString();
+
+      // Update session with new user data
+      if (req.session) {
+        (req.session as any).user = {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          status: updatedUser.status,
+          companyName: updatedUser.companyName,
+          profileComplete: updatedUser.profileComplete
+        };
+      }
 
       res.json({
         _id: updatedUser._id,
@@ -731,7 +527,6 @@ export const updateUserProfile = async (
         manufacturerSettings: updatedUser.manufacturerSettings,
         brandSettings: updatedUser.brandSettings,
         retailerSettings: updatedUser.retailerSettings,
-        token: generateToken(userId),
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -1075,7 +870,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 // @desc    Authenticate user with Google OAuth
 // @route   POST /api/users/google-login
 // @access  Public
-export const googleLogin = async (req: Request, res: Response): Promise<void> => {
+export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, email, name, picture } = req.body;
     
@@ -1134,39 +929,50 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
 
     console.timeEnd("GoogleLoginProcess");
     
-    // Save user info to session
-    if (req.session) {
+    // Regenerate session for secure authentication
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
       req.session.userId = user._id.toString();
       req.session.userRole = user.role;
-      console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
       
-      // Ensure the session is saved before sending response
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
-        }
+      // Store additional user info in session
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profileComplete: user.profileComplete,
+        avatar: user.avatar
+      };
+      
+      // Save session and send response
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+        
+        // Prepare response data
+        const userData = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          profileComplete: user.profileComplete,
+          avatar: user.avatar
+        };
+        
+        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+        
+        // Send response with user data directly at top level
+        res.json({
+          ...userData,
+          isNewUser
+        });
       });
-    } else {
-      console.warn("No session object available - session-based auth may not work");
-    }
-    
-    // Prepare response data
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      profileComplete: user.profileComplete,
-      avatar: user.avatar
-    };
-    
-    console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
-    
-    // Send response with user data directly at top level
-    res.json({
-      ...userData,
-      isNewUser
     });
     
   } catch (error) {
@@ -1263,10 +1069,9 @@ export const getManufacturers = async (
   }
 };
 
-// @desc    Logout user (destroy session) - legacy
+// @desc    Logout user (destroy session)
 // @route   POST /api/users/logout
 // @access  Public
-// Note: This is the legacy logout function. Use logoutUserWithTokens for JWT-based logout
 export const logoutUser = async (req: Request, res: Response): Promise<void> => {
   try {
     // Xóa session
