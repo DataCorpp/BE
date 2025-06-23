@@ -59,6 +59,8 @@ export const getProducts = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
+    
+    console.log(`[SERVER] Fetched ${products.length} products`);
 
     res.json({
       products,

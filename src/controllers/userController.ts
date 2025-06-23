@@ -1036,6 +1036,8 @@ export const getManufacturers = async (
       .skip(skip)
       .limit(limit)
       .lean(); // Use lean for better performance
+      
+    console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
