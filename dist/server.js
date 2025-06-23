@@ -11,6 +11,7 @@ const express_session_1 = __importDefault(require("express-session"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
+const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const foodProductRoutes_1 = __importDefault(require("./routes/foodProductRoutes"));
 // Load environment variables from .env file
 dotenv_1.default.config();
@@ -20,7 +21,7 @@ const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Middleware
 app.use((0, cors_1.default)({
-    origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000"],
+    origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
         "Content-Type",
@@ -51,6 +52,7 @@ app.use((0, express_session_1.default)({
 // Routes
 app.use("/api/admin", adminRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
+app.use("/api/products", productRoutes_1.default);
 app.use("/api/foodproducts", foodProductRoutes_1.default);
 // Health check
 app.get("/health", (req, res) => {
@@ -67,6 +69,7 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`Server running on port ${PORT}`);
         console.log(`Admin API available at http://localhost:${PORT}/api/admin`);
         console.log(`User API available at http://localhost:${PORT}/api/users`);
+        console.log(`Products API available at http://localhost:${PORT}/api/products`);
         console.log(`Food Products API available at http://localhost:${PORT}/api/foodproducts`);
     });
 }

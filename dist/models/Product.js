@@ -45,61 +45,38 @@ const InventoryItemSchema = new mongoose_1.Schema({
     threshold: { type: Number, required: true },
     location: { type: String, required: true },
 });
-// Schema cơ bản cho Product
+// Schema cơ bản cho Product - chỉ lưu thông tin chung
 const productSchema = new mongoose_1.Schema({
-    user: {
+    manufacturerName: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    productName: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    type: {
+        type: String,
+        required: true,
+        enum: ['food', 'beverage', 'health', 'other'],
+    },
+    productId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         required: true,
-        ref: "User",
-    },
-    name: {
-        type: String,
-        required: true,
-    },
-    brand: {
-        type: String,
-        required: true,
-    },
-    category: {
-        type: String,
-        required: true,
-    },
-    description: {
-        type: String,
-        required: true,
-    },
-    price: {
-        type: Number,
-        required: true,
-        default: 0,
-    },
-    countInStock: {
-        type: Number,
-        required: true,
-        default: 0,
-    },
-    image: {
-        type: String,
-        required: true,
-    },
-    rating: {
-        type: Number,
-        required: true,
-        default: 0,
-    },
-    numReviews: {
-        type: Number,
-        required: true,
-        default: 0,
-    },
-    productType: {
-        type: String,
-        required: true,
-        enum: ['food', 'beverage', 'health', 'other'], // Có thể mở rộng thêm
+        // Reference sẽ được set động dựa trên type
     },
 }, {
     timestamps: true,
-    discriminatorKey: 'productType', // Key để phân biệt các loại sản phẩm
 });
+// Index cho tìm kiếm hiệu quả
+productSchema.index({ type: 1 });
+productSchema.index({ manufacturerName: 1 });
+productSchema.index({ productName: 1 });
+productSchema.index({ productId: 1 });
+// Compound index cho tìm kiếm kết hợp
+productSchema.index({ type: 1, manufacturerName: 1 });
+productSchema.index({ type: 1, productName: 'text', manufacturerName: 'text' });
 const Product = mongoose_1.default.model("Product", productSchema);
 exports.default = Product;

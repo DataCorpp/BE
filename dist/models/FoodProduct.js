@@ -1,12 +1,100 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importStar(require("mongoose"));
 const Product_1 = __importDefault(require("./Product"));
-// Schema cho FoodProduct - extend từ Product base schema
+// Schema cho FoodProduct - collection độc lập
 const foodProductSchema = new mongoose_1.Schema({
+    // Basic Product Info
+    user: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        required: true,
+        ref: "User",
+    },
+    name: {
+        type: String,
+        required: true,
+    },
+    brand: {
+        type: String,
+        required: true,
+    },
+    category: {
+        type: String,
+        required: true,
+    },
+    description: {
+        type: String,
+        required: true,
+    },
+    price: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    countInStock: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    image: {
+        type: String,
+        required: true,
+    },
+    rating: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    numReviews: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
     // Manufacturer & Origin Details
     manufacturer: {
         type: String,
@@ -95,7 +183,6 @@ const foodProductSchema = new mongoose_1.Schema({
         }],
     ingredients: [{
             type: String,
-            required: true,
         }],
     allergens: [{
             type: String,
@@ -136,6 +223,8 @@ const foodProductSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+}, {
+    timestamps: true,
 });
 // Index cho tìm kiếm hiệu quả
 foodProductSchema.index({ foodType: 1 });
@@ -144,6 +233,7 @@ foodProductSchema.index({ allergens: 1 });
 foodProductSchema.index({ manufacturer: 1 });
 foodProductSchema.index({ originCountry: 1 });
 foodProductSchema.index({ sku: 1 });
+foodProductSchema.index({ name: 'text', description: 'text', manufacturer: 'text' });
 // Validation middleware
 foodProductSchema.pre('save', function (next) {
     // Validate shelf life dates if provided
@@ -161,6 +251,98 @@ foodProductSchema.pre('save', function (next) {
     }
     next();
 });
-// Tạo discriminator từ Product base model
-const FoodProduct = Product_1.default.discriminator("food", foodProductSchema);
+// Static method để tạo product với error handling (không dùng transaction)
+foodProductSchema.statics.createWithProduct = function (productData, foodProductData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let foodProduct = null;
+        let product = null;
+        try {
+            // Tạo FoodProduct trước
+            foodProduct = new this(foodProductData);
+            yield foodProduct.save();
+            // Tạo Product reference
+            product = new Product_1.default({
+                manufacturerName: productData.manufacturerName,
+                productName: productData.productName,
+                type: 'food',
+                productId: foodProduct._id,
+            });
+            yield product.save();
+            return { product, foodProduct };
+        }
+        catch (error) {
+            // Cleanup nếu có lỗi
+            if (foodProduct && foodProduct._id) {
+                try {
+                    yield this.findByIdAndDelete(foodProduct._id);
+                }
+                catch (cleanupError) {
+                    console.error('Error during cleanup:', cleanupError);
+                }
+            }
+            throw error;
+        }
+    });
+};
+// Static method để lấy product với reference
+foodProductSchema.statics.findWithProduct = function (query) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const products = yield Product_1.default.find(Object.assign({ type: 'food' }, query));
+        const productIds = products.map(p => p.productId);
+        const foodProducts = yield this.find({ _id: { $in: productIds } });
+        return foodProducts.map(fp => {
+            const product = products.find(p => p.productId.toString() === fp._id.toString());
+            return Object.assign(Object.assign({}, fp.toObject()), { productInfo: product });
+        });
+    });
+};
+// Static method để update product với error handling
+foodProductSchema.statics.updateWithProduct = function (foodProductId, productData, foodProductData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Update FoodProduct
+            const foodProduct = yield this.findByIdAndUpdate(foodProductId, foodProductData, { new: true });
+            if (!foodProduct) {
+                throw new Error('Food product not found');
+            }
+            // Update Product reference nếu có thay đổi
+            if (productData.manufacturerName || productData.productName) {
+                const productUpdate = Object.assign(Object.assign({}, (productData.manufacturerName && { manufacturerName: productData.manufacturerName })), (productData.productName && { productName: productData.productName }));
+                const updatedProduct = yield Product_1.default.findOneAndUpdate({ productId: foodProductId, type: 'food' }, productUpdate, { new: true });
+                if (!updatedProduct) {
+                    console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
+                }
+            }
+            return foodProduct;
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+};
+// Static method để delete product với error handling
+foodProductSchema.statics.deleteWithProduct = function (foodProductId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Delete FoodProduct
+            const foodProduct = yield this.findByIdAndDelete(foodProductId);
+            if (!foodProduct) {
+                throw new Error('Food product not found');
+            }
+            // Delete Product reference
+            const deletedProduct = yield Product_1.default.findOneAndDelete({
+                productId: foodProductId,
+                type: 'food'
+            });
+            if (!deletedProduct) {
+                console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
+            }
+            return foodProduct;
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+};
+const FoodProduct = mongoose_1.default.model("FoodProduct", foodProductSchema);
 exports.default = FoodProduct;

@@ -882,6 +882,39 @@ const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, functio
             .skip(skip)
             .limit(limit)
             .lean();
+
+        // Build filter object
+        const filter = {
+            role: "manufacturer",
+            status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
+        };
+        // Optional filters
+        if (req.query.industry) {
+            filter.industry = new RegExp(req.query.industry, 'i');
+        }
+        if (req.query.location) {
+            filter.address = new RegExp(req.query.location, 'i');
+        }
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i');
+            filter.$or = [
+                { name: searchRegex },
+                { companyName: searchRegex },
+                { industry: searchRegex },
+                { description: searchRegex },
+                { companyDescription: searchRegex }
+            ];
+        }
+        // Get total count for pagination
+        const total = yield User_1.default.countDocuments(filter);
+        // Get manufacturers with pagination
+        const manufacturers = yield User_1.default.find(filter)
+            .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .skip(skip)
+            .limit(limit)
+            .lean(); // Use lean for better performance
+
         // Calculate pagination info
         const totalPages = Math.ceil(total / limit);
         const hasNextPage = page < totalPages;
@@ -907,6 +940,23 @@ const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, functio
             message: 'Error fetching manufacturers',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
+            total // Keep this for backward compatibility
+        });
+    }
+    catch (error) {
+        console.error('Error in getManufacturers:', error);
+        if (error instanceof Error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+        else {
+            res.status(500).json({
+                success: false,
+                message: "Unknown error occurred"
+            });
+        }
     }
 });
 exports.getManufacturers = getManufacturers;
