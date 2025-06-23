@@ -1,7 +1,6 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import User, { IUser } from "../models/User";
-import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../utils/mailService";
 import { sendPasswordResetEmail } from "../utils/mailService";
 import { generatePasswordResetToken, hashToken, buildResetUrl } from "../utils/passwordResetUtils";
@@ -13,13 +12,6 @@ interface RequestWithUser extends Request {
     _id: mongoose.Types.ObjectId | string;
   };
 }
-
-// Helper function để tạo JWT
-const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
-    expiresIn: "30d",
-  });
-};
 
 // Store email verification codes in memory (for development purposes)
 // In production, you would use a database or cache like Redis
@@ -37,18 +29,30 @@ const generateVerificationCode = (): string => {
   return code;
 };
 
-// @desc    Đăng nhập người dùng & lấy token
+// @desc    Đăng nhập người dùng với session
 // @route   POST /api/users/login
 // @access  Public
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
+
+    // Kiểm tra email + password có tồn tại không
+    if (!email || !password) {
+      res.status(400).json({ 
+        success: false,
+        message: "Email and password are required." 
+      });
+      return;
+    }
 
     // Kiểm tra xem có email hay không
     const user = await User.findOne({ email });
 
     if (!user) {
-      res.status(401).json({ message: "Invalid email or password" });
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
       return;
     }
 
@@ -56,28 +60,80 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      res.status(401).json({ message: "Invalid email or password" });
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
       return;
     }
 
-    // Lưu thông tin người dùng vào session
-    if (req.session) {
-      req.session.userId = user._id.toString();
-      req.session.userRole = user.role;
+    // Kiểm tra status user
+    if (user.status !== 'active') {
+      res.status(401).json({
+        success: false,
+        message: "Account is not active. Please verify your email first."
+      });
+      return;
     }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status
+    // Cập nhật lastLogin
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Sau khi đã xác thực email + password thành công
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
+      
+      // Store additional user info in session
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        companyName: user.companyName,
+        profileComplete: user.profileComplete
+      };
+      
+      // 👇 Quan trọng: lưu & gửi cookie
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log(`User logged in successfully: ${user.email}`);
+        console.log(`Session created with userId: ${req.session.userId}, userRole: ${req.session.userRole}`);
+        console.log(`Session ID: ${req.sessionID}`);
+        
+        res.json({
+          success: true,
+          message: "Login successful",
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            companyName: user.companyName,
+            profileComplete: user.profileComplete
+          }
+        });
+      });
     });
   } catch (error) {
+    console.error("Login error:", error);
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({
+        success: false,
+        message: "Unknown error occurred"
+      });
     }
   }
 };
@@ -150,8 +206,6 @@ export const registerUser = async (
     });
 
     if (user) {
-      const userId = user._id.toString();
-
       // Generate a verification code for the new user
       const verificationCode = generateVerificationCode();
       
@@ -189,7 +243,6 @@ export const registerUser = async (
         email: user.email,
         role: user.role,
         status: user.status,
-        token: generateToken(userId),
       };
 
       // In development, include verification code to help with testing
@@ -445,7 +498,19 @@ export const updateUserProfile = async (
       }
 
       const updatedUser = await user.save();
-      const userId = updatedUser._id.toString();
+
+      // Update session with new user data
+      if (req.session) {
+        (req.session as any).user = {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          status: updatedUser.status,
+          companyName: updatedUser.companyName,
+          profileComplete: updatedUser.profileComplete
+        };
+      }
 
       res.json({
         _id: updatedUser._id,
@@ -469,7 +534,6 @@ export const updateUserProfile = async (
         manufacturerSettings: updatedUser.manufacturerSettings,
         brandSettings: updatedUser.brandSettings,
         retailerSettings: updatedUser.retailerSettings,
-        token: generateToken(userId),
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -813,7 +877,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 // @desc    Authenticate user with Google OAuth
 // @route   POST /api/users/google-login
 // @access  Public
-export const googleLogin = async (req: Request, res: Response): Promise<void> => {
+export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, email, name, picture } = req.body;
     
@@ -872,39 +936,51 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
 
     console.timeEnd("GoogleLoginProcess");
     
-    // Save user info to session
-    if (req.session) {
+    // Regenerate session for secure authentication
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
       req.session.userId = user._id.toString();
       req.session.userRole = user.role;
-      console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
       
-      // Ensure the session is saved before sending response
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
-        }
+      // Store additional user info in session
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profileComplete: user.profileComplete,
+        avatar: user.avatar
+      };
+      
+      // Save session and send response
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+        console.log(`Google login session created with ID: ${req.sessionID}`);
+        
+        // Prepare response data
+        const userData = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          profileComplete: user.profileComplete,
+          avatar: user.avatar
+        };
+        
+        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+        
+        // Send response with user data directly at top level
+        res.json({
+          ...userData,
+          isNewUser
+        });
       });
-    } else {
-      console.warn("No session object available - session-based auth may not work");
-    }
-    
-    // Prepare response data
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      profileComplete: user.profileComplete,
-      avatar: user.avatar
-    };
-    
-    console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
-    
-    // Send response with user data directly at top level
-    res.json({
-      ...userData,
-      isNewUser
     });
     
   } catch (error) {
@@ -913,33 +989,6 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
       res.status(500).json({ message: error.message });
     } else {
       res.status(500).json({ message: "Unknown error occurred during Google authentication" });
-    }
-  }
-};
-
-// @desc    Logout user (destroy session)
-// @route   POST /api/users/logout
-// @access  Public
-export const logoutUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    // Xóa session
-    if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          res.status(500).json({ message: "Could not log out, please try again" });
-        } else {
-          res.json({ message: "Logout successful" });
-        }
-      });
-    } else {
-      res.json({ message: "No active session" });
-    }
-  } catch (error) {
-    console.error("Logout error:", error);
-    if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
@@ -1001,6 +1050,8 @@ export const getManufacturers = async (
       .skip(skip)
       .limit(limit)
       .lean(); // Use lean for better performance
+      
+    console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
@@ -1033,6 +1084,33 @@ export const getManufacturers = async (
         success: false,
         message: "Unknown error occurred" 
       });
+    }
+  }
+};
+
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+export const logoutUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Xóa session
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          res.status(500).json({ message: "Could not log out, please try again" });
+        } else {
+          res.json({ message: "Logout successful" });
+        }
+      });
+    } else {
+      res.json({ message: "No active session" });
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };

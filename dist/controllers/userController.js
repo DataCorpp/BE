@@ -12,19 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getManufacturers = exports.logoutUser = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
+exports.logoutUser = exports.getManufacturers = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
 const User_1 = __importDefault(require("../models/User"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mailService_1 = require("../utils/mailService");
 const mailService_2 = require("../utils/mailService");
 const passwordResetUtils_1 = require("../utils/passwordResetUtils");
 const axios_1 = __importDefault(require("axios"));
-// Helper function để tạo JWT
-const generateToken = (id) => {
-    return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
-        expiresIn: "30d",
-    });
-};
 const verificationCodes = {};
 // Helper function to generate a random 6-digit code
 const generateVerificationCode = () => {
@@ -32,43 +25,102 @@ const generateVerificationCode = () => {
     // Don't log the generated code for security
     return code;
 };
-// @desc    Đăng nhập người dùng & lấy token
+// @desc    Đăng nhập người dùng với session
 // @route   POST /api/users/login
 // @access  Public
-const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
+        // Kiểm tra email + password có tồn tại không
+        if (!email || !password) {
+            res.status(400).json({
+                success: false,
+                message: "Email and password are required."
+            });
+            return;
+        }
         // Kiểm tra xem có email hay không
         const user = yield User_1.default.findOne({ email });
         if (!user) {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
             return;
         }
         // Kiểm tra mật khẩu
         const isMatch = yield user.matchPassword(password);
         if (!isMatch) {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
             return;
         }
-        // Lưu thông tin người dùng vào session
-        if (req.session) {
+        // Kiểm tra status user
+        if (user.status !== 'active') {
+            res.status(401).json({
+                success: false,
+                message: "Account is not active. Please verify your email first."
+            });
+            return;
+        }
+        // Cập nhật lastLogin
+        user.lastLogin = new Date();
+        yield user.save();
+        // Sau khi đã xác thực email + password thành công
+        req.session.regenerate(err => {
+            if (err)
+                return next(err);
             req.session.userId = user._id.toString();
             req.session.userRole = user.role;
-        }
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status
+            req.session.role = user.role; // Add both userRole and role for compatibility
+            // Store additional user info in session
+            req.session.user = {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                companyName: user.companyName,
+                profileComplete: user.profileComplete
+            };
+            // 👇 Quan trọng: lưu & gửi cookie
+            req.session.save(err2 => {
+                if (err2)
+                    return next(err2);
+                console.log(`User logged in successfully: ${user.email}`);
+                console.log(`Session created with userId: ${req.session.userId}, userRole: ${req.session.userRole}`);
+                console.log(`Session ID: ${req.sessionID}`);
+                res.json({
+                    success: true,
+                    message: "Login successful",
+                    user: {
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        status: user.status,
+                        companyName: user.companyName,
+                        profileComplete: user.profileComplete
+                    }
+                });
+            });
         });
     }
     catch (error) {
+        console.error("Login error:", error);
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
         }
         else {
-            res.status(500).json({ message: "Unknown error occurred" });
+            res.status(500).json({
+                success: false,
+                message: "Unknown error occurred"
+            });
         }
     }
 });
@@ -119,7 +171,6 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             establish,
         });
         if (user) {
-            const userId = user._id.toString();
             // Generate a verification code for the new user
             const verificationCode = generateVerificationCode();
             // Set expiration to 1 minute from now
@@ -154,7 +205,6 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 email: user.email,
                 role: user.role,
                 status: user.status,
-                token: generateToken(userId),
             };
             // In development, include verification code to help with testing
             if (process.env.NODE_ENV === 'development') {
@@ -389,7 +439,18 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                         settings.preferredCategories;
             }
             const updatedUser = yield user.save();
-            const userId = updatedUser._id.toString();
+            // Update session with new user data
+            if (req.session) {
+                req.session.user = {
+                    _id: updatedUser._id,
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                    role: updatedUser.role,
+                    status: updatedUser.status,
+                    companyName: updatedUser.companyName,
+                    profileComplete: updatedUser.profileComplete
+                };
+            }
             res.json({
                 _id: updatedUser._id,
                 name: updatedUser.name,
@@ -412,7 +473,6 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 manufacturerSettings: updatedUser.manufacturerSettings,
                 brandSettings: updatedUser.brandSettings,
                 retailerSettings: updatedUser.retailerSettings,
-                token: generateToken(userId),
             });
         }
         else {
@@ -718,7 +778,7 @@ exports.resetPassword = resetPassword;
 // @desc    Authenticate user with Google OAuth
 // @route   POST /api/users/google-login
 // @access  Public
-const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const googleLogin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { token, email, name, picture } = req.body;
         console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
@@ -767,34 +827,44 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             console.log("New user created:", { id: user._id, role: user.role });
         }
         console.timeEnd("GoogleLoginProcess");
-        // Save user info to session
-        if (req.session) {
+        // Regenerate session for secure authentication
+        req.session.regenerate(err => {
+            if (err)
+                return next(err);
             req.session.userId = user._id.toString();
             req.session.userRole = user.role;
-            console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
-            // Ensure the session is saved before sending response
-            req.session.save((err) => {
-                if (err) {
-                    console.error("Error saving session:", err);
-                }
+            req.session.role = user.role; // Add both userRole and role for compatibility
+            // Store additional user info in session
+            req.session.user = {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                profileComplete: user.profileComplete,
+                avatar: user.avatar
+            };
+            // Save session and send response
+            req.session.save(err2 => {
+                if (err2)
+                    return next(err2);
+                console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+                console.log(`Google login session created with ID: ${req.sessionID}`);
+                // Prepare response data
+                const userData = {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    status: user.status,
+                    profileComplete: user.profileComplete,
+                    avatar: user.avatar
+                };
+                console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+                // Send response with user data directly at top level
+                res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
             });
-        }
-        else {
-            console.warn("No session object available - session-based auth may not work");
-        }
-        // Prepare response data
-        const userData = {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status,
-            profileComplete: user.profileComplete,
-            avatar: user.avatar
-        };
-        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
-        // Send response with user data directly at top level
-        res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
+        });
     }
     catch (error) {
         console.error("Google login error:", error);
@@ -807,6 +877,88 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.googleLogin = googleLogin;
+// @desc    Lấy danh sách manufacturers
+// @route   GET /api/users/manufacturers
+// @access  Public
+const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+        // Build filter object
+        const filter = {
+            role: "manufacturer",
+            status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
+        };
+        // Optional filters
+        if (req.query.industry) {
+            filter.industry = new RegExp(req.query.industry, 'i');
+        }
+        if (req.query.location) {
+            filter.address = new RegExp(req.query.location, 'i');
+        }
+        // Add establish year filtering
+        if (req.query.establish_gte) {
+            filter.establish = Object.assign(Object.assign({}, filter.establish), { $gte: parseInt(req.query.establish_gte) });
+        }
+        if (req.query.establish_lte) {
+            filter.establish = Object.assign(Object.assign({}, filter.establish), { $lte: parseInt(req.query.establish_lte) });
+        }
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i');
+            filter.$or = [
+                { name: searchRegex },
+                { companyName: searchRegex },
+                { industry: searchRegex },
+                { description: searchRegex },
+                { companyDescription: searchRegex }
+            ];
+        }
+        // Get total count for pagination
+        const total = yield User_1.default.countDocuments(filter);
+        // Get manufacturers with pagination
+        const manufacturers = yield User_1.default.find(filter)
+            .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .skip(skip)
+            .limit(limit)
+            .lean(); // Use lean for better performance
+        console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
+        // Calculate pagination info
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+        res.json({
+            success: true,
+            manufacturers,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: total,
+                itemsPerPage: limit,
+                hasNextPage,
+                hasPrevPage
+            },
+            total // Keep this for backward compatibility
+        });
+    }
+    catch (error) {
+        console.error('Error in getManufacturers:', error);
+        if (error instanceof Error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+        else {
+            res.status(500).json({
+                success: false,
+                message: "Unknown error occurred"
+            });
+        }
+    }
+});
+exports.getManufacturers = getManufacturers;
 // @desc    Logout user (destroy session)
 // @route   POST /api/users/logout
 // @access  Public
@@ -838,125 +990,3 @@ const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.logoutUser = logoutUser;
-// @desc    Lấy danh sách manufacturers
-// @route   GET /api/users/manufacturers
-// @access  Public
-const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
-        const skip = (page - 1) * limit;
-        // Add support for including all status
-        const includeAllStatus = req.query.include_all_status === 'true';
-        // Extract filter parameters
-        const industry = req.query.industry;
-        const location = req.query.location;
-        const establishYear = req.query.establishYear;
-        // Build filter object
-        const filter = {
-            role: 'manufacturer'
-        };
-        // Add status filter only if not including all status
-        if (!includeAllStatus) {
-            filter.status = { $in: ['active', 'online', 'away', 'busy'] };
-        }
-        // Add optional filters
-        if (industry) {
-            filter.industry = new RegExp(industry, 'i');
-        }
-        if (location) {
-            filter.address = new RegExp(location, 'i');
-        }
-        if (establishYear) {
-            const year = parseInt(establishYear);
-            if (!isNaN(year)) {
-                filter.establish = year;
-            }
-        }
-        // Get total count with filters
-        const total = yield User_1.default.countDocuments(filter);
-        // Get manufacturers with pagination
-        const manufacturers = yield User_1.default.find(filter)
-            .select('-password -refreshToken')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .lean();
-
-        // Build filter object
-        const filter = {
-            role: "manufacturer",
-            status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
-        };
-        // Optional filters
-        if (req.query.industry) {
-            filter.industry = new RegExp(req.query.industry, 'i');
-        }
-        if (req.query.location) {
-            filter.address = new RegExp(req.query.location, 'i');
-        }
-        if (req.query.search) {
-            const searchRegex = new RegExp(req.query.search, 'i');
-            filter.$or = [
-                { name: searchRegex },
-                { companyName: searchRegex },
-                { industry: searchRegex },
-                { description: searchRegex },
-                { companyDescription: searchRegex }
-            ];
-        }
-        // Get total count for pagination
-        const total = yield User_1.default.countDocuments(filter);
-        // Get manufacturers with pagination
-        const manufacturers = yield User_1.default.find(filter)
-            .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
-            .sort({ createdAt: -1 }) // Sort by newest first
-            .skip(skip)
-            .limit(limit)
-            .lean(); // Use lean for better performance
-
-        // Calculate pagination info
-        const totalPages = Math.ceil(total / limit);
-        const hasNextPage = page < totalPages;
-        const hasPrevPage = page > 1;
-        res.json({
-            success: true,
-            manufacturers,
-            pagination: {
-                currentPage: page,
-                totalPages,
-                totalItems: total,
-                itemsPerPage: limit,
-                hasNextPage,
-                hasPrevPage
-            },
-            total // Include total for backward compatibility
-        });
-    }
-    catch (error) {
-        console.error('Error fetching manufacturers:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching manufacturers',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-            total // Keep this for backward compatibility
-        });
-    }
-    catch (error) {
-        console.error('Error in getManufacturers:', error);
-        if (error instanceof Error) {
-            res.status(500).json({
-                success: false,
-                message: error.message
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: "Unknown error occurred"
-            });
-        }
-    }
-});
-exports.getManufacturers = getManufacturers;

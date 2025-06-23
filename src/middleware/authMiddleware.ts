@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import User from "../models/User";
 import { Session } from 'express-session';
-
-interface JwtPayload {
-  id: string;
-}
 
 // Extend SessionData
 declare module 'express-session' {
@@ -13,6 +8,11 @@ declare module 'express-session' {
     userId?: string;
     userRole?: string;
   }
+}
+
+// Extend Request interface to include user
+interface AuthenticatedRequest extends Request {
+  user?: any;
 }
 
 // Mở rộng interface Request để thêm trường user
@@ -24,40 +24,73 @@ declare global {
   }
 }
 
-// Middleware bảo vệ route sử dụng session
-export const protect = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Simple authentication middleware
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  console.log('Session', req.session);
+  
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+  
+  next();
+};
+
+// Protect middleware - xác thực session
+export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  let user: any = null;
+
   try {
-    console.log("Protect middleware - Session check:", req.session ? "Session exists" : "No session");
+    console.log('=== AUTH MIDDLEWARE DEBUG ===');
+    console.log('Headers:', req.headers);
+    console.log('Session:', req.session ? 'EXISTS' : 'NONE');
+    console.log('Session userId:', req.session?.userId || 'NONE');
     
-    // Kiểm tra xem có userId trong session không
+    // Kiểm tra Session authentication
     if (req.session && req.session.userId) {
-      console.log(`Session user ID found: ${req.session.userId}`);
+      console.log('Session authentication attempt...');
+      console.log('Session userId:', req.session.userId);
       
-      // Tìm user từ session
-      const user = await User.findById(req.session.userId).select("-password");
-      
-      if (!user) {
-        console.log("User not found in database despite having session ID");
-        res.status(401).json({ message: "User not found, please login again" });
-        return;
+      try {
+        // Tìm user từ session
+        user = await User.findById(req.session.userId).select("-password");
+        
+        if (user) {
+          console.log('Session User found:', {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            companyName: user.companyName
+          });
+          
+          if (user.status !== 'active') {
+            return res.status(401).json({ 
+              message: "User account is not active",
+              code: "USER_INACTIVE"
+            });
+          }
+          
+          req.user = user;
+          console.log('✅ Session authentication successful');
+          return next();
+        } else {
+          console.log('Session User not found in database');
+        }
+      } catch (sessionError) {
+        console.log('Session verification failed:', sessionError);
       }
-      
-      console.log(`User found: ${user.email}, role: ${user.role}`);
-      
-      // Thêm thông tin user vào request
-      (req as any).user = user;
-      next();
-    } else {
-      console.log("No user session found");
-      res.status(401).json({ message: "Not authorized, please login" });
     }
+
+    // Nếu không có session hợp lệ
+    console.log('❌ No valid authentication found');
+    res.status(401).json({ 
+      message: "Not authorized, please login again",
+      authType: "session_failed",
+      hasSession: !!(req.session && req.session.userId)
+    });
+    
   } catch (error) {
-    console.error("Session authentication error:", error);
-    res.status(401).json({ message: "Authentication failed" });
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ message: "Server error in authentication" });
   }
 };
 
@@ -172,32 +205,48 @@ export const authorize = (roles: string[]) => {
   };
 };
 
-// Middleware kiểm tra role
-export const admin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(401).json({ message: "Not authorized as an admin" });
+// Admin middleware - kiểm tra role admin
+export const admin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    console.log('=== ADMIN MIDDLEWARE DEBUG ===');
+    console.log('User role:', req.user?.role);
+    
+    if (req.user && req.user.role === "admin") {
+      console.log('✅ Admin access granted');
+      next();
+    } else {
+      console.log('❌ Admin access denied - wrong role');
+      res.status(403).json({ 
+        message: "Access denied. Admin role required.",
+        currentRole: req.user?.role || 'undefined'
+      });
+    }
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    res.status(500).json({ message: "Server error in role verification" });
   }
 };
 
 // Middleware kiểm tra role manufacturer
-export const manufacturer = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  if (
-    req.user &&
-    (req.user.role === "manufacturer" || req.user.role === "admin")
-  ) {
-    next();
-  } else {
-    res.status(401).json({ message: "Not authorized as a manufacturer" });
+export const manufacturer = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    console.log('=== MANUFACTURER MIDDLEWARE DEBUG ===');
+    console.log('User in request:', req.user ? 'YES' : 'NO');
+    console.log('User role:', req.user?.role);
+    
+    if (req.user && (req.user.role === "manufacturer" || req.user.role === "admin")) {
+      console.log('✅ Manufacturer access granted');
+      next();
+    } else {
+      console.log('❌ Manufacturer access denied - wrong role');
+      res.status(403).json({ 
+        message: "Access denied. Manufacturer role required.",
+        currentRole: req.user?.role || 'undefined'
+      });
+    }
+  } catch (error) {
+    console.error('Manufacturer middleware error:', error);
+    res.status(500).json({ message: "Server error in role verification" });
   }
 };
 

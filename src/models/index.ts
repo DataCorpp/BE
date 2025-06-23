@@ -77,6 +77,7 @@ export const mapFormDataToFoodProduct = (formData: any) => {
     manufacturerName, 
     productName,
     name,
+    user, // Lấy user từ formData
     // Tách product reference data và detail data
     ...detailData 
   } = formData;
@@ -87,6 +88,7 @@ export const mapFormDataToFoodProduct = (formData: any) => {
   };
 
   const foodProductData = {
+    user: user, // Thêm user vào foodProductData
     name: name || productName,
     brand: detailData.brand || manufacturerName,
     category: detailData.category || 'Other',

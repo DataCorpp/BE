@@ -89,14 +89,15 @@ const isValidProductType = (productType) => {
 exports.isValidProductType = isValidProductType;
 // Helper function để map form data to database structure cho FoodProduct
 const mapFormDataToFoodProduct = (formData) => {
-    const { manufacturerName, productName, name } = formData, 
+    const { manufacturerName, productName, name, user } = formData, // Lấy user từ formData
     // Tách product reference data và detail data
-    detailData = __rest(formData, ["manufacturerName", "productName", "name"]);
+    detailData = __rest(formData, ["manufacturerName", "productName", "name", "user"]);
     const productData = {
         manufacturerName: manufacturerName || detailData.manufacturer,
         productName: productName || name || detailData.name,
     };
     const foodProductData = {
+        user: user, // Thêm user vào foodProductData
         name: name || productName,
         brand: detailData.brand || manufacturerName,
         category: detailData.category || 'Other',

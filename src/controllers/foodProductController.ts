@@ -156,6 +156,8 @@ export const getFoodProducts = async (
       };
     });
     
+    console.log(`[SERVER] Fetched ${enrichedProducts.length} products`);
+    
     res.json({
       products: enrichedProducts,
       page: pageNum,

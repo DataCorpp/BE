@@ -324,22 +324,54 @@ foodProductSchema.statics.updateWithProduct = function (foodProductId, productDa
 foodProductSchema.statics.deleteWithProduct = function (foodProductId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Delete FoodProduct
-            const foodProduct = yield this.findByIdAndDelete(foodProductId);
+            console.log('=== DELETE FOOD PRODUCT WITH REFERENCE ===');
+            console.log('Food Product ID:', foodProductId);
+            // Validate ObjectId
+            if (!mongoose_1.default.Types.ObjectId.isValid(foodProductId)) {
+                throw new Error('Invalid food product ID format');
+            }
+            // Check if FoodProduct exists
+            const foodProduct = yield this.findById(foodProductId);
             if (!foodProduct) {
+                console.log('Food product not found for deletion');
                 throw new Error('Food product not found');
             }
-            // Delete Product reference
-            const deletedProduct = yield Product_1.default.findOneAndDelete({
+            console.log('Food product found:', {
+                name: foodProduct.name,
+                manufacturer: foodProduct.manufacturer,
+                user: foodProduct.user
+            });
+            // Delete FoodProduct first
+            console.log('Deleting FoodProduct document...');
+            const deletedFoodProduct = yield this.findByIdAndDelete(foodProductId);
+            if (!deletedFoodProduct) {
+                throw new Error('Failed to delete food product from database');
+            }
+            console.log('FoodProduct deleted successfully');
+            // Find and delete Product reference
+            console.log('Looking for Product reference...');
+            const productReference = yield Product_1.default.findOne({
                 productId: foodProductId,
                 type: 'food'
             });
-            if (!deletedProduct) {
+            if (productReference) {
+                console.log('Product reference found:', productReference._id);
+                const deletedReference = yield Product_1.default.findByIdAndDelete(productReference._id);
+                if (deletedReference) {
+                    console.log('Product reference deleted successfully');
+                }
+                else {
+                    console.warn('Failed to delete Product reference');
+                }
+            }
+            else {
                 console.warn(`Product reference not found for FoodProduct ${foodProductId}`);
             }
-            return foodProduct;
+            console.log('Delete operation completed');
+            return deletedFoodProduct;
         }
         catch (error) {
+            console.error('Error in deleteWithProduct:', error);
             throw error;
         }
     });
