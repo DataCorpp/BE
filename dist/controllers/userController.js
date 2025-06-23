@@ -12,19 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getManufacturers = exports.logoutUser = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
+exports.logoutUser = exports.getManufacturers = exports.googleLogin = exports.resetPassword = exports.requestPasswordReset = exports.resendVerificationCode = exports.verifyEmail = exports.updateUserProfile = exports.getUserProfile = exports.registerUser = exports.loginUser = void 0;
 const User_1 = __importDefault(require("../models/User"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mailService_1 = require("../utils/mailService");
 const mailService_2 = require("../utils/mailService");
 const passwordResetUtils_1 = require("../utils/passwordResetUtils");
 const axios_1 = __importDefault(require("axios"));
-// Helper function để tạo JWT
-const generateToken = (id) => {
-    return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
-        expiresIn: "30d",
-    });
-};
 const verificationCodes = {};
 // Helper function to generate a random 6-digit code
 const generateVerificationCode = () => {
@@ -32,43 +25,102 @@ const generateVerificationCode = () => {
     // Don't log the generated code for security
     return code;
 };
-// @desc    Đăng nhập người dùng & lấy token
+// @desc    Đăng nhập người dùng với session
 // @route   POST /api/users/login
 // @access  Public
-const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
+        // Kiểm tra email + password có tồn tại không
+        if (!email || !password) {
+            res.status(400).json({
+                success: false,
+                message: "Email and password are required."
+            });
+            return;
+        }
         // Kiểm tra xem có email hay không
         const user = yield User_1.default.findOne({ email });
         if (!user) {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
             return;
         }
         // Kiểm tra mật khẩu
         const isMatch = yield user.matchPassword(password);
         if (!isMatch) {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
             return;
         }
-        // Lưu thông tin người dùng vào session
-        if (req.session) {
+        // Kiểm tra status user
+        if (user.status !== 'active') {
+            res.status(401).json({
+                success: false,
+                message: "Account is not active. Please verify your email first."
+            });
+            return;
+        }
+        // Cập nhật lastLogin
+        user.lastLogin = new Date();
+        yield user.save();
+        // Sau khi đã xác thực email + password thành công
+        req.session.regenerate(err => {
+            if (err)
+                return next(err);
             req.session.userId = user._id.toString();
             req.session.userRole = user.role;
-        }
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status
+            req.session.role = user.role; // Add both userRole and role for compatibility
+            // Store additional user info in session
+            req.session.user = {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                companyName: user.companyName,
+                profileComplete: user.profileComplete
+            };
+            // 👇 Quan trọng: lưu & gửi cookie
+            req.session.save(err2 => {
+                if (err2)
+                    return next(err2);
+                console.log(`User logged in successfully: ${user.email}`);
+                console.log(`Session created with userId: ${req.session.userId}, userRole: ${req.session.userRole}`);
+                console.log(`Session ID: ${req.sessionID}`);
+                res.json({
+                    success: true,
+                    message: "Login successful",
+                    user: {
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        status: user.status,
+                        companyName: user.companyName,
+                        profileComplete: user.profileComplete
+                    }
+                });
+            });
         });
     }
     catch (error) {
+        console.error("Login error:", error);
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
         }
         else {
-            res.status(500).json({ message: "Unknown error occurred" });
+            res.status(500).json({
+                success: false,
+                message: "Unknown error occurred"
+            });
         }
     }
 });
@@ -78,7 +130,7 @@ exports.loginUser = loginUser;
 // @access  Public
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, email, password, role, companyName, phone, website, address, companyDescription, } = req.body;
+        const { name, email, password, role, companyName, phone, website, address, companyDescription, establish, } = req.body;
         // Check for required fields
         if (!name || !email || !password) {
             res.status(400).json({ message: "Please provide name, email and password" });
@@ -116,9 +168,9 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             website,
             address,
             companyDescription,
+            establish,
         });
         if (user) {
-            const userId = user._id.toString();
             // Generate a verification code for the new user
             const verificationCode = generateVerificationCode();
             // Set expiration to 1 minute from now
@@ -153,7 +205,6 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 email: user.email,
                 role: user.role,
                 status: user.status,
-                token: generateToken(userId),
             };
             // In development, include verification code to help with testing
             if (process.env.NODE_ENV === 'development') {
@@ -211,6 +262,7 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 industry: user.industry,
                 certificates: user.certificates,
                 avatar: user.avatar,
+                establish: user.establish,
                 connectionPreferences: user.connectionPreferences,
                 manufacturerSettings: user.manufacturerSettings,
                 brandSettings: user.brandSettings,
@@ -287,6 +339,8 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 user.certificates = req.body.certificates;
             if (req.body.avatar)
                 user.avatar = req.body.avatar;
+            if (req.body.establish !== undefined)
+                user.establish = req.body.establish;
             // Update profileComplete flag if provided
             if (req.body.profileComplete !== undefined) {
                 user.profileComplete = req.body.profileComplete;
@@ -385,7 +439,18 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                         settings.preferredCategories;
             }
             const updatedUser = yield user.save();
-            const userId = updatedUser._id.toString();
+            // Update session with new user data
+            if (req.session) {
+                req.session.user = {
+                    _id: updatedUser._id,
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                    role: updatedUser.role,
+                    status: updatedUser.status,
+                    companyName: updatedUser.companyName,
+                    profileComplete: updatedUser.profileComplete
+                };
+            }
             res.json({
                 _id: updatedUser._id,
                 name: updatedUser.name,
@@ -403,11 +468,11 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 industry: updatedUser.industry,
                 certificates: updatedUser.certificates,
                 avatar: updatedUser.avatar,
+                establish: updatedUser.establish,
                 connectionPreferences: updatedUser.connectionPreferences,
                 manufacturerSettings: updatedUser.manufacturerSettings,
                 brandSettings: updatedUser.brandSettings,
                 retailerSettings: updatedUser.retailerSettings,
-                token: generateToken(userId),
             });
         }
         else {
@@ -713,7 +778,7 @@ exports.resetPassword = resetPassword;
 // @desc    Authenticate user with Google OAuth
 // @route   POST /api/users/google-login
 // @access  Public
-const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const googleLogin = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { token, email, name, picture } = req.body;
         console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
@@ -762,34 +827,44 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             console.log("New user created:", { id: user._id, role: user.role });
         }
         console.timeEnd("GoogleLoginProcess");
-        // Save user info to session
-        if (req.session) {
+        // Regenerate session for secure authentication
+        req.session.regenerate(err => {
+            if (err)
+                return next(err);
             req.session.userId = user._id.toString();
             req.session.userRole = user.role;
-            console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
-            // Ensure the session is saved before sending response
-            req.session.save((err) => {
-                if (err) {
-                    console.error("Error saving session:", err);
-                }
+            req.session.role = user.role; // Add both userRole and role for compatibility
+            // Store additional user info in session
+            req.session.user = {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                profileComplete: user.profileComplete,
+                avatar: user.avatar
+            };
+            // Save session and send response
+            req.session.save(err2 => {
+                if (err2)
+                    return next(err2);
+                console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+                console.log(`Google login session created with ID: ${req.sessionID}`);
+                // Prepare response data
+                const userData = {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    status: user.status,
+                    profileComplete: user.profileComplete,
+                    avatar: user.avatar
+                };
+                console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+                // Send response with user data directly at top level
+                res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
             });
-        }
-        else {
-            console.warn("No session object available - session-based auth may not work");
-        }
-        // Prepare response data
-        const userData = {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status,
-            profileComplete: user.profileComplete,
-            avatar: user.avatar
-        };
-        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
-        // Send response with user data directly at top level
-        res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
+        });
     }
     catch (error) {
         console.error("Google login error:", error);
@@ -802,37 +877,6 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.googleLogin = googleLogin;
-// @desc    Logout user (destroy session)
-// @route   POST /api/users/logout
-// @access  Public
-const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        // Xóa session
-        if (req.session) {
-            req.session.destroy((err) => {
-                if (err) {
-                    res.status(500).json({ message: "Could not log out, please try again" });
-                }
-                else {
-                    res.json({ message: "Logout successful" });
-                }
-            });
-        }
-        else {
-            res.json({ message: "No active session" });
-        }
-    }
-    catch (error) {
-        console.error("Logout error:", error);
-        if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
-        }
-        else {
-            res.status(500).json({ message: "Unknown error occurred" });
-        }
-    }
-});
-exports.logoutUser = logoutUser;
 // @desc    Lấy danh sách manufacturers
 // @route   GET /api/users/manufacturers
 // @access  Public
@@ -853,6 +897,13 @@ const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, functio
         if (req.query.location) {
             filter.address = new RegExp(req.query.location, 'i');
         }
+        // Add establish year filtering
+        if (req.query.establish_gte) {
+            filter.establish = Object.assign(Object.assign({}, filter.establish), { $gte: parseInt(req.query.establish_gte) });
+        }
+        if (req.query.establish_lte) {
+            filter.establish = Object.assign(Object.assign({}, filter.establish), { $lte: parseInt(req.query.establish_lte) });
+        }
         if (req.query.search) {
             const searchRegex = new RegExp(req.query.search, 'i');
             filter.$or = [
@@ -872,6 +923,7 @@ const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, functio
             .skip(skip)
             .limit(limit)
             .lean(); // Use lean for better performance
+        console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
         // Calculate pagination info
         const totalPages = Math.ceil(total / limit);
         const hasNextPage = page < totalPages;
@@ -907,3 +959,34 @@ const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.getManufacturers = getManufacturers;
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Xóa session
+        if (req.session) {
+            req.session.destroy((err) => {
+                if (err) {
+                    res.status(500).json({ message: "Could not log out, please try again" });
+                }
+                else {
+                    res.json({ message: "Logout successful" });
+                }
+            });
+        }
+        else {
+            res.json({ message: "No active session" });
+        }
+    }
+    catch (error) {
+        console.error("Logout error:", error);
+        if (error instanceof Error) {
+            res.status(500).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: "Unknown error occurred" });
+        }
+    }
+});
+exports.logoutUser = logoutUser;

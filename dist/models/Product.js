@@ -32,66 +32,51 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Schema cơ bản cho Product - chỉ chứa fields cốt lõi
+// Schema cho Inventory
+const InventoryItemSchema = new mongoose_1.Schema({
+    id: { type: Number, required: true },
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    status: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    unit: { type: String, required: true },
+    threshold: { type: Number, required: true },
+    location: { type: String, required: true },
+});
+// Schema cơ bản cho Product - chỉ lưu thông tin chung
 const productSchema = new mongoose_1.Schema({
-    user: {
-        type: mongoose_1.default.Schema.Types.ObjectId,
-        required: true,
-        ref: "User",
-    },
-    name: {
-        type: String,
-        required: true,
-    },
     manufacturerName: {
         type: String,
         required: true,
-        // Tên nhà sản xuất
+        trim: true,
     },
-    productType: {
+    productName: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    type: {
         type: String,
         required: true,
         enum: ['food', 'beverage', 'health', 'other'],
-        // Discriminator để route đến đúng collection
+    },
+    productId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        required: true,
+        // Reference sẽ được set động dựa trên type
     },
 }, {
     timestamps: true,
 });
-// Index để tìm kiếm hiệu quả
+// Index cho tìm kiếm hiệu quả
+productSchema.index({ type: 1 });
 productSchema.index({ manufacturerName: 1 });
-productSchema.index({ productType: 1 });
-productSchema.index({ name: 1 });
-productSchema.index({ productType: 1, manufacturerName: 1 }); // Compound index
-// Static methods để route đến đúng collection dựa trên productType
-productSchema.statics.getDetailModel = function (productType) {
-    switch (productType) {
-        case 'food':
-            return mongoose_1.default.model('FoodProduct');
-        case 'beverage':
-            return mongoose_1.default.model('BeverageProduct'); // Có thể implement sau
-        case 'health':
-            return mongoose_1.default.model('HealthProduct'); // Có thể implement sau
-        default:
-            throw new Error(`Unknown product type: ${productType}`);
-    }
-};
-// Instance method để lấy detail product
-productSchema.methods.getDetails = function () {
-    return __awaiter(this, void 0, void 0, function* () {
-        const DetailModel = this.constructor.getDetailModel(this.productType);
-        return yield DetailModel.findOne({ productId: this._id }).populate('productId');
-    });
-};
+productSchema.index({ productName: 1 });
+productSchema.index({ productId: 1 });
+// Compound index cho tìm kiếm kết hợp
+productSchema.index({ type: 1, manufacturerName: 1 });
+productSchema.index({ type: 1, productName: 'text', manufacturerName: 'text' });
 const Product = mongoose_1.default.model("Product", productSchema);
 exports.default = Product;
