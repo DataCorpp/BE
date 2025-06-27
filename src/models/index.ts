@@ -117,12 +117,12 @@ export const mapFormDataToFoodProduct = (formData: any) => {
     ingredients: Array.isArray(detailData.ingredients) ? detailData.ingredients : (detailData.ingredients ? [detailData.ingredients] : []),
     allergens: Array.isArray(detailData.allergens) ? detailData.allergens : (detailData.allergens ? [detailData.allergens] : []),
     usage: Array.isArray(detailData.usage) ? detailData.usage : (detailData.usage ? [detailData.usage] : []),
-    packagingType: detailData.packagingType || 'Bottle',
-    packagingSize: detailData.packagingSize || 'Standard',
-    shelfLife: detailData.shelfLife || '12 months',
+    packagingType: detailData.packagingType,
+    packagingSize: detailData.packagingSize,
+    shelfLife: detailData.shelfLife,
     shelfLifeStartDate: detailData.shelfLifeStartDate ? new Date(detailData.shelfLifeStartDate) : undefined,
     shelfLifeEndDate: detailData.shelfLifeEndDate ? new Date(detailData.shelfLifeEndDate) : undefined,
-    storageInstruction: detailData.storageInstruction || 'Store in cool, dry place',
+    storageInstruction: detailData.storageInstruction,
   };
 
   return { productData, foodProductData };

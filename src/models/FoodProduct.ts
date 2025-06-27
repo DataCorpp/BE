@@ -3,64 +3,56 @@ import Product from "./Product";
 
 // Định nghĩa interface cho FoodProduct - collection độc lập
 export interface IFoodProduct extends Document {
-  // Basic Product Info (cho việc display, search nhanh)
+  // Basic Information
   user: mongoose.Types.ObjectId;
-  name: string;
-  brand: string;
+  name: string; // productName in JSON
   category: string;
-  description: string;
-  price: number;
-  countInStock: number;
-  image: string;
+  brand: string; // Used for display purposes
   rating: number;
   numReviews: number;
 
   // Manufacturer & Origin Details
-  manufacturer: string; // tên nhà sản xuất (manufacturerName trong form)
-  originCountry: string; // quốc gia xuất xứ
-  manufacturerRegion?: string; // khu vực sản xuất
+  manufacturer: string; // manufacturerName in JSON
+  originCountry: string;
+  
+  // Packaging & Storage
+  packagingType: string;
+  packagingSize: string;
+  shelfLife: string;
+  storageInstruction: string; // storageInstructions in JSON
 
   // Production Details
-  minOrderQuantity: number;
-  dailyCapacity: number; // công suất hàng ngày
-  currentAvailable?: number;
+  minOrderQuantity: number; // minimumOrderQuantity in JSON
+  dailyCapacity: number;
+  currentAvailable: number; // currentAvailableStock in JSON
   unitType: string;
-  
-  // Pricing
   pricePerUnit: number;
   priceCurrency: string; // USD, JPY, EUR, CNY
   
-  // Lead Time
-  leadTime: string;
-  leadTimeUnit: string; // weeks, days, months
+  // Description & Media
+  description: string; // productDescription in JSON
+  image: string; // productImage in JSON
+  images: string[]; // Added to support multiple images
   
-  // Sustainability
-  sustainable: boolean;
+  // Food Details
+  foodType: string;
+  flavorType: string[]; // primaryFlavorProfile in JSON
+  ingredients: string[]; // mainIngredients in JSON
+  allergens: string[]; // allergens in JSON
+  usage: string[]; // usageExamples in JSON
   
-  // Product Code
+  // System Fields
   sku?: string;
-
-  // Food-specific Details
-  foodType: string; // Miso, Soy Sauce, Dressing, etc.
-  flavorType: string[]; // Sweet, Salty, Umami, etc.
-  ingredients: string[]; // danh sách nguyên liệu
-  allergens: string[]; // danh sách chất gây dị ứng
-  usage: string[]; // cách sử dụng
-
-  // Packaging Details
-  packagingType: string; // Bottle, Can, Jar, etc.
-  packagingSize: string; // 100g, 500ml, etc.
-
-  // Storage & Shelf Life
-  shelfLife: string; // 1 year, 6 months, etc.
-  shelfLifeStartDate?: string; // ngày sản xuất
-  shelfLifeEndDate?: string; // ngày hết hạn
-  storageInstruction: string; // hướng dẫn bảo quản
+  countInStock: number; // For compatibility with existing code
+  price: number; // For compatibility with existing code
 }
+
+// Cấu hình toàn cục cho mongoose để tránh áp dụng giá trị mặc định khi update
+mongoose.set('setDefaultsOnInsert', false);
 
 // Schema cho FoodProduct - collection độc lập
 const foodProductSchema = new Schema({
-  // Basic Product Info
+  // Basic Information
   user: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
@@ -70,29 +62,11 @@ const foodProductSchema = new Schema({
     type: String,
     required: true,
   },
-  brand: {
-    type: String,
-    required: true,
-  },
   category: {
     type: String,
     required: true,
   },
-  description: {
-    type: String,
-    required: true,
-  },
-  price: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  countInStock: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  image: {
+  brand: {
     type: String,
     required: true,
   },
@@ -116,20 +90,35 @@ const foodProductSchema = new Schema({
     type: String,
     required: true,
   },
-  manufacturerRegion: {
+
+  // Packaging & Storage
+  packagingType: {
     type: String,
+    required: true
+  },
+  packagingSize: {
+    type: String,
+    required: true
+  },
+  shelfLife: {
+    type: String,
+    required: true
+  },
+  storageInstruction: {
+    type: String,
+    required: true
   },
 
   // Production Details
   minOrderQuantity: {
     type: Number,
     required: true,
-    min: 1,
+    min: 0, // Changed from 1 to 0 to allow zero values
   },
   dailyCapacity: {
     type: Number,
     required: true,
-    min: 1,
+    min: 0, // Changed from 1 to 0 to allow zero values
   },
   currentAvailable: {
     type: Number,
@@ -139,10 +128,7 @@ const foodProductSchema = new Schema({
   unitType: {
     type: String,
     required: true,
-    enum: ["units", "kg", "g", "liters", "ml", "packs", "bottles", "boxes", "bags", "cans"],
   },
-
-  // Pricing
   pricePerUnit: {
     type: Number,
     required: true,
@@ -151,100 +137,63 @@ const foodProductSchema = new Schema({
   priceCurrency: {
     type: String,
     required: true,
-    enum: ["USD", "JPY", "EUR", "CNY"],
     default: "USD",
   },
 
-  // Lead Time
-  leadTime: {
+  // Description & Media
+  description: {
     type: String,
     required: true,
   },
-  leadTimeUnit: {
+  image: {
     type: String,
     required: true,
-    enum: ["days", "weeks", "months"],
-    default: "weeks",
+  },
+  images: {
+    type: [String],
   },
 
-  // Sustainability
-  sustainable: {
-    type: Boolean,
-    default: false,
+  // For compatibility with existing code
+  countInStock: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  price: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  
+  // Food Details
+  foodType: {
+    type: String,
+    required: true
+  },
+  flavorType: {
+    type: [String]
+  },
+  ingredients: {
+    type: [String]
+  },
+  allergens: {
+    type: [String]
+  },
+  usage: {
+    type: [String]
   },
 
-  // Product Code
+  // System Fields
   sku: {
     type: String,
     unique: true,
     sparse: true, // cho phép null/undefined và vẫn unique
   },
-
-  // Food-specific Details
-  foodType: {
-    type: String,
-    required: true,
-    enum: [
-      "Miso", "Soy Sauce", "Dressing", "Vinegar", "Cooking Oil", 
-      "Paste", "Marinade", "Soup Base", "Seasoning Mix", "Sauce",
-      "Pickle", "Fermented", "Instant Food", "Snack", "Dessert",
-      "Beverage Mix", "Health Food", "Other"
-    ],
-  },
-  flavorType: [{
-    type: String,
-    enum: [
-      "Sweet", "Salty", "Sour", "Bitter", "Umami", "Spicy", 
-      "Mild", "Rich", "Fresh", "Smoky", "Nutty", "Fruity",
-      "Herbal", "Earthy", "Floral", "Creamy", "Tangy", "Aromatic"
-    ],
-  }],
-  ingredients: [{
-    type: String,
-  }],
-  allergens: [{
-    type: String,
-    enum: [
-      "Gluten", "Peanuts", "Tree Nuts", "Soy", "Dairy", "Eggs",
-      "Fish", "Shellfish", "Sesame", "Mustard", "Celery", "Sulphites",
-      "Lupin", "Molluscs"
-    ],
-  }],
-  usage: [{
-    type: String,
-  }],
-
-  // Packaging Details
-  packagingType: {
-    type: String,
-    required: true,
-    enum: [
-      "Bottle", "Can", "Jar", "Pouch", "Box", "Bag", 
-      "Vacuum Pack", "Tube", "Tray", "Sachet"
-    ],
-  },
-  packagingSize: {
-    type: String,
-    required: true,
-  },
-
-  // Storage & Shelf Life
-  shelfLife: {
-    type: String,
-    required: true,
-  },
-  shelfLifeStartDate: {
-    type: Date,
-  },
-  shelfLifeEndDate: {
-    type: Date,
-  },
-  storageInstruction: {
-    type: String,
-    required: true,
-  },
 }, {
   timestamps: true,
+  // IMPORTANT: Disable applying defaults on create
+  // This ensures that MongoDB won't apply any default values when creating a new document
+  skipDefaults: true
 });
 
 // Index cho tìm kiếm hiệu quả
@@ -258,13 +207,18 @@ foodProductSchema.index({ name: 'text', description: 'text', manufacturer: 'text
 
 // Validation middleware
 foodProductSchema.pre('save', function(next) {
-  // Validate shelf life dates if provided
-  if (this.shelfLifeStartDate && this.shelfLifeEndDate) {
-    if (this.shelfLifeStartDate >= this.shelfLifeEndDate) {
-      next(new Error('Shelf life start date must be before end date'));
-      return;
-    }
-  }
+  console.log('=== PRE SAVE MIDDLEWARE - BEFORE PROCESSING ===');
+  console.log('Data being saved to MongoDB:', {
+    foodType: this.foodType,
+    packagingType: this.packagingType,
+    packagingSize: this.packagingSize,
+    shelfLife: this.shelfLife,
+    storageInstruction: this.storageInstruction,
+    flavorType: this.flavorType,
+    ingredients: this.ingredients,
+    allergens: this.allergens,
+    usage: this.usage
+  });
 
   // Auto-generate SKU if not provided
   if (!this.sku && this.isNew) {
@@ -273,9 +227,74 @@ foodProductSchema.pre('save', function(next) {
     this.sku = `${prefix}${timestamp}`;
   }
 
+  // Make sure the main image is also in the images array
+  if (this.image && (!this.images || this.images.length === 0)) {
+    this.images = [this.image];
+  } else if (this.image && this.images.indexOf(this.image) === -1) {
+    this.images.unshift(this.image);
+  }
+
+  // IMPORTANT: Don't modify these fields at all - preserve user input exactly
+  // NO default values for these fields
+  
+  // Sync countInStock with currentAvailable for compatibility
+  this.countInStock = this.currentAvailable;
+  
+  // Sync price with pricePerUnit for compatibility
+  this.price = this.pricePerUnit;
+
+  console.log('=== PRE SAVE MIDDLEWARE - AFTER PROCESSING ===');
+  console.log('Final data being saved to MongoDB:', {
+    foodType: this.foodType,
+    packagingType: this.packagingType,
+    packagingSize: this.packagingSize,
+    shelfLife: this.shelfLife,
+    storageInstruction: this.storageInstruction,
+    flavorType: this.flavorType,
+    ingredients: this.ingredients,
+    allergens: this.allergens,
+    usage: this.usage
+  });
+
   next();
 });
 
+// Ghi đè phương thức save để đảm bảo không có giá trị mặc định nào được áp dụng
+foodProductSchema.methods.saveWithoutDefaults = async function() {
+  console.log('=== CUSTOM SAVE METHOD CALLED ===');
+  console.log('Data before save:', {
+    foodType: this.foodType,
+    packagingType: this.packagingType,
+    packagingSize: this.packagingSize,
+    shelfLife: this.shelfLife,
+    storageInstruction: this.storageInstruction,
+    flavorType: this.flavorType,
+    ingredients: this.ingredients,
+    allergens: this.allergens,
+    usage: this.usage
+  });
+  
+  // Sử dụng insertOne trực tiếp để bypass schema defaults
+  if (this.isNew) {
+    // Lấy collection trực tiếp từ constructor
+    const collection = (this.constructor as any).collection;
+    const doc = this.toObject({ depopulate: true });
+    
+    // Xóa _id nếu nó là null hoặc undefined
+    if (doc._id === null || doc._id === undefined) {
+      delete doc._id;
+    }
+    
+    const result = await collection.insertOne(doc);
+    this._id = result.insertedId;
+    
+    console.log('Document inserted directly, bypassing schema defaults');
+    return this;
+  } else {
+    // Nếu không phải document mới, sử dụng save thông thường
+    return await this.save();
+  }
+};
 
 // Static method để tạo product với error handling (không dùng transaction)
 foodProductSchema.statics.createWithProduct = async function(
@@ -286,14 +305,122 @@ foodProductSchema.statics.createWithProduct = async function(
   let product = null;
 
   try {
-    // Tạo FoodProduct trước
+    console.log('=== CREATE WITH PRODUCT - INPUT DATA ===');
+    console.log('Food-specific fields received:', {
+      foodType: foodProductData.foodType,
+      packagingType: foodProductData.packagingType,
+      packagingSize: foodProductData.packagingSize,
+      shelfLife: foodProductData.shelfLife,
+      storageInstruction: foodProductData.storageInstruction,
+      flavorType: foodProductData.flavorType,
+      ingredients: foodProductData.ingredients,
+      allergens: foodProductData.allergens,
+      usage: foodProductData.usage
+    });
+    
+    // Set brand to manufacturer if not provided
+    if (!foodProductData.brand) {
+      foodProductData.brand = foodProductData.manufacturer;
+    }
+
+    // Validate required fields are present
+    const requiredFields = ['name', 'category', 'manufacturer', 'originCountry', 
+                           'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction',
+                           'minOrderQuantity', 'dailyCapacity', 'unitType', 'pricePerUnit',
+                           'description', 'image', 'foodType'];
+    
+    const missingFields = requiredFields.filter(field => 
+      foodProductData[field] === undefined || 
+      foodProductData[field] === null || 
+      (typeof foodProductData[field] === 'string' && foodProductData[field].trim() === '')
+    );
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    // Handle numeric fields - ensure they are numbers
+    ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit'].forEach(field => {
+      if (foodProductData[field] !== undefined) {
+        foodProductData[field] = Number(foodProductData[field]);
+        if (isNaN(foodProductData[field])) {
+          throw new Error(`Field ${field} must be a valid number`);
+        }
+      }
+    });
+
+    // Ensure array fields are actually arrays WITHOUT modifying their content
+    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
+      if (foodProductData[field] !== undefined && !Array.isArray(foodProductData[field])) {
+        // If it's a string, try to convert it to an array
+        if (typeof foodProductData[field] === 'string' && foodProductData[field].trim() !== '') {
+          foodProductData[field] = [foodProductData[field]];
+        } else {
+          // Otherwise, make it an empty array
+          foodProductData[field] = [];
+        }
+      }
+    });
+
+    // Set countInStock from currentAvailable if not provided
+    if (foodProductData.currentAvailable !== undefined && foodProductData.countInStock === undefined) {
+      foodProductData.countInStock = foodProductData.currentAvailable;
+    }
+
+    // Set price from pricePerUnit if not provided
+    if (foodProductData.pricePerUnit !== undefined && foodProductData.price === undefined) {
+      foodProductData.price = foodProductData.pricePerUnit;
+    }
+    
+    console.log('=== CREATE WITH PRODUCT - PROCESSED DATA ===');
+    console.log('Food-specific fields after processing:', {
+      foodType: foodProductData.foodType,
+      packagingType: foodProductData.packagingType,
+      packagingSize: foodProductData.packagingSize,
+      shelfLife: foodProductData.shelfLife,
+      storageInstruction: foodProductData.storageInstruction,
+      flavorType: foodProductData.flavorType,
+      ingredients: foodProductData.ingredients,
+      allergens: foodProductData.allergens,
+      usage: foodProductData.usage
+    });
+
+    // IMPORTANT: Create a direct instance without any schema defaults
     foodProduct = new this(foodProductData);
-    await foodProduct.save();
+    
+    console.log('=== CREATE WITH PRODUCT - BEFORE SAVE ===');
+    console.log('Food product instance before save:', {
+      foodType: foodProduct.foodType,
+      packagingType: foodProduct.packagingType,
+      packagingSize: foodProduct.packagingSize,
+      shelfLife: foodProduct.shelfLife,
+      storageInstruction: foodProduct.storageInstruction,
+      flavorType: foodProduct.flavorType,
+      ingredients: foodProduct.ingredients,
+      allergens: foodProduct.allergens,
+      usage: foodProduct.usage
+    });
+    
+    // Sử dụng phương thức saveWithoutDefaults thay vì save thông thường
+    await foodProduct.saveWithoutDefaults();
+    
+    console.log('=== CREATE WITH PRODUCT - AFTER SAVE ===');
+    console.log('Food product after save:', {
+      foodType: foodProduct.foodType,
+      packagingType: foodProduct.packagingType,
+      packagingSize: foodProduct.packagingSize,
+      shelfLife: foodProduct.shelfLife,
+      storageInstruction: foodProduct.storageInstruction,
+      flavorType: foodProduct.flavorType,
+      ingredients: foodProduct.ingredients,
+      allergens: foodProduct.allergens,
+      usage: foodProduct.usage
+    });
 
     // Tạo Product reference
     product = new Product({
-      manufacturerName: productData.manufacturerName,
-      productName: productData.productName,
+      manufacturerName: productData.manufacturerName || foodProductData.manufacturer,
+      productName: productData.productName || foodProductData.name,
       type: 'food',
       productId: foodProduct._id,
     });
@@ -309,7 +436,14 @@ foodProductSchema.statics.createWithProduct = async function(
         console.error('Error during cleanup:', cleanupError);
       }
     }
-    throw error;
+    
+    console.error('Error in createWithProduct:', error);
+    // Add more context to the error for better debugging
+    if (error instanceof Error) {
+      throw new Error(`Failed to create food product: ${error.message}`);
+    } else {
+      throw new Error('Failed to create food product due to unknown error');
+    }
   }
 };
 
@@ -335,16 +469,112 @@ foodProductSchema.statics.updateWithProduct = async function(
   foodProductData: any
 ) {
   try {
-    // Update FoodProduct
+    console.log('=== UPDATE WITH PRODUCT - INPUT DATA ===');
+    console.log('Food-specific fields received for update:', {
+      foodType: foodProductData.foodType,
+      packagingType: foodProductData.packagingType,
+      packagingSize: foodProductData.packagingSize,
+      shelfLife: foodProductData.shelfLife,
+      storageInstruction: foodProductData.storageInstruction,
+      flavorType: foodProductData.flavorType,
+      ingredients: foodProductData.ingredients,
+      allergens: foodProductData.allergens,
+      usage: foodProductData.usage
+    });
+    
+    // Don't force default values for arrays - use what the user provided
+    // This allows users to explicitly choose not to provide certain values
+
+    // Validate required fields are present
+    const requiredFields = ['name', 'category', 'manufacturer', 'originCountry', 
+                           'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction',
+                           'minOrderQuantity', 'dailyCapacity', 'unitType', 'pricePerUnit',
+                           'description', 'image', 'foodType'];
+    
+    const missingFields = requiredFields.filter(field => 
+      foodProductData[field] === undefined || 
+      foodProductData[field] === null || 
+      (typeof foodProductData[field] === 'string' && foodProductData[field].trim() === '')
+    );
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    // Handle numeric fields - ensure they are numbers
+    ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit'].forEach(field => {
+      if (foodProductData[field] !== undefined) {
+        foodProductData[field] = Number(foodProductData[field]);
+        if (isNaN(foodProductData[field])) {
+          throw new Error(`Field ${field} must be a valid number`);
+        }
+      }
+    });
+
+    // Ensure array fields are actually arrays WITHOUT modifying their content
+    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
+      if (foodProductData[field] !== undefined && !Array.isArray(foodProductData[field])) {
+        // If it's a string, try to convert it to an array
+        if (typeof foodProductData[field] === 'string' && foodProductData[field].trim() !== '') {
+          foodProductData[field] = [foodProductData[field]];
+        } else {
+          // Otherwise, make it an empty array
+          foodProductData[field] = [];
+        }
+      }
+    });
+
+    // Set countInStock from currentAvailable
+    if (foodProductData.currentAvailable !== undefined) {
+      foodProductData.countInStock = foodProductData.currentAvailable;
+    }
+
+    // Set price from pricePerUnit
+    if (foodProductData.pricePerUnit !== undefined) {
+      foodProductData.price = foodProductData.pricePerUnit;
+    }
+    
+    console.log('=== UPDATE WITH PRODUCT - PROCESSED DATA ===');
+    console.log('Food-specific fields after processing:', {
+      foodType: foodProductData.foodType,
+      packagingType: foodProductData.packagingType,
+      packagingSize: foodProductData.packagingSize,
+      shelfLife: foodProductData.shelfLife,
+      storageInstruction: foodProductData.storageInstruction,
+      flavorType: foodProductData.flavorType,
+      ingredients: foodProductData.ingredients,
+      allergens: foodProductData.allergens,
+      usage: foodProductData.usage
+    });
+
+    // Update FoodProduct - IMPORTANT: Use { new: true, runValidators: true, setDefaultsOnInsert: false }
+    // setDefaultsOnInsert: false prevents MongoDB from applying schema defaults
     const foodProduct = await this.findByIdAndUpdate(
       foodProductId,
       foodProductData,
-      { new: true }
+      { 
+        new: true,
+        runValidators: true, // Run schema validators on update
+        setDefaultsOnInsert: false // IMPORTANT: Don't apply schema defaults
+      }
     );
 
     if (!foodProduct) {
       throw new Error('Food product not found');
     }
+    
+    console.log('=== UPDATE WITH PRODUCT - AFTER UPDATE ===');
+    console.log('Food product after update:', {
+      foodType: foodProduct.foodType,
+      packagingType: foodProduct.packagingType,
+      packagingSize: foodProduct.packagingSize,
+      shelfLife: foodProduct.shelfLife,
+      storageInstruction: foodProduct.storageInstruction,
+      flavorType: foodProduct.flavorType,
+      ingredients: foodProduct.ingredients,
+      allergens: foodProduct.allergens,
+      usage: foodProduct.usage
+    });
 
     // Update Product reference nếu có thay đổi
     if (productData.manufacturerName || productData.productName) {
@@ -366,7 +596,13 @@ foodProductSchema.statics.updateWithProduct = async function(
 
     return foodProduct;
   } catch (error) {
-    throw error;
+    console.error('Error in updateWithProduct:', error);
+    // Add more context to the error for better debugging
+    if (error instanceof Error) {
+      throw new Error(`Failed to update food product: ${error.message}`);
+    } else {
+      throw new Error('Failed to update food product due to unknown error');
+    }
   }
 };
 
@@ -426,7 +662,12 @@ foodProductSchema.statics.deleteWithProduct = async function(foodProductId: stri
     return deletedFoodProduct;
   } catch (error) {
     console.error('Error in deleteWithProduct:', error);
-    throw error;
+    // Add more context to the error for better debugging
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete food product: ${error.message}`);
+    } else {
+      throw new Error('Failed to delete food product due to unknown error');
+    }
   }
 };
 
