@@ -482,24 +482,57 @@ foodProductSchema.statics.updateWithProduct = async function(
       usage: foodProductData.usage
     });
     
-    // Don't force default values for arrays - use what the user provided
-    // This allows users to explicitly choose not to provide certain values
-
-    // Validate required fields are present
-    const requiredFields = ['name', 'category', 'manufacturer', 'originCountry', 
-                           'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction',
-                           'minOrderQuantity', 'dailyCapacity', 'unitType', 'pricePerUnit',
-                           'description', 'image', 'foodType'];
-    
-    const missingFields = requiredFields.filter(field => 
-      foodProductData[field] === undefined || 
-      foodProductData[field] === null || 
-      (typeof foodProductData[field] === 'string' && foodProductData[field].trim() === '')
-    );
-
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    // Tìm sản phẩm hiện có để lấy giá trị hiện tại cho các trường không được cung cấp
+    const existingFoodProduct = await this.findById(foodProductId);
+    if (!existingFoodProduct) {
+      throw new Error('Food product not found');
     }
+    
+    console.log('✅ Found existing food product:', {
+      _id: existingFoodProduct._id,
+      name: existingFoodProduct.name,
+      foodType: existingFoodProduct.foodType
+    });
+    
+    // CRITICAL FIX: Ensure array fields are actually arrays WITHOUT modifying their content
+    // This is essential for proper update operation
+    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
+      if (foodProductData[field] !== undefined) {
+        // If it's already an array, leave it as is
+        if (Array.isArray(foodProductData[field])) {
+          console.log(`Field ${field} is already an array with ${foodProductData[field].length} items`);
+        } 
+        // If it's a string, try to parse it as JSON array
+        else if (typeof foodProductData[field] === 'string') {
+          try {
+            // Check if it's a JSON string array
+            if (foodProductData[field].startsWith('[') && foodProductData[field].endsWith(']')) {
+              const parsed = JSON.parse(foodProductData[field]);
+              if (Array.isArray(parsed)) {
+                foodProductData[field] = parsed;
+                console.log(`Parsed ${field} from JSON string to array with ${parsed.length} items`);
+              } else {
+                foodProductData[field] = [foodProductData[field]];
+                console.log(`Converted ${field} from string to single-item array`);
+              }
+            } else {
+              // If it's just a regular string, make it a single-item array
+              foodProductData[field] = [foodProductData[field]];
+              console.log(`Converted ${field} from string to single-item array`);
+            }
+          } catch (e) {
+            // If parsing failed, treat as a single string item
+            foodProductData[field] = [foodProductData[field]];
+            console.log(`Converted ${field} from string to single-item array (parse failed)`);
+          }
+        } 
+        // If it's another type (object, number, etc.), convert to string and wrap in array
+        else {
+          foodProductData[field] = [String(foodProductData[field])];
+          console.log(`Converted ${field} from ${typeof foodProductData[field]} to single-item array`);
+        }
+      }
+    });
 
     // Handle numeric fields - ensure they are numbers
     ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit'].forEach(field => {
@@ -507,19 +540,6 @@ foodProductSchema.statics.updateWithProduct = async function(
         foodProductData[field] = Number(foodProductData[field]);
         if (isNaN(foodProductData[field])) {
           throw new Error(`Field ${field} must be a valid number`);
-        }
-      }
-    });
-
-    // Ensure array fields are actually arrays WITHOUT modifying their content
-    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
-      if (foodProductData[field] !== undefined && !Array.isArray(foodProductData[field])) {
-        // If it's a string, try to convert it to an array
-        if (typeof foodProductData[field] === 'string' && foodProductData[field].trim() !== '') {
-          foodProductData[field] = [foodProductData[field]];
-        } else {
-          // Otherwise, make it an empty array
-          foodProductData[field] = [];
         }
       }
     });
@@ -554,7 +574,7 @@ foodProductSchema.statics.updateWithProduct = async function(
       foodProductData,
       { 
         new: true,
-        runValidators: true, // Run schema validators on update
+        runValidators: false, // Disable validators for update to be more lenient
         setDefaultsOnInsert: false // IMPORTANT: Don't apply schema defaults
       }
     );

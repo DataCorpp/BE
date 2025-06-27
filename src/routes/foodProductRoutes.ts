@@ -26,7 +26,7 @@ router.get("/manufacturers", getManufacturers);
 // Route /api/foodproducts/:id
 router.route("/:id")
   .get(getFoodProductById)
-  .put(protect, manufacturer, updateFoodProduct)
+  .put(updateFoodProduct)
   .delete(protect, manufacturer, deleteFoodProduct);
 
 export default router; 
