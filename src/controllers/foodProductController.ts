@@ -428,12 +428,16 @@ export const getCategories = async (
 ): Promise<void> => {
   try {
     const categories = await FoodProduct.distinct('category');
-    res.json(categories);
+    res.json({
+      success: true,
+      data: categories,
+      total: categories.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 };
@@ -447,12 +451,16 @@ export const getProductTypes = async (
 ): Promise<void> => {
   try {
     const foodTypes = await FoodProduct.distinct('foodType');
-    res.json(foodTypes);
+    res.json({
+      success: true,
+      data: foodTypes,
+      total: foodTypes.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 };
@@ -466,12 +474,41 @@ export const getManufacturers = async (
 ): Promise<void> => {
   try {
     const manufacturers = await FoodProduct.distinct('manufacturer');
-    res.json(manufacturers);
+    res.json({
+      success: true,
+      data: manufacturers,
+      total: manufacturers.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Get unique food types (like Soy Sauce, Miso, etc.)
+// @route   GET /api/foodproducts/foodtypes
+// @access  Public
+export const getFoodTypes = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const foodTypes = await FoodProduct.distinct('foodType');
+    // Filter out any null/undefined values and sort alphabetically
+    const cleanFoodTypes = foodTypes.filter(type => type && type.trim()).sort();
+    res.json({
+      success: true,
+      data: cleanFoodTypes,
+      total: cleanFoodTypes.length
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ success: false, message: error.message });
+    } else {
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 }; 

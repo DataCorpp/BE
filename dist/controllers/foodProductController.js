@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getManufacturers = exports.getProductTypes = exports.getCategories = exports.deleteFoodProduct = exports.updateFoodProduct = exports.createFoodProduct = exports.getFoodProductById = exports.getFoodProducts = void 0;
+exports.getFoodTypes = exports.getManufacturers = exports.getProductTypes = exports.getCategories = exports.deleteFoodProduct = exports.updateFoodProduct = exports.createFoodProduct = exports.getFoodProductById = exports.getFoodProducts = void 0;
 const FoodProduct_1 = __importDefault(require("../models/FoodProduct"));
 const Product_1 = __importDefault(require("../models/Product"));
 // @desc    Lấy tất cả sản phẩm thực phẩm
@@ -355,14 +355,18 @@ exports.deleteFoodProduct = deleteFoodProduct;
 const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const categories = yield FoodProduct_1.default.distinct('category');
-        res.json(categories);
+        res.json({
+            success: true,
+            data: categories,
+            total: categories.length
+        });
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ success: false, message: error.message });
         }
         else {
-            res.status(500).json({ message: "Unknown error occurred" });
+            res.status(500).json({ success: false, message: "Unknown error occurred" });
         }
     }
 });
@@ -373,14 +377,18 @@ exports.getCategories = getCategories;
 const getProductTypes = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const foodTypes = yield FoodProduct_1.default.distinct('foodType');
-        res.json(foodTypes);
+        res.json({
+            success: true,
+            data: foodTypes,
+            total: foodTypes.length
+        });
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ success: false, message: error.message });
         }
         else {
-            res.status(500).json({ message: "Unknown error occurred" });
+            res.status(500).json({ success: false, message: "Unknown error occurred" });
         }
     }
 });
@@ -391,15 +399,43 @@ exports.getProductTypes = getProductTypes;
 const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const manufacturers = yield FoodProduct_1.default.distinct('manufacturer');
-        res.json(manufacturers);
+        res.json({
+            success: true,
+            data: manufacturers,
+            total: manufacturers.length
+        });
     }
     catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ success: false, message: error.message });
         }
         else {
-            res.status(500).json({ message: "Unknown error occurred" });
+            res.status(500).json({ success: false, message: "Unknown error occurred" });
         }
     }
 });
 exports.getManufacturers = getManufacturers;
+// @desc    Get unique food types (like Soy Sauce, Miso, etc.)
+// @route   GET /api/foodproducts/foodtypes
+// @access  Public
+const getFoodTypes = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const foodTypes = yield FoodProduct_1.default.distinct('foodType');
+        // Filter out any null/undefined values and sort alphabetically
+        const cleanFoodTypes = foodTypes.filter(type => type && type.trim()).sort();
+        res.json({
+            success: true,
+            data: cleanFoodTypes,
+            total: cleanFoodTypes.length
+        });
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+        else {
+            res.status(500).json({ success: false, message: "Unknown error occurred" });
+        }
+    }
+});
+exports.getFoodTypes = getFoodTypes;

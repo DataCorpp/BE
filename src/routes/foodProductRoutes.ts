@@ -8,6 +8,7 @@ import {
   getCategories,
   getProductTypes,
   getManufacturers,
+  getFoodTypes,
 } from "../controllers/foodProductController";
 import { protect, manufacturer } from "../middleware/authMiddleware";
 
@@ -45,6 +46,7 @@ router.route("/test")
 router.get("/categories", getCategories);
 router.get("/types", getProductTypes);
 router.get("/manufacturers", getManufacturers);
+router.get("/foodtypes", getFoodTypes);
 
 // Route /api/foodproducts/:id
 router.route("/:id")

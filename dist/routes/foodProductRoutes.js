@@ -35,6 +35,7 @@ router.route("/test")
 router.get("/categories", foodProductController_1.getCategories);
 router.get("/types", foodProductController_1.getProductTypes);
 router.get("/manufacturers", foodProductController_1.getManufacturers);
+router.get("/foodtypes", foodProductController_1.getFoodTypes);
 // Route /api/foodproducts/:id
 router.route("/:id")
     .get(foodProductController_1.getFoodProductById)

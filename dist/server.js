@@ -14,6 +14,7 @@ const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const foodProductRoutes_1 = __importDefault(require("./routes/foodProductRoutes"));
+const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
 // Load environment variables from .env file
 dotenv_1.default.config();
 // Kết nối MongoDB
@@ -76,6 +77,8 @@ app.use("/api/products", productRoutes_1.default);
 console.log('✓ Product routes mounted at /api/products');
 app.use("/api/foodproducts", foodProductRoutes_1.default);
 console.log('✓ Food product routes mounted at /api/foodproducts');
+app.use("/api/projects", projectRoutes_1.default);
+console.log('✓ Project routes mounted at /api/projects');
 console.log('=====================');
 // Health check
 app.get("/health", (req, res) => {
@@ -105,7 +108,19 @@ app.get("/api", (req, res) => {
             },
             admin: "/api/admin",
             products: "/api/products",
-            foodProducts: "/api/foodproducts"
+            foodProducts: "/api/foodproducts",
+            projects: {
+                base: "/api/projects",
+                create: "POST /api/projects",
+                getAll: "GET /api/projects",
+                getById: "GET /api/projects/:id",
+                update: "PUT /api/projects/:id",
+                delete: "DELETE /api/projects/:id",
+                updateStatus: "PATCH /api/projects/:id/status",
+                getManufacturers: "GET /api/projects/:id/manufacturers",
+                contactManufacturer: "POST /api/projects/:id/contact/:manufacturerId",
+                analytics: "GET /api/projects/analytics"
+            }
         },
         authenticationGuide: {
             sessionBased: "Uses express-session with MongoDB storage",
@@ -136,6 +151,10 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`🛡️  Admin API: http://localhost:${PORT}/api/admin`);
         console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
         console.log(`🍎 Food Products API: http://localhost:${PORT}/api/foodproducts`);
+        console.log(`🏭 Projects API: http://localhost:${PORT}/api/projects`);
+        console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
+        console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
+        console.log(`  └── Analytics: /api/projects/analytics`);
         console.log(`💚 Health Check: http://localhost:${PORT}/health`);
         console.log(`🗄️  Session Storage: MongoDB`);
     });

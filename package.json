@@ -15,7 +15,8 @@
     "seed:manufacturers": "ts-node src/scripts/seedManufacturers.ts",
     "seed:seasoningsJP": "ts-node src/scripts/seedSeasoningsJP.ts",
     "seed:seasonings": "ts-node src/scripts/seedSeasonings.ts",
-    "migrate:establish": "ts-node src/utils/migrateEstablishField.ts"
+    "migrate:establish": "ts-node src/utils/migrateEstablishField.ts",
+    "populate-suppliers": "ts-node src/utils/populateSuppliers.ts"
   },
   "keywords": [
     "nodejs",
