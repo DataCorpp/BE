@@ -23,6 +23,9 @@ services:
       - PORT=3000
       - MONGODB_URI=mongodb://mongodb:27017/cpgmatching
       - JWT_SECRET=your_secret_key
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM=${EMAIL_FROM}
     depends_on:
       - mongodb
     restart: always

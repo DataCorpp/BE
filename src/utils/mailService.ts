@@ -5,6 +5,10 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM;
 
+if (!EMAIL_USER || !EMAIL_PASSWORD || !EMAIL_FROM) {
+  throw new Error('Email environment variables are missing');
+}
+
 // Tạo và export transporter để có thể kiểm tra kết nối
 export const createTransporter = async () => {
   console.log('Creating email transporter...');
