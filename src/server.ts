@@ -55,18 +55,38 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000", "http://localhost:5173"],
+    origin: [
+      "http://localhost:8080",
+      "http://localhost:8081",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      // Production domains
+      "https://www.datacorpsolutions.com",
+      "https://datacorpsolutions.com",
+      "https://ai.datacorpsolutions.com",
+      "https://api.datacorpsolutions.com"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
+      // Standard
       "Content-Type",
       "Authorization",
+      // Custom admin headers (case variations)
       "AdminAuthorization",
+      "adminauthorization",
       "X-Admin-Role",
+      "x-admin-role",
       "X-Admin-Email",
+      "x-admin-email",
+      // Custom user headers
       "X-User-ID",
+      "x-user-id",
       "X-User-Role",
+      "x-user-role",
     ],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
