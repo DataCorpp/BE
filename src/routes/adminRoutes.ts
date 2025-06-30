@@ -7,6 +7,8 @@ import {
   updateUserRole,
   updateUserStatus,
   updateUserProfile,
+  adminLogin,
+  adminMe,
 } from "../controllers/adminController";
 import { admin, protectAdmin } from "../middleware/authMiddleware";
 
@@ -23,7 +25,13 @@ router.use((req, res, next) => {
   next();
 });
 
-// Apply admin middlewares to all routes - first authenticate the admin, then check role
+// ===== Admin Authentication Routes (do NOT require protectAdmin) =====
+router.post('/login', adminLogin);
+
+// Route to get current admin info (requires headers)
+router.get('/me', protectAdmin, adminMe);
+
+// Apply admin middlewares to all subsequent routes
 router.use(protectAdmin);
 router.use(admin);
 

@@ -10,12 +10,44 @@ import userRoutes from "./routes/userRoutes";
 import productRoutes from "./routes/productRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
 import projectRoutes from "./routes/projectRoutes";
+import User from "./models/User";
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Kết nối MongoDB
-connectDB();
+// Ensure default admin user
+const ensureAdminUser = async () => {
+  try {
+    const email = "admin@admin.com";
+    const plainPassword = "ADMIN";
+
+    const existing = await User.findOne({ email });
+
+    if (existing) {
+      existing.password = plainPassword; // will be hashed by pre-save hook
+      existing.role = "admin";
+      existing.status = "active";
+      await existing.save();
+      console.log("🔄 Default admin user updated (admin@admin.com)");
+    } else {
+      await User.create({
+        name: "Administrator",
+        email,
+        password: plainPassword, // will be hashed by pre-save hook
+        role: "admin",
+        status: "active",
+      });
+      console.log("✅ Default admin user created (admin@admin.com)");
+    }
+  } catch (err) {
+    console.error("Failed to ensure admin user:", err);
+  }
+};
+
+// Connect to DB and then seed admin user
+connectDB()
+  .then(() => ensureAdminUser())
+  .catch((err) => console.error('DB connection failed:', err));
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;

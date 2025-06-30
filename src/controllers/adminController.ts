@@ -303,3 +303,80 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     }
   }
 };
+
+// ================= ADMIN AUTHENTICATION =================
+
+// @desc    Admin login to obtain auth token
+// @route   POST /api/admin/login
+// @access  Public
+export const adminLogin = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Find user with matching email & admin role
+    const user = await User.findOne({ email, role: "admin" });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials or not an admin user",
+      });
+    }
+
+    // Verify password
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    // For now we create a simple token (could be JWT in future). ProtectAdmin only checks presence.
+    const token = `adm-${user._id}-${Date.now()}`;
+
+    // Return minimal user information & token
+    res.json({
+      success: true,
+      message: "Admin login successful",
+      role: user.role,
+      email: user.email,
+      name: user.name,
+      token,
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// @desc    Return current admin info (requires protectAdmin headers)
+// @route   GET /api/admin/me
+// @access  Private (admin)
+export const adminMe = async (req: Request, res: Response) => {
+  try {
+    // protectAdmin has already attached req.user
+    const adminUser = (req as any).user;
+
+    if (!adminUser || adminUser.role !== "admin") {
+      return res.status(401).json({ success: false, message: "Not authenticated as admin" });
+    }
+
+    res.json({
+      success: true,
+      role: adminUser.role,
+      email: adminUser.email,
+    });
+  } catch (error) {
+    console.error("Admin me error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
