@@ -1,17 +1,6 @@
 # version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:6.0
-    container_name: cpg_mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    restart: always
-    networks:
-      - cpg-network
-
   backend:
     build:
       context: .
@@ -19,15 +8,14 @@ services:
     container_name: cpg_be_server
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/cpgmatching
-      - JWT_SECRET=your_secret_key
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
       - EMAIL_FROM=${EMAIL_FROM}
-    depends_on:
-      - mongodb
+
     restart: always
     networks:
       - cpg-network
