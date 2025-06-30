@@ -9,6 +9,7 @@ import adminRoutes from "./routes/adminRoutes";
 import userRoutes from "./routes/userRoutes";
 import productRoutes from "./routes/productRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
+import path from "path";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -38,6 +39,9 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser()); // Cookie parser for handling cookies
+
+// Serve static files from the public directory (for uploaded images)
+app.use('/Storage', express.static(path.join(process.cwd(), 'public', 'Storage')));
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {

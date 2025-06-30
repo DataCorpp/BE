@@ -7,7 +7,7 @@ import {
   deleteFoodProduct,
   getCategories,
   getProductTypes,
-  getManufacturers,
+  getManufacturers
 } from "../controllers/foodProductController";
 import { protect, manufacturer } from "../middleware/authMiddleware";
 
@@ -22,6 +22,8 @@ router.route("/")
 router.get("/categories", getCategories);
 router.get("/types", getProductTypes);
 router.get("/manufacturers", getManufacturers);
+
+// Image upload routes have been removed
 
 // Route /api/foodproducts/:id
 router.route("/:id")

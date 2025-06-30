@@ -8,3 +8,4 @@
 .env.local
 
 JWT_AUTH_README.md
+S3_SETUP.md
