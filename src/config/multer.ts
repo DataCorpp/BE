@@ -1,6 +1,7 @@
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import path from 'path';
+import fs from 'fs';
 import { s3Client } from '../utils/s3Client';
 
 // File size limit (5MB)
@@ -9,20 +10,53 @@ const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
 // Allowed file formats
 const ALLOWED_FORMATS = ['.jpg', '.jpeg', '.png', '.webp'];
 
-// S3 Storage configuration
-const s3Storage = multerS3({
-  s3: s3Client,
-  bucket: process.env.AWS_S3_BUCKET_NAME,
-  contentType: multerS3.AUTO_CONTENT_TYPE,
-  metadata: function (req, file, cb) {
-    cb(null, { fieldName: file.fieldname });
-  },
-  key: function (req, file, cb) {
-    const timestamp = Date.now().toString();
-    const filename = file.originalname;
-    cb(null, `images/${timestamp}_${filename}`);
+// ----------------------------
+// Storage configuration
+// ----------------------------
+// 1) S3 (production)
+// 2) Local disk (development / when AWS env is missing)
+
+let storage: multer.StorageEngine;
+
+if (process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  // --- S3 storage ---
+  storage = multerS3({
+    s3: s3Client,
+    bucket: process.env.AWS_S3_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+      const timestamp = Date.now().toString();
+      const filename = file.originalname;
+      cb(null, `images/${timestamp}_${filename}`);
+    }
+  });
+
+  console.log('📦 Multer configured to use S3 bucket:', process.env.AWS_S3_BUCKET_NAME);
+} else {
+  // --- Local disk fallback ---
+  // Files will be stored in /tmp/uploads inside the container
+  const tmpUploadDir = '/tmp/uploads';
+  if (!fs.existsSync(tmpUploadDir)) {
+    fs.mkdirSync(tmpUploadDir, { recursive: true });
   }
-});
+
+  storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, tmpUploadDir);
+    },
+    filename: function (req, file, cb) {
+      const timestamp = Date.now().toString();
+      const ext = path.extname(file.originalname).toLowerCase();
+      const basename = path.basename(file.originalname, ext);
+      cb(null, `${timestamp}_${basename}${ext}`);
+    }
+  });
+
+  console.warn('⚠️  AWS S3 environment variables are missing. Falling back to local disk storage.');
+}
 
 // File filter to check file types
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
@@ -37,7 +71,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
 
 // Configure multer
 export const upload = multer({
-  storage: s3Storage,
+  storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: FILE_SIZE_LIMIT
