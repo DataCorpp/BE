@@ -53,42 +53,45 @@ connectDB()
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - only enable CORS in development (production handled by Nginx)
-if (process.env.NODE_ENV !== 'production') {
-  app.use(
-    cors({
-      origin: [
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        // Production domains
-        "https://www.datacorpsolutions.com",
-        "https://datacorpsolutions.com",
-        "https://ai.datacorpsolutions.com",
-        "https://api.datacorpsolutions.com"
-      ],
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "AdminAuthorization",
-        "adminauthorization",
-        "X-Admin-Role",
-        "x-admin-role",
-        "X-Admin-Email",
-        "x-admin-email",
-        "X-User-ID",
-        "x-user-id",
-        "X-User-Role",
-        "x-user-role"
-      ],
-      credentials: true,
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
-    })
-  );
-}
+// === CORS CONFIGURATION ===
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  // Production domains
+  "https://www.datacorpsolutions.com",
+  "https://datacorpsolutions.com",
+  "https://ai.datacorpsolutions.com",
+  "https://api.datacorpsolutions.com"
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS policy: This origin is not allowed"));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "AdminAuthorization",
+      "X-Admin-Role",
+      "X-Admin-Email",
+      "X-User-ID",
+      "X-User-Role"
+    ],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser()); // Cookie parser for handling cookies
 
