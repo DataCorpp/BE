@@ -94,6 +94,11 @@ export const mapFormDataToFoodProduct = (formData: any) => {
     category: detailData.category || 'Other',
     description: detailData.description || 'No description provided',
     image: detailData.image || 'https://via.placeholder.com/300x300?text=No+Image',
+    images: Array.isArray(detailData.images)
+      ? [...detailData.images]
+      : detailData.image
+        ? [detailData.image]
+        : [],
     price: Number(detailData.price || detailData.pricePerUnit) || 0,
     countInStock: Number(detailData.countInStock || detailData.currentAvailable) || 0,
     rating: detailData.rating || 0,

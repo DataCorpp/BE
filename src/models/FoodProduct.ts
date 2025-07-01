@@ -306,10 +306,6 @@ foodProductSchema.methods.saveWithoutDefaults = async function() {
     images: this.images
   });
   
-  // Simplified image handling - only supporting single image
-  // Images array is kept for backwards compatibility but no longer actively used
-  this.images = this.image ? [this.image] : [];
-  
   // Sử dụng insertOne trực tiếp để bypass schema defaults
   if (this.isNew) {
     // Lấy collection trực tiếp từ constructor
@@ -322,9 +318,18 @@ foodProductSchema.methods.saveWithoutDefaults = async function() {
     if (doc._id === null || doc._id === undefined) {
       delete doc._id;
     }
-
-    // Simplified image handling - only supporting single image
-    doc.images = doc.image ? [doc.image] : [];
+    
+    // Ensure images array is properly initialized
+    if (!doc.images) {
+      doc.images = doc.image ? [doc.image] : [];
+    } else if (!Array.isArray(doc.images)) {
+      doc.images = typeof doc.images === 'string' && doc.images.trim() !== '' 
+        ? [doc.images] 
+        : (doc.image ? [doc.image] : []);
+    } else if (doc.image && !doc.images.includes(doc.image)) {
+      // Ensure main image is in the images array
+      doc.images.unshift(doc.image);
+    }
     
     // Log the final document that will be inserted
     console.log('Final document to be inserted:', {
@@ -428,9 +433,15 @@ foodProductSchema.statics.createWithProduct = async function(
       }
     });
     
-    // Simplified image handling - only supporting single image
-    foodProductData.images = foodProductData.image ? [foodProductData.image] : [];
-
+    // Ensure images is initialized as an array
+    if (!foodProductData.images) {
+      foodProductData.images = [];
+    } else if (!Array.isArray(foodProductData.images)) {
+      foodProductData.images = typeof foodProductData.images === 'string' && foodProductData.images.trim() !== '' 
+        ? [foodProductData.images] 
+        : [];
+    }
+    
     // Set countInStock from currentAvailable if not provided
     if (foodProductData.currentAvailable !== undefined && foodProductData.countInStock === undefined) {
       foodProductData.countInStock = foodProductData.currentAvailable;
@@ -454,7 +465,7 @@ foodProductSchema.statics.createWithProduct = async function(
       usage: foodProductData.usage,
       image: foodProductData.image,
       images: foodProductData.images,
-      imagesCount: foodProductData.images.length
+      imagesCount: foodProductData.images ? foodProductData.images.length : 0
     });
 
     // IMPORTANT: Create a direct instance without any schema defaults
@@ -675,13 +686,13 @@ foodProductSchema.statics.updateWithProduct = async function(
           ];
           console.log(`Moved main image to front of images array: ${foodProductData.image}`);
         }
-      } else if (foodProductData.images.length > 0) {
-        // If no main image provided but images array exists, use first image as main
-        foodProductData.image = foodProductData.images[0];
-        console.log(`Set main image from images array: ${foodProductData.image}`);
-      }
-      
-      console.log(`Final images array for update: ${foodProductData.images.length} items`);
+          } else if (foodProductData.images && foodProductData.images.length > 0) {
+      // If no main image provided but images array exists, use first image as main
+      foodProductData.image = foodProductData.images[0];
+      console.log(`Set main image from images array: ${foodProductData.image}`);
+    }
+    
+    console.log(`Final images array for update: ${foodProductData.images ? foodProductData.images.length : 0} items`);
       console.log(`Main image for update: ${foodProductData.image}`);
     } else if (foodProductData.image) {
       // If only main image provided (not images array), update images array from existing
@@ -706,7 +717,7 @@ foodProductSchema.statics.updateWithProduct = async function(
         // No existing images, create new array with main image
         foodProductData.images = [foodProductData.image];
       }
-      console.log(`Created/updated images array from main image: ${foodProductData.images.length} items`);
+      console.log(`Created/updated images array from main image: ${foodProductData.images ? foodProductData.images.length : 0} items`);
     }
 
     // Handle numeric fields - ensure they are numbers

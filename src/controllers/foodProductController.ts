@@ -323,7 +323,7 @@ export const createFoodProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    console.log('=== CREATE FOOD PRODUCT ===');
+    console.log('=== CREATE FOOD PRODUCT - DIRECT METHOD ===');
     
     // Get user ID from authenticated user or request body
     let userId: string;
@@ -357,146 +357,93 @@ export const createFoodProduct = async (
       return;
     }
 
+    // Extract the data from req.body directly
     const {
-      // Product reference data
+      // Required fields for Product reference
       manufacturerName,
       productName,
       
-      // FoodProduct data
-      name,
-      brand,
-      category,
-      description,
-      image,
-      price,
-      countInStock,
-      manufacturer,
-      originCountry,
-      manufacturerRegion,
-      minOrderQuantity,
-      dailyCapacity,
-      currentAvailable,
-      unitType,
-      pricePerUnit,
-      priceCurrency,
-      leadTime,
-      leadTimeUnit,
-      sustainable,
-      foodType,
-      flavorType,
-      ingredients,
-      allergens,
-      usage,
-      packagingType,
-      packagingSize,
-      shelfLife,
-      shelfLifeStartDate,
-      shelfLifeEndDate,
-      storageInstruction,
-      images, // Add the images array field
-      // Remove user from the destructured fields since we handle it separately
-      user: _user, // Rename to avoid conflict
+      // Allow rest fields to pass through directly
       ...restFields
     } = req.body;
-
-    // Log the images array to verify its format
-    console.log('Images field in request:', {
-      images: images ? (Array.isArray(images) ? `Array with ${images.length} items` : 'Not an array') : 'undefined',
-      image: image || 'undefined'
-    });
     
-    if (images) {
-      console.log('First few images:', Array.isArray(images) ? images.slice(0, 3) : images);
-    }
+    // Log the received data for debugging
+    console.log('Direct create method - received data:', {
+      ...restFields,
+      user: userId,
+      manufacturerName,
+      productName
+    });
 
-    // Process images - ensure it's always an array
+    // Process images - ensure it's always a non-empty array if there are uploads
     let processedImages: string[] = [];
-    if (images) {
-      if (Array.isArray(images)) {
-        // Make a deep copy of the array
-        processedImages = [...images];
-        console.log(`Found ${processedImages.length} images in array`);
-      } else if (typeof images === 'string') {
+    let mainImage = restFields.image;
+    
+    // Handle images array
+    if (restFields.images) {
+      if (Array.isArray(restFields.images)) {
+        // Make a deep copy of the array and filter out empty strings
+        processedImages = [...restFields.images].filter(img => img && img.trim() !== '');
+        console.log(`Found ${processedImages.length} valid images in array`);
+      } else if (typeof restFields.images === 'string' && restFields.images.trim() !== '') {
         // If it's a string, put it in an array
-        processedImages = [images];
+        processedImages = [restFields.images];
         console.log('Converted single image string to array');
       }
     }
     
     // Make sure main image is included in the processedImages array
-    if (image && processedImages.indexOf(image) === -1) {
-      processedImages.unshift(image);
-      console.log('Added main image to images array:', image);
-    } else if (image && processedImages.indexOf(image) !== 0) {
-      // Reorder to put main image first
-      processedImages = [
-        image,
-        ...processedImages.filter(img => img !== image)
-      ];
-      console.log('Moved main image to front of array:', image);
-    } else if (!image && processedImages.length > 0) {
-      // Use first image as main if not specified
-      console.log('Using first image as main:', processedImages[0]);
+    if (mainImage && mainImage.trim() !== '') {
+      if (processedImages.indexOf(mainImage) === -1) {
+        // If main image is not in the array, add it at the beginning
+        processedImages.unshift(mainImage);
+        console.log('Added main image to images array:', mainImage);
+      } else if (processedImages.indexOf(mainImage) !== 0) {
+        // If main image is in the array but not first, reorder to put it first
+        processedImages = [
+          mainImage,
+          ...processedImages.filter(img => img !== mainImage)
+        ];
+        console.log('Moved main image to front of array:', mainImage);
+      }
+    } else if (processedImages.length > 0) {
+      // If no main image specified but images array has items, use first one as main
+      mainImage = processedImages[0];
+      console.log('Using first image as main:', mainImage);
+    }
+    
+    // Ensure images array is not empty if there's a main image
+    if (mainImage && processedImages.length === 0) {
+      processedImages = [mainImage];
+      console.log('Created images array with main image:', mainImage);
     }
 
     // Chuẩn bị data cho Product reference
     const productData = {
-      manufacturerName: manufacturer || manufacturerName,
-      productName: productName || name,
+      manufacturerName: restFields.manufacturer || manufacturerName,
+      productName: productName || restFields.name,
     };
 
-    // Prepare data for FoodProduct with proper field validation
+    // Prepare data for FoodProduct with proper field handling
     const foodProductData = {
-      user: userId, // Use the validated userId
-      name: name ?? productName,
-      brand: brand ?? manufacturer ?? manufacturerName,
-      category: category ?? 'Other',
-      description: description ?? 'No description provided',
-      image: image ?? (processedImages.length > 0 ? processedImages[0] : 'https://via.placeholder.com/300x300?text=No+Image'),
-      images: processedImages, // Use the properly processed images array
-      price: Number(price ?? pricePerUnit) || 0,
-      countInStock: Number(countInStock ?? currentAvailable) || 0,
-      rating: 0,
-      numReviews: 0,
+      ...restFields, // Pass all original fields directly
+      user: userId,
+      image: mainImage,
+      images: processedImages,
       
-      // Food-specific fields - DO NOT set default values for these fields
-      manufacturer: manufacturer ?? manufacturerName, // Prioritize manufacturer field
-      originCountry: originCountry ?? 'Unknown',
-      manufacturerRegion: manufacturerRegion,
-      minOrderQuantity: Number(minOrderQuantity) || 1,
-      dailyCapacity: Number(dailyCapacity) || 100,
-      currentAvailable: Number(currentAvailable) || 0,
-      unitType: unitType ?? 'units',
-      pricePerUnit: Number(pricePerUnit) || 0,
-      priceCurrency: priceCurrency ?? 'USD',
-      leadTime: leadTime ?? '1-2',
-      leadTimeUnit: leadTimeUnit ?? 'weeks',
-      sustainable: Boolean(sustainable),
-      
-      // CRITICAL: Pass these fields exactly as received without any transformation or defaults
-      foodType,
-      packagingType,
-      packagingSize,
-      shelfLife,
-      storageInstruction,
-      
-      // Array fields - preserve exactly as received
-      flavorType: Array.isArray(flavorType) ? flavorType : (flavorType ? [flavorType] : []),
-      ingredients: Array.isArray(ingredients) ? ingredients : (ingredients ? [ingredients] : []),
-      allergens: Array.isArray(allergens) ? allergens : (allergens ? [allergens] : []),
-      usage: Array.isArray(usage) ? usage : (usage ? [usage] : []),
-      
-      // Dates
-      shelfLifeStartDate: shelfLifeStartDate ? new Date(shelfLifeStartDate) : undefined,
-      shelfLifeEndDate: shelfLifeEndDate ? new Date(shelfLifeEndDate) : undefined,
-      
-      // Include any other fields not explicitly destructured
-      ...restFields
+      // Ensure type consistency for numeric fields
+      minOrderQuantity: restFields.minOrderQuantity ? Number(restFields.minOrderQuantity) : undefined,
+      dailyCapacity: restFields.dailyCapacity ? Number(restFields.dailyCapacity) : undefined,
+      currentAvailable: restFields.currentAvailable ? Number(restFields.currentAvailable) : undefined,
+      pricePerUnit: restFields.pricePerUnit ? Number(restFields.pricePerUnit) : undefined,
+      price: restFields.price ? Number(restFields.price) : undefined,
+      countInStock: restFields.countInStock ? Number(restFields.countInStock) : undefined,
+      rating: restFields.rating ? Number(restFields.rating) : 0,
+      numReviews: restFields.numReviews ? Number(restFields.numReviews) : 0
     };
     
-    // Log the request body and processed data for debugging
-    console.log('Request body:', req.body);
-    console.log('Processed food product data:', {
+    // Log the data that will be saved
+    console.log('Data to be saved directly to FoodProduct schema:', {
       foodType: foodProductData.foodType,
       packagingType: foodProductData.packagingType,
       packagingSize: foodProductData.packagingSize,
@@ -508,7 +455,7 @@ export const createFoodProduct = async (
       usage: foodProductData.usage,
       image: foodProductData.image,
       images: foodProductData.images,
-      imagesCount: foodProductData.images.length
+      imagesCount: foodProductData.images?.length || 0
     });
 
     // Validate required fields
@@ -523,43 +470,19 @@ export const createFoodProduct = async (
       return;
     }
 
-    // Create food product using static method
+    // Create food product using static method - direct save without mapping
     const result = await (FoodProduct as any).createWithProduct(productData, foodProductData);
 
-    console.log('Food product created successfully:', {
+    console.log('✅ Food product created successfully with direct method:', {
       foodProduct: {
         _id: result.foodProduct._id,
-        name: result.foodProduct.name,
-        manufacturer: result.foodProduct.manufacturer
-      },
-      product: {
-        _id: result.product._id,
-        manufacturerName: result.product.manufacturerName,
-        productName: result.product.productName
+        name: result.foodProduct.name
       }
-    });
-    
-    // IMPORTANT: Verify the data was saved correctly by fetching it directly from MongoDB
-    const savedFoodProduct = await FoodProduct.findById(result.foodProduct._id);
-    console.log('=== VERIFICATION: DATA SAVED TO MONGODB ===');
-    console.log('Actual data in MongoDB after save:', {
-      foodType: savedFoodProduct?.foodType,
-      packagingType: savedFoodProduct?.packagingType,
-      packagingSize: savedFoodProduct?.packagingSize,
-      shelfLife: savedFoodProduct?.shelfLife,
-      storageInstruction: savedFoodProduct?.storageInstruction,
-      flavorType: savedFoodProduct?.flavorType,
-      ingredients: savedFoodProduct?.ingredients,
-      allergens: savedFoodProduct?.allergens,
-      usage: savedFoodProduct?.usage,
-      image: savedFoodProduct?.image,
-      images: savedFoodProduct?.images,
-      imagesCount: savedFoodProduct?.images?.length || 0
     });
     
     res.status(201).json(result.foodProduct);
   } catch (error) {
-    console.error('Error creating food product:', error);
+    console.error('❌ Error in direct createFoodProduct:', error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
@@ -576,6 +499,7 @@ export const updateFoodProduct = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log('=== UPDATE FOOD PRODUCT - DIRECT METHOD ===');
     const { id } = req.params;
     
     // Validate the ID format
@@ -587,112 +511,158 @@ export const updateFoodProduct = async (
       return;
     }
 
-    // Extract manufacturer field from request body
+    // Extract fields from request body
     const { 
       manufacturer, 
-      manufacturerName, // Accept both for backward compatibility
+      manufacturerName,
+      productName,
       user: _user, // Rename to avoid conflict with userId
       images, // Explicitly extract images array
       image, // Explicitly extract main image
       ...updateData 
     } = req.body;
     
-    // Log the array fields to check their format
-    console.log('🔍 Array fields in request body:');
-    console.log('- Images:', images ? `[${images.length} items]` : 'undefined');
-    if (images) console.log('- First few images:', images.slice(0, 3));
-    
-    // Validate the images array if provided
-    if (images !== undefined) {
-      if (!Array.isArray(images)) {
-        console.warn(`⚠️ Images field is not an array, converting to array: ${images}`);
-        updateData.images = [images].filter(Boolean);
-      } else {
-        // Make a deep copy of the images array to avoid reference issues
-        updateData.images = [...images];
-        console.log(`✓ Images array validated [${updateData.images.length} items]`);
-      }
-      
-      // If main image is provided, ensure it's in the images array
-      if (image && !updateData.images.includes(image)) {
-        console.log('🔄 Adding main image to images array:', image);
-        updateData.images.unshift(image);
-      } else if (image && updateData.images[0] !== image) {
-        console.log('🔄 Moving main image to front of images array:', image);
-        updateData.images = [
-          image,
-          ...updateData.images.filter(img => img !== image)
-        ];
-      } else if (!image && updateData.images.length > 0) {
-        console.log('🔄 Setting main image from images array:', updateData.images[0]);
-        updateData.image = updateData.images[0];
-      }
-    } else if (image) {
-      // If only main image is provided, set images array to contain just that image
-      updateData.images = [image];
-      console.log('🔄 Created images array from main image:', updateData.images);
-    }
-
-    // Process manufacturer field - Both might be present in API calls
-    let manufacturerValue = manufacturer || manufacturerName;
-    if (manufacturerValue) {
-      updateData.manufacturer = manufacturerValue;
-      updateData.brand = manufacturerValue; // Ensure brand is updated to match manufacturer
-    }
-
-    // Find the product
+    // Find the food product first to check if it exists
     const foodProduct = await FoodProduct.findById(id);
     
     if (!foodProduct) {
       res.status(404).json({ message: 'Product not found' });
       return;
     }
-
-    // Handle array fields
+    
+    // Log the array fields to check their format
+    console.log('🔍 Image fields in request body:');
+    console.log('- Main image:', image || 'undefined');
+    console.log('- Images array:', images ? 
+      (Array.isArray(images) ? `Array with ${images.length} items` : `Not an array: ${typeof images}`) 
+      : 'undefined');
+    
+    // Process images - ensure proper synchronization
+    let updatedImages: string[] = [];
+    let updatedMainImage = image || foodProduct.image;  // Default to existing if not provided
+    
+    // CASE 1: New images array provided
+    if (images !== undefined) {
+      if (Array.isArray(images)) {
+        // Use the provided images array
+        updatedImages = [...images].filter(img => img && img.trim() !== '');
+      } else if (typeof images === 'string' && images.trim() !== '') {
+        // Convert string to array
+        updatedImages = [images];
+      } else {
+        // Empty or invalid input, use existing images
+        updatedImages = foodProduct.images || [];
+      }
+    } 
+    // CASE 2: No new images array, but existing images
+    else if (foodProduct.images && foodProduct.images.length > 0) {
+      // Keep existing images
+      updatedImages = [...foodProduct.images];
+    }
+    
+    // Ensure main image is synchronized with images array
+    if (updatedMainImage && updatedMainImage.trim() !== '') {
+      if (updatedImages.length === 0) {
+        // If images array is empty but we have a main image, create the array
+        updatedImages = [updatedMainImage];
+        console.log('🔄 Created images array from main image');
+      } else if (!updatedImages.includes(updatedMainImage)) {
+        // Add main image to beginning if not in array
+        updatedImages.unshift(updatedMainImage);
+        console.log('🔄 Added main image to front of images array');
+      } else if (updatedImages[0] !== updatedMainImage) {
+        // Move main image to front if not already there
+        updatedImages = [
+          updatedMainImage,
+          ...updatedImages.filter(img => img !== updatedMainImage)
+        ];
+        console.log('🔄 Reordered images array to put main image first');
+      }
+    } else if (updatedImages.length > 0) {
+      // No main image specified but images exist, use first as main
+      updatedMainImage = updatedImages[0];
+      console.log('🔄 Set main image from first item in images array');
+    }
+    
+    // Update the data object with processed image fields
+    updateData.image = updatedMainImage;
+    updateData.images = updatedImages;
+    
+    // Process manufacturer field
+    if (manufacturer || manufacturerName) {
+      updateData.manufacturer = manufacturer || manufacturerName;
+      updateData.brand = manufacturer || manufacturerName; // Ensure brand matches manufacturer
+      
+      // Also update the Product reference if manufacturer/product name changes
+      const productReference = await Product.findOne({
+        type: 'food',
+        productId: id
+      });
+      
+      if (productReference) {
+        const productUpdate: any = {};
+        if (manufacturer || manufacturerName) {
+          productUpdate.manufacturerName = manufacturer || manufacturerName;
+        }
+        if (productName || updateData.name) {
+          productUpdate.productName = productName || updateData.name;
+        }
+        
+        if (Object.keys(productUpdate).length > 0) {
+          await Product.findByIdAndUpdate(productReference._id, productUpdate);
+          console.log('✅ Updated Product reference:', productUpdate);
+        }
+      }
+    }
+    
+    // Process array fields to ensure they're arrays
     ['flavorType', 'ingredients', 'allergens', 'usage'].forEach(field => {
       if (req.body[field] !== undefined) {
-        // Convert value to array if it isn't already
+        // Convert to array if it's not already
         if (!Array.isArray(req.body[field])) {
-          console.log(`Converting ${field} to array:`, req.body[field]);
-          if (typeof req.body[field] === 'string' && req.body[field].trim()) {
+          if (typeof req.body[field] === 'string' && req.body[field].trim() !== '') {
             updateData[field] = [req.body[field]];
           } else if (req.body[field] === null || req.body[field] === '') {
             updateData[field] = [];
           }
         } else {
-          // Make a copy to avoid reference issues
+          // Make a copy of the array
           updateData[field] = [...req.body[field]];
         }
       }
     });
     
-    // Debug log the final update data
+    // Convert numeric fields
+    ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit', 'price', 'countInStock'].forEach(field => {
+      if (updateData[field] !== undefined) {
+        updateData[field] = Number(updateData[field]);
+      }
+    });
+    
+    // Log the final update data
     console.log('Final update data:', {
-      images: updateData.images ? updateData.images.length : 'unchanged',
-      image: updateData.image || 'unchanged',
+      image: updateData.image,
+      imageCount: updateData.images?.length || 0,
+      imageSample: updateData.images?.slice(0, 2) || [],
+      // Include other fields that were processed
       flavorType: updateData.flavorType || 'unchanged',
       ingredients: updateData.ingredients || 'unchanged',
       allergens: updateData.allergens || 'unchanged',
       usage: updateData.usage || 'unchanged'
     });
 
-    // Update the product with { new: true } to return updated document
-    // Using findByIdAndUpdate with runValidators to ensure schema validation
+    // Update the product directly - no need for additional mapping
     const updatedProduct = await FoodProduct.findByIdAndUpdate(
       id, 
       updateData,
       { new: true, runValidators: true }
     );
-    
-    // Verify that the update was successful by checking the field values
-    console.log('Verification after update:', {
-      images: updatedProduct?.images?.length || 0,
-      imagesSample: updatedProduct?.images?.slice(0, 3) || []
-    });
 
+    console.log('✅ Food product updated successfully with direct method');
+    
     res.json(updatedProduct);
   } catch (error) {
-    console.error('Error updating food product:', error);
+    console.error('❌ Error in direct updateFoodProduct:', error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
