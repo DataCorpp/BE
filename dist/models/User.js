@@ -98,7 +98,7 @@ const userSchema = new mongoose_1.Schema({
     role: {
         type: String,
         required: true,
-        enum: ["manufacturer", "brand", "retailer"],
+        enum: ["manufacturer", "brand", "retailer", "admin"],
         default: "manufacturer",
     },
     status: {

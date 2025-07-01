@@ -1,64 +1,28 @@
-version: '3'
+# version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app-network
-
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: cpg_be_server
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/cpgmatching
-      - AI_SERVICE_URL=http://ai-service:5001/api
-      - JWT_SECRET=your_secret_key
-    depends_on:
-      - mongodb
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM=${EMAIL_FROM}
+
+    restart: always
     networks:
-      - app-network
-      
-  ai-service:
-    build:
-      context: ../AI
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5001"
-    environment:
-      - PORT=5001
-      - MONGODB_URI=mongodb://mongodb:27017/cpgmatching
-      - JWT_SECRET=your_secret_key
-    depends_on:
-      - mongodb
-    networks:
-      - app-network
-      
-  frontend:
-    build:
-      context: ../FE
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:3000/api
-      - VITE_AI_API_BASE_URL=http://localhost:5000/api/ai-proxy
-    depends_on:
-      - backend
-      - ai-service
-    networks:
-      - app-network
+      - cpg-network
 
 volumes:
   mongodb_data:
 
 networks:
-  app-network:
+  cpg-network:
     driver: bridge 

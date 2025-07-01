@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import FoodProduct from "../models/FoodProduct";
 import Product from "../models/Product";
 import mongoose from "mongoose";
+import { deleteObjectFromS3, extractKeyFromUrl } from '../utils/s3Client';
 
 // @desc    Lấy tất cả sản phẩm thực phẩm
 // @route   GET /api/foodproducts
@@ -700,28 +701,56 @@ export const updateFoodProduct = async (
   }
 };
 
-// @desc    Xóa sản phẩm thực phẩm
-// @route   DELETE /api/foodproducts/:id
-// @access  Private/Manufacturer
-export const deleteFoodProduct = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// @desc    Delete a food product
+// @route   DELETE /api/food-products/:id
+export const deleteFoodProduct = async (req: Request, res: Response) => {
   try {
-    // Sử dụng static method deleteWithProduct
-    const deletedFoodProduct = await (FoodProduct as any).deleteWithProduct(req.params.id);
+    const { id } = req.params;
+    
+    const foodProduct = await FoodProduct.findById(id);
 
-    if (deletedFoodProduct) {
-      res.json({ message: "Food product deleted successfully" });
-    } else {
-      res.status(404).json({ message: "Food product not found" });
+    if (!foodProduct) {
+      return res.status(404).json({ message: 'Food product not found' });
     }
+    
+    // Delete associated images from S3 before deleting the product
+    const imagesToDelete = [...(foodProduct.images || [])];
+    if (foodProduct.image && !imagesToDelete.includes(foodProduct.image)) {
+      imagesToDelete.push(foodProduct.image);
+    }
+
+    // Track deletion results
+    const deletionResults: Record<string, boolean> = {};
+    
+    // Process each image for deletion
+    for (const imageUrl of imagesToDelete) {
+      try {
+        // Extract key from URL
+        const key = extractKeyFromUrl(imageUrl);
+        
+        if (key) {
+          // Delete the object from S3
+          const isDeleted = await deleteObjectFromS3(key);
+          deletionResults[key] = isDeleted;
+        } else {
+          console.warn(`Could not extract key from URL: ${imageUrl}`);
+        }
+      } catch (imgError) {
+        console.error(`Error deleting image ${imageUrl}:`, imgError);
+      }
+    }
+    
+    // Delete the product from the database
+    const deletedProduct = await FoodProduct.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: 'Food product deleted successfully',
+      deletedProduct,
+      imagesDeleted: deletionResults
+    });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: "Unknown error occurred" });
-    }
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -734,12 +763,16 @@ export const getCategories = async (
 ): Promise<void> => {
   try {
     const categories = await FoodProduct.distinct('category');
-    res.json(categories);
+    res.json({
+      success: true,
+      data: categories,
+      total: categories.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 };
@@ -753,12 +786,16 @@ export const getProductTypes = async (
 ): Promise<void> => {
   try {
     const foodTypes = await FoodProduct.distinct('foodType');
-    res.json(foodTypes);
+    res.json({
+      success: true,
+      data: foodTypes,
+      total: foodTypes.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 };
@@ -772,12 +809,41 @@ export const getManufacturers = async (
 ): Promise<void> => {
   try {
     const manufacturers = await FoodProduct.distinct('manufacturer');
-    res.json(manufacturers);
+    res.json({
+      success: true,
+      data: manufacturers,
+      total: manufacturers.length
+    });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Get unique food types (like Soy Sauce, Miso, etc.)
+// @route   GET /api/foodproducts/foodtypes
+// @access  Public
+export const getFoodTypes = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const foodTypes = await FoodProduct.distinct('foodType');
+    // Filter out any null/undefined values and sort alphabetically
+    const cleanFoodTypes = foodTypes.filter(type => type && type.trim()).sort();
+    res.json({
+      success: true,
+      data: cleanFoodTypes,
+      total: cleanFoodTypes.length
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ success: false, message: error.message });
+    } else {
+      res.status(500).json({ success: false, message: "Unknown error occurred" });
     }
   }
 };

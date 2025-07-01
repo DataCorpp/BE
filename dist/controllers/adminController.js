@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserProfile = exports.updateUserStatus = exports.updateUserRole = exports.deleteUser = exports.updateUser = exports.getUserById = exports.getAllUsers = void 0;
+exports.adminMe = exports.adminLogin = exports.updateUserProfile = exports.updateUserStatus = exports.updateUserRole = exports.deleteUser = exports.updateUser = exports.getUserById = exports.getAllUsers = void 0;
 const User_1 = __importDefault(require("../models/User"));
 // Get all users
 const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -283,3 +283,72 @@ const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.updateUserProfile = updateUserProfile;
+// ================= ADMIN AUTHENTICATION =================
+// @desc    Admin login to obtain auth token
+// @route   POST /api/admin/login
+// @access  Public
+const adminLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+            });
+        }
+        // Find user with matching email & admin role
+        const user = yield User_1.default.findOne({ email, role: "admin" });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials or not an admin user",
+            });
+        }
+        // Verify password
+        const isMatch = yield user.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials",
+            });
+        }
+        // For now we create a simple token (could be JWT in future). ProtectAdmin only checks presence.
+        const token = `adm-${user._id}-${Date.now()}`;
+        // Return minimal user information & token
+        res.json({
+            success: true,
+            message: "Admin login successful",
+            role: user.role,
+            email: user.email,
+            name: user.name,
+            token,
+        });
+    }
+    catch (error) {
+        console.error("Admin login error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+exports.adminLogin = adminLogin;
+// @desc    Return current admin info (requires protectAdmin headers)
+// @route   GET /api/admin/me
+// @access  Private (admin)
+const adminMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // protectAdmin has already attached req.user
+        const adminUser = req.user;
+        if (!adminUser || adminUser.role !== "admin") {
+            return res.status(401).json({ success: false, message: "Not authenticated as admin" });
+        }
+        res.json({
+            success: true,
+            role: adminUser.role,
+            email: adminUser.email,
+        });
+    }
+    catch (error) {
+        console.error("Admin me error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+exports.adminMe = adminMe;
