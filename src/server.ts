@@ -52,6 +52,14 @@ connectDB()
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust the first proxy (needed for secure cookies when behind Nginx/Cloudflare etc.)
+if (process.env.NODE_ENV === 'production') {
+  // Inform Express that it is behind a proxy and that X-Forwarded-* headers can be trusted.
+  // This ensures req.secure is evaluated correctly so express-session will still set
+  // the secure cookie even though traffic between proxy and Node is plain HTTP.
+  app.set('trust proxy', 1);
+}
+
 // Middleware - only enable CORS in development (production handled by Nginx)
 if (process.env.NODE_ENV !== 'production') {
   app.use(
