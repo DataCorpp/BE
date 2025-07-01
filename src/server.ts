@@ -104,8 +104,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// After dotenv.config(); line (we want the proxy trust before session middleware)
-app.set("trust proxy", (process.env.TRUST_PROXY ?? "1"));
+// Configure Express to trust reverse proxy (needed for secure cookies behind Nginx)
+// Accept values:
+//   - If TRUST_PROXY is a valid integer => use that many hops
+//   - If TRUST_PROXY is "true" / "yes" => trust first proxy (1)
+//   - Otherwise default to 1
+const trustProxyEnv = process.env.TRUST_PROXY;
+let trustProxy: any = 1;
+if (trustProxyEnv) {
+  if (/^(true|yes)$/i.test(trustProxyEnv)) {
+    trustProxy = 1;
+  } else if (!isNaN(parseInt(trustProxyEnv, 10))) {
+    trustProxy = parseInt(trustProxyEnv, 10);
+  } else {
+    trustProxy = trustProxyEnv; // allow special strings like 'loopback'
+  }
+}
+app.set("trust proxy", trustProxy);
 
 // Session configuration with MongoDB storage
 app.use(
