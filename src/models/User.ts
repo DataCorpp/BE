@@ -103,6 +103,7 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
+      unique: true,
     },
     password: {
       type: String,
@@ -194,9 +195,6 @@ userSchema.methods.matchPassword = async function (
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
-
-// Ensure unique combination of email and role
-userSchema.index({ email: 1, role: 1 }, { unique: true });
 
 const User = mongoose.model<IUser>("User", userSchema);
 

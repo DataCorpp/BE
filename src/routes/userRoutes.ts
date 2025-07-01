@@ -10,8 +10,7 @@ import {
   resetPassword,
   googleLogin,
   logoutUser,
-  getManufacturers,
-  getRolesByEmail
+  getManufacturers
 } from "../controllers/userController";
 import { protect, requireAuth } from "../middleware/authMiddleware";
 import User from "../models/User";
@@ -39,7 +38,6 @@ router.post("/google-login", googleLogin);
 
 // ========== PUBLIC ROUTES ==========
 router.get("/manufacturers", getManufacturers);
-router.get("/roles/:email", getRolesByEmail);
 
 // ========== PROTECTED ROUTES (SESSION-BASED) ==========
 
