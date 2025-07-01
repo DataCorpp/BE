@@ -593,7 +593,35 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       user.status = 'active';
       await user.save();
 
-      // Remove verification code from memory
+      // ------------------------------
+      // Create login session so user is authenticated immediately after verification
+      // ------------------------------
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regenerate error after email verification:', err);
+        }
+
+        req.session.userId = user._id.toString();
+        req.session.userRole = user.role;
+        (req.session as any).role = user.role;
+        (req.session as any).user = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          companyName: user.companyName,
+          profileComplete: user.profileComplete,
+        };
+
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error after email verification:', saveErr);
+          }
+        });
+      });
+
+      // Remove used verification code
       delete verificationCodes[email];
 
       console.log(`✅ Email verified in development mode: ${email}`);
@@ -654,6 +682,34 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     // Update user status to active
     user.status = 'active';
     await user.save();
+
+    // ------------------------------
+    // Create login session so user is authenticated immediately after verification
+    // ------------------------------
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regenerate error after email verification:', err);
+      }
+
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+      (req.session as any).role = user.role;
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        companyName: user.companyName,
+        profileComplete: user.profileComplete,
+      };
+
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save error after email verification:', saveErr);
+        }
+      });
+    });
 
     // Remove used verification code
     delete verificationCodes[email];
