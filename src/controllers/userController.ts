@@ -567,19 +567,51 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // If user is already active
-    if (user.status === 'active') {
-      res.json({
-        success: true,
-        message: "Your email has already been verified",
-        user: {
+    // Helper to create a logged-in session for the verified user
+    const createSessionAndRespond = () => {
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regenerate error after email verification", err);
+          return res.status(500).json({ message: "Failed to create session" });
+        }
+
+        req.session.userId = user._id.toString();
+        req.session.userRole = user.role;
+        (req.session as any).role = user.role;
+        (req.session as any).user = {
           _id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
-        }
+          role: user.role,
+          status: user.status,
+          companyName: user.companyName,
+          profileComplete: user.profileComplete,
+        };
+
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error after email verification", saveErr);
+            return res.status(500).json({ message: "Failed to save session" });
+          }
+
+          // Successful response with session cookie set
+          res.json({
+            success: true,
+            message: "Email verified successfully",
+            user: {
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            },
+          });
+        });
       });
-      return;
+    };
+
+    // If user is already active
+    if (user.status === 'active') {
+      return createSessionAndRespond();
     }
 
     // Check if we have a verification code for this email
@@ -597,18 +629,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       delete verificationCodes[email];
 
       console.log(`✅ Email verified in development mode: ${email}`);
-      
-      res.json({
-        success: true,
-        message: "Email verified successfully (development mode)",
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
-      });
-      return;
+      return createSessionAndRespond();
     }
 
     if (!storedVerification) {
@@ -619,17 +640,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
         user.status = 'active';
         await user.save();
 
-        res.json({
-          success: true,
-          message: "Auto-verified in development mode",
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }
-        });
-        return;
+        return createSessionAndRespond();
       } else {
         res.status(400).json({ message: "Verification code is invalid or has expired" });
         return;
@@ -657,23 +668,14 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 
     // Remove used verification code
     delete verificationCodes[email];
-    
+
     console.log(`✅ Email verified successfully: ${email}`);
 
-    res.json({
-      success: true,
-      message: "Email verified successfully",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    return createSessionAndRespond();
 
   } catch (error) {
     console.error('❌ Email verification error');
-    
+
     if (error instanceof Error) {
       res.status(500).json({ message: "Verification failed" });
     } else {
