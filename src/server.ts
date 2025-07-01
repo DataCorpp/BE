@@ -139,7 +139,7 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      domain: process.env.COOKIE_DOMAIN || undefined // allow cross-sub-domain cookies if needed
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.datacorpsolutions.com' : undefined)
     },
     name: "sessionId", // Custom session name for security
   })
