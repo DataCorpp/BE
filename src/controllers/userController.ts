@@ -178,11 +178,11 @@ export const registerUser = async (
       return;
     }
 
-    // Kiểm tra xem người dùng đã tồn tại chưa
-    const userExists = await User.findOne({ email });
+    // Kiểm tra xem email đã đăng ký với cùng role hay chưa
+    const sameRoleUser = await User.findOne({ email, role });
 
-    if (userExists) {
-      res.status(400).json({ message: "User already exists" });
+    if (sameRoleUser) {
+      res.status(400).json({ message: `Email is already registered as ${role}` });
       return;
     }
 
@@ -214,7 +214,7 @@ export const registerUser = async (
       expiration.setMinutes(expiration.getMinutes() + 1);
       
       // Store the code with its expiration
-      verificationCodes[email] = {
+      verificationCodes[`${email}-${role}`] = {
         code: verificationCode,
         expires: expiration
       };
@@ -583,7 +583,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Check if we have a verification code for this email
-    const storedVerification = verificationCodes[email];
+    const storedVerification = verificationCodes[`${email}-${user.role}`];
     const isDevMode = process.env.NODE_ENV === 'development';
 
     // In development mode, accept any verification code that matches when email config is missing
@@ -614,15 +614,33 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
           profileComplete: user.profileComplete,
         };
 
+        // ------------------------------
+        // Send response AFTER session saved to ensure Set-Cookie header
+        // ------------------------------
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('Session save error after email verification:', saveErr);
+            return res.status(500).json({ message: 'Session error after verification' });
           }
+
+          res.json({
+            success: true,
+            message: "Email verified successfully (development mode)",
+            user: {
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              role: user.role
+            }
+          });
         });
+
+        // Exit the function to prevent further processing
+        return;
       });
 
       // Remove used verification code
-      delete verificationCodes[email];
+      delete verificationCodes[`${email}-${user.role}`];
 
       console.log(`✅ Email verified in development mode: ${email}`);
       
@@ -668,7 +686,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     const now = new Date();
     if (now > storedVerification.expires) {
       // Remove expired code
-      delete verificationCodes[email];
+      delete verificationCodes[`${email}-${user.role}`];
       res.status(400).json({ message: "Verification code has expired" });
       return;
     }
@@ -704,27 +722,27 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
         profileComplete: user.profileComplete,
       };
 
+      // ------------------------------
+      // Respond after session saved
+      // ------------------------------
       req.session.save((saveErr) => {
         if (saveErr) {
           console.error('Session save error after email verification:', saveErr);
+          return res.status(500).json({ message: 'Session error after verification' });
         }
+
+        res.json({
+          success: true,
+          message: "Email verified successfully",
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
       });
-    });
-
-    // Remove used verification code
-    delete verificationCodes[email];
-    
-    console.log(`✅ Email verified successfully: ${email}`);
-
-    res.json({
-      success: true,
-      message: "Email verified successfully",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      return;
     });
 
   } catch (error) {
@@ -743,7 +761,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 // @access  Public
 export const resendVerificationCode = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body;
+    const { email, role: requestedRole } = req.body;
 
     if (!email) {
       res.status(400).json({ message: "Email is required" });
@@ -757,6 +775,8 @@ export const resendVerificationCode = async (req: Request, res: Response): Promi
       res.status(404).json({ message: "User not found" });
       return;
     }
+
+    const role = requestedRole || user.role;
 
     // Check if the user is already verified
     if (user.status === 'active') {
@@ -772,7 +792,7 @@ export const resendVerificationCode = async (req: Request, res: Response): Promi
     expiration.setMinutes(expiration.getMinutes() + 1);
     
     // Store the code with its expiration
-    verificationCodes[email] = {
+    verificationCodes[`${email}-${role}`] = {
       code: verificationCode,
       expires: expiration
     };
