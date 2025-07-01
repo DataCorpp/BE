@@ -1190,3 +1190,24 @@ export const logoutUser = async (req: Request, res: Response): Promise<void> => 
     }
   }
 };
+
+// @desc    Get roles registered for an email
+// @route   GET /api/users/roles/:email
+// @access  Public
+export const getRolesByEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const email = req.params.email;
+    if (!email) {
+      res.status(400).json({ message: 'Email is required' });
+      return;
+    }
+
+    const users = await User.find({ email }).select('role');
+    const roles = users.map(u => u.role);
+
+    res.json({ success: true, roles });
+  } catch (error) {
+    console.error('Error fetching roles by email:', error);
+    res.status(500).json({ message: 'Server error fetching roles' });
+  }
+};
