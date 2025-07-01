@@ -17,7 +17,11 @@ router.use((req, res, next) => {
     });
     next();
 });
-// Apply admin middlewares to all routes - first authenticate the admin, then check role
+// ===== Admin Authentication Routes (do NOT require protectAdmin) =====
+router.post('/login', adminController_1.adminLogin);
+// Route to get current admin info (requires headers)
+router.get('/me', authMiddleware_1.protectAdmin, adminController_1.adminMe);
+// Apply admin middlewares to all subsequent routes
 router.use(authMiddleware_1.protectAdmin);
 router.use(authMiddleware_1.admin);
 // User management routes

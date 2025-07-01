@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -15,27 +24,77 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const foodProductRoutes_1 = __importDefault(require("./routes/foodProductRoutes"));
 const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
+const User_1 = __importDefault(require("./models/User"));
 // Load environment variables from .env file
 dotenv_1.default.config();
-// Kết nối MongoDB
-(0, db_1.default)();
+// Ensure default admin user
+const ensureAdminUser = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const email = "admin@admin.com";
+        const plainPassword = "ADMIN";
+        const existing = yield User_1.default.findOne({ email });
+        if (existing) {
+            existing.password = plainPassword; // will be hashed by pre-save hook
+            existing.role = "admin";
+            existing.status = "active";
+            yield existing.save();
+            console.log("🔄 Default admin user updated (admin@admin.com)");
+        }
+        else {
+            yield User_1.default.create({
+                name: "Administrator",
+                email,
+                password: plainPassword, // will be hashed by pre-save hook
+                role: "admin",
+                status: "active",
+            });
+            console.log("✅ Default admin user created (admin@admin.com)");
+        }
+    }
+    catch (err) {
+        console.error("Failed to ensure admin user:", err);
+    }
+});
+// Connect to DB and then seed admin user
+(0, db_1.default)()
+    .then(() => ensureAdminUser())
+    .catch((err) => console.error('DB connection failed:', err));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
-// Middleware
-app.use((0, cors_1.default)({
-    origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000", "http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "AdminAuthorization",
-        "X-Admin-Role",
-        "X-Admin-Email",
-        "X-User-ID",
-        "X-User-Role",
-    ],
-    credentials: true,
-}));
+// Middleware - only enable CORS in development (production handled by Nginx)
+if (process.env.NODE_ENV !== 'production') {
+    app.use((0, cors_1.default)({
+        origin: [
+            "http://localhost:8080",
+            "http://localhost:8081",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            // Production domains
+            "https://www.datacorpsolutions.com",
+            "https://datacorpsolutions.com",
+            "https://ai.datacorpsolutions.com",
+            "https://api.datacorpsolutions.com"
+        ],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization",
+            "AdminAuthorization",
+            "adminauthorization",
+            "X-Admin-Role",
+            "x-admin-role",
+            "X-Admin-Email",
+            "x-admin-email",
+            "X-User-ID",
+            "x-user-id",
+            "X-User-Role",
+            "x-user-role"
+        ],
+        credentials: true,
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
+    }));
+}
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)()); // Cookie parser for handling cookies
 // Debug middleware to log all requests
@@ -146,15 +205,15 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`✅ Server running on port ${PORT}`);
         console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
         console.log(`👥 User API: http://localhost:${PORT}/api/users`);
-        console.log(`  ├── Session Auth: /api/users/login, /api/users/logout`);
-        console.log(`  └── Google OAuth: /api/users/google-login`);
+        // console.log(`  ├── Session Auth: /api/users/login, /api/users/logout`);
+        // console.log(`  └── Google OAuth: /api/users/google-login`);
         console.log(`🛡️  Admin API: http://localhost:${PORT}/api/admin`);
         console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
         console.log(`🍎 Food Products API: http://localhost:${PORT}/api/foodproducts`);
         console.log(`🏭 Projects API: http://localhost:${PORT}/api/projects`);
-        console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
-        console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
-        console.log(`  └── Analytics: /api/projects/analytics`);
+        // console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
+        // console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
+        // console.log(`  └── Analytics: /api/projects/analytics`);
         console.log(`💚 Health Check: http://localhost:${PORT}/health`);
         console.log(`🗄️  Session Storage: MongoDB`);
     });

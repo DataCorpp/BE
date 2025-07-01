@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProjectAnalytics = exports.contactManufacturer = exports.getProjectManufacturers = exports.updateProjectStatus = exports.deleteProject = exports.updateProject = exports.getProjectById = exports.getProjects = exports.createProject = void 0;
 const Project_1 = __importDefault(require("../models/Project"));
 const User_1 = __importDefault(require("../models/User"));
+const FoodProduct_1 = __importDefault(require("../models/FoodProduct"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const mailService_1 = require("../utils/mailService");
 // ==================== PROJECT CRUD OPERATIONS ====================
@@ -25,7 +26,8 @@ const mailService_1 = require("../utils/mailService");
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const { name, description, selectedProduct, selectedSupplierType, volume, units, packaging, packagingObjects, location, allergen, certification, additional, anonymous, hideFromCurrent } = req.body;
+        const { name, description, selectedProduct, selectedSupplierType, volume, units, packaging, packagingObjects, location, allergen, certification, additional, anonymous, hideFromCurrent, status // Get status from request
+         } = req.body;
         // Validate required fields
         if (!name || !description || !volume || !units) {
             return res.status(400).json({
@@ -41,6 +43,26 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 message: 'User authentication required'
             });
         }
+        // Validate status if provided
+        const validStatuses = ['draft', 'active', 'in_review', 'paused', 'completed', 'cancelled'];
+        // Default to draft if status is not provided or invalid
+        const projectStatus = status && validStatuses.includes(status) ? status : 'draft';
+        // Ensure arrays are properly handled
+        const processedPackaging = Array.isArray(packaging) ? packaging :
+            typeof packaging === 'string' ? [packaging] : [];
+        const processedLocation = Array.isArray(location) ? location :
+            typeof location === 'string' ? [location] : ['Global'];
+        const processedAllergen = Array.isArray(allergen) ? allergen :
+            typeof allergen === 'string' ? [allergen] : [];
+        const processedCertification = Array.isArray(certification) ? certification :
+            typeof certification === 'string' ? [certification] : [];
+        // Log the processed data for debugging
+        console.log('Creating project with processed data:', {
+            packaging: processedPackaging,
+            location: processedLocation,
+            allergen: processedAllergen,
+            certification: processedCertification
+        });
         // Create new project
         const project = new Project_1.default({
             name: name.trim(),
@@ -49,16 +71,16 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             selectedSupplierType,
             volume,
             units,
-            packaging: packaging || [],
+            packaging: processedPackaging,
             packagingObjects: packagingObjects || [],
-            location: location || ['Global'],
-            allergen: allergen || [],
-            certification: certification || [],
+            location: processedLocation,
+            allergen: processedAllergen,
+            certification: processedCertification,
             additional: additional === null || additional === void 0 ? void 0 : additional.trim(),
             anonymous: anonymous || false,
             hideFromCurrent: hideFromCurrent || false,
             createdBy: userId,
-            status: 'in_review' // Auto-submit for review
+            status: projectStatus // Use validated status
         });
         yield project.save();
         // Find potential matching manufacturers (simplified algorithm)
@@ -196,7 +218,7 @@ exports.getProjectById = getProjectById;
  * PUT /api/projects/:id
  */
 const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { id } = req.params;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
@@ -218,10 +240,42 @@ const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 message: 'Project not found'
             });
         }
+        // ==================== RECALCULATE MATCHING MANUFACTURERS ====================
+        // Clear cached match results so we use fresh project data
+        try {
+            const cacheKey = `${id}_manufacturers`;
+            if (manufacturerMatchCache.has(cacheKey)) {
+                console.log('Clearing cached manufacturer matches for updated project:', id);
+                manufacturerMatchCache.delete(cacheKey);
+            }
+        }
+        catch (cacheErr) {
+            console.error('Error clearing manufacturerMatchCache:', cacheErr);
+        }
+        try {
+            const matchingManufacturers = yield findMatchingManufacturers(project);
+            if (matchingManufacturers.length > 0) {
+                project.matchingManufacturers = matchingManufacturers.map(manufacturer => ({
+                    manufacturerId: manufacturer._id.toString(),
+                    matchScore: manufacturer.matchScore,
+                    status: 'pending'
+                }));
+            }
+            else {
+                project.matchingManufacturers = [];
+            }
+            yield project.save();
+        }
+        catch (matchErr) {
+            console.error('Error recalculating manufacturer matches after project update:', matchErr);
+        }
         res.json({
             success: true,
             message: 'Project updated successfully',
-            data: { project }
+            data: {
+                project,
+                matchingCount: ((_b = project.matchingManufacturers) === null || _b === void 0 ? void 0 : _b.length) || 0
+            }
         });
     }
     catch (error) {
@@ -644,24 +698,32 @@ function findMatchingManufacturers(project) {
                 productName: (_b = project.selectedProduct) === null || _b === void 0 ? void 0 : _b.name,
                 location: project.location,
                 certification: project.certification,
+                packaging: project.packaging,
+                allergen: project.allergen,
+                additional: project.additional,
                 volume: project.volume,
                 units: project.units
             });
             // Enhanced matching algorithm with adjustments:
-            // 1. Location compatibility (20% weight)
-            // 2. Certification match (25% weight) - increased importance
-            // 3. Industry/Category expertise (35% weight)
-            // 4. Production capacity (20% weight)
-            const scoredManufacturers = manufacturers.map(manufacturer => {
+            // 1. Location compatibility (15% weight)
+            // 2. Certification match (20% weight)
+            // 3. Industry/Category expertise (25% weight)
+            // 4. Production capacity (15% weight)
+            // 5. Packaging compatibility (10% weight)
+            // 6. Allergen requirements (10% weight)
+            // 7. Additional requirements (5% weight)
+            const scoredManufacturers = manufacturers.map((manufacturer) => __awaiter(this, void 0, void 0, function* () {
                 var _a, _b, _c, _d;
                 let totalScore = 0;
                 let matchDetails = {};
-                // ==================== 1. LOCATION MATCHING (20% weight) ====================
+                // ==================== 1. LOCATION MATCHING (15% weight) ====================
                 let locationScore = 0;
                 let locationDetails = [];
                 if (project.location && project.location.length > 0) {
-                    if (project.location.includes('Global')) {
-                        locationScore = 20; // Global projects match all manufacturers
+                    // Check if project has explicit 'Global' location or empty location array
+                    const isGlobalProject = project.location.some(loc => loc.toLowerCase().trim() === 'global');
+                    if (isGlobalProject) {
+                        locationScore = 15; // Global projects match all manufacturers
                         locationDetails.push('Global location requested');
                     }
                     else if (manufacturer.address) {
@@ -688,31 +750,33 @@ function findMatchingManufacturers(project) {
                         });
                         if (exactLocationMatches.length > 0) {
                             const matchPercentage = exactLocationMatches.length / project.location.length;
-                            locationScore = Math.round(matchPercentage * 20);
+                            locationScore = Math.round(matchPercentage * 15);
                             locationDetails.push(`Exact location match: ${exactLocationMatches.join(', ')}`);
                         }
                         else if (regionalMatches.length > 0) {
                             const matchPercentage = regionalMatches.length / project.location.length;
-                            locationScore = Math.round(matchPercentage * 15); // 75% of full score for regional match
+                            locationScore = Math.round(matchPercentage * 11); // 75% of full score for regional match
                             locationDetails.push(`Regional match: ${regionalMatches.join(', ')}`);
                         }
                     }
                 }
                 else {
                     // No location specified, give partial credit
-                    locationScore = 10;
+                    locationScore = 7; // Half points
                     locationDetails.push('No specific location required');
                 }
                 totalScore += locationScore;
                 matchDetails['location'] = {
                     score: locationScore,
-                    maxScore: 20,
+                    maxScore: 15,
                     details: locationDetails.join('; ')
                 };
-                // ==================== 2. CERTIFICATION MATCHING (25% weight) ====================
+                // ==================== 2. CERTIFICATION MATCHING (20% weight) ====================
                 let certScore = 0;
                 let certDetails = [];
-                if (project.certification && project.certification.length > 0) {
+                if (project.certification && Array.isArray(project.certification) && project.certification.length > 0) {
+                    // Log certifications for debugging
+                    console.log(`Project ${project._id} certifications:`, project.certification);
                     // Combine certificates from both locations they might be stored
                     const manufacturerCerts = [
                         ...(Array.isArray(manufacturer.certificates) ? manufacturer.certificates :
@@ -742,17 +806,17 @@ function findMatchingManufacturers(project) {
                         // Calculate percentage of matching certs
                         const certMatchPercentage = project.certification.length > 0 ?
                             (matchedCerts.length / project.certification.length) : 0;
-                        // Score based on percentage matched - now out of 25 points
+                        // Score based on percentage matched - now out of 20 points
                         if (certMatchPercentage >= 0.8) {
-                            certScore = 25; // 80%+ match gets full points
+                            certScore = 20; // 80%+ match gets full points
                             certDetails.push(`Matched ${matchedCerts.length}/${project.certification.length} certifications (excellent match)`);
                         }
                         else if (certMatchPercentage >= 0.5) {
-                            certScore = 18; // 50-80% match gets 18 points
+                            certScore = 15; // 50-80% match gets 15 points
                             certDetails.push(`Matched ${matchedCerts.length}/${project.certification.length} certifications (good match)`);
                         }
                         else if (certMatchPercentage > 0) {
-                            certScore = 12; // Some matches get partial credit
+                            certScore = 10; // Some matches get partial credit
                             certDetails.push(`Matched ${matchedCerts.length}/${project.certification.length} certifications (partial match)`);
                         }
                         else {
@@ -767,16 +831,17 @@ function findMatchingManufacturers(project) {
                 }
                 else {
                     // No certifications required, give partial score
-                    certScore = 12; // Half points when no certs required
+                    certScore = 10; // Half points when no certs required
                     certDetails.push('No certifications required for project');
+                    console.log(`Project ${project._id} has no certifications specified`);
                 }
                 totalScore += certScore;
                 matchDetails['certifications'] = {
                     score: certScore,
-                    maxScore: 25,
+                    maxScore: 20,
                     details: certDetails.join('; ')
                 };
-                // ==================== 3. INDUSTRY/PRODUCT MATCHING (35% weight) ====================
+                // ==================== 3. INDUSTRY/PRODUCT MATCHING (25% weight) ====================
                 let industryScore = 0;
                 let industryDetails = [];
                 if (project.selectedProduct) {
@@ -785,11 +850,11 @@ function findMatchingManufacturers(project) {
                     // Check manufacturer industry
                     if (manufacturer.industry) {
                         const manufacturerIndustry = manufacturer.industry.toLowerCase().trim();
-                        // Direct name matches (25 points)
+                        // Direct name matches (20 points)
                         if (manufacturerIndustry === productName ||
                             manufacturerIndustry.includes(productName) ||
                             productName.includes(manufacturerIndustry)) {
-                            industryScore += 25;
+                            industryScore += 20;
                             industryDetails.push('Direct industry match');
                         }
                         // For related food categories - expanded categories
@@ -817,7 +882,7 @@ function findMatchingManufacturers(project) {
                                 const manufacturerMatchesCategory = manufacturerIndustry.includes(category) ||
                                     keywords.some(keyword => manufacturerIndustry.includes(keyword));
                                 if (productMatchesCategory && manufacturerMatchesCategory) {
-                                    industryScore += 20;
+                                    industryScore += 15;
                                     industryDetails.push(`Related industry match: ${category}`);
                                     foundCategoryMatch = true;
                                     break;
@@ -827,7 +892,7 @@ function findMatchingManufacturers(project) {
                             if (!foundCategoryMatch &&
                                 (productType === 'FOODTYPE' || productType === 'CATEGORY') &&
                                 manufacturerIndustry.includes('food')) {
-                                industryScore += 15;
+                                industryScore += 10;
                                 industryDetails.push('General food manufacturing match');
                             }
                         }
@@ -873,21 +938,21 @@ function findMatchingManufacturers(project) {
                             return false;
                         });
                         if (preferredCategoryMatch) {
-                            // Additional 10 points if manufacturer explicitly prefers this category
-                            industryScore += Math.min(10, 35 - industryScore); // Cap at max 35 total
+                            // Additional 5 points if manufacturer explicitly prefers this category
+                            industryScore += Math.min(5, 25 - industryScore); // Cap at max 25 total
                             industryDetails.push('Matches manufacturer preferred category');
                         }
                     }
                 }
-                // Cap industry score at 35 points maximum
-                const finalIndustryScore = Math.min(industryScore, 35);
+                // Cap industry score at 25 points maximum
+                const finalIndustryScore = Math.min(industryScore, 25);
                 totalScore += finalIndustryScore;
                 matchDetails['industry'] = {
                     score: finalIndustryScore,
-                    maxScore: 35,
+                    maxScore: 25,
                     details: industryDetails.join('; ') || 'No industry match'
                 };
-                // ==================== 4. PRODUCTION CAPACITY MATCHING (20% weight) ====================
+                // ==================== 4. PRODUCTION CAPACITY MATCHING (15% weight) ====================
                 let capacityScore = 0;
                 let capacityDetails = [];
                 if (project.volume) {
@@ -933,54 +998,266 @@ function findMatchingManufacturers(project) {
                         const capacity = manufacturer.manufacturerSettings.productionCapacity;
                         capacityDetails.push(`Manufacturer capacity: ${capacity} units`);
                         if (capacity >= volumeValue) {
-                            capacityScore = 20; // Can fully handle the volume
+                            capacityScore = 15; // Can fully handle the volume
                             capacityDetails.push('Full capacity match (100%)');
                         }
                         else if (capacity >= volumeValue * 0.8) {
-                            capacityScore = 16; // Can handle 80% of the volume
+                            capacityScore = 12; // Can handle 80% of the volume
                             capacityDetails.push('Very good capacity match (80%+)');
                         }
                         else if (capacity >= volumeValue * 0.6) {
-                            capacityScore = 12; // Can handle 60% of the volume
+                            capacityScore = 9; // Can handle 60% of the volume
                             capacityDetails.push('Good capacity match (60%+)');
                         }
                         else if (capacity >= volumeValue * 0.4) {
-                            capacityScore = 8; // Can handle 40% of the volume
+                            capacityScore = 6; // Can handle 40% of the volume
                             capacityDetails.push('Partial capacity match (40%+)');
                         }
                         else if (capacity > 0) {
-                            capacityScore = 4; // Has some capacity but not enough
+                            capacityScore = 3; // Has some capacity but not enough
                             capacityDetails.push('Limited capacity match');
                         }
                     }
                     else {
                         // Manufacturer hasn't specified capacity
-                        capacityScore = 8; // 40% of points when capacity not specified
+                        capacityScore = 6; // 40% of points when capacity not specified
                         capacityDetails.push('Manufacturer capacity not specified');
                     }
                 }
                 else {
                     // Project hasn't specified volume
-                    capacityScore = 10; // Half points when volume not specified
+                    capacityScore = 7; // Half points when volume not specified
                     capacityDetails.push('Project volume not specified');
                 }
                 totalScore += capacityScore;
                 matchDetails['capacity'] = {
                     score: capacityScore,
-                    maxScore: 20,
+                    maxScore: 15,
                     details: capacityDetails.join('; ')
                 };
-                // Calculate overall match percentage and normalize score for API
-                const scorePercent = Math.round(totalScore);
-                const normalizedScore = scorePercent / 100; // Convert to 0-1 range
+                // ==================== 5. PACKAGING COMPATIBILITY (10% weight) ====================
+                let packagingScore = 0;
+                let packagingDetails = [];
+                if (project.packaging && Array.isArray(project.packaging) && project.packaging.length > 0) {
+                    console.log(`Project ${project._id} packaging requirements:`, project.packaging);
+                    // Get manufacturer's products to check packaging types
+                    try {
+                        // Find products from this manufacturer
+                        const manufacturerProducts = yield FoodProduct_1.default.find({
+                            user: manufacturer._id
+                        }).select('packagingType packagingSize').lean();
+                        if (manufacturerProducts && manufacturerProducts.length > 0) {
+                            // Extract all packaging types from manufacturer's products
+                            const manufacturerPackagingTypes = manufacturerProducts
+                                .map(p => { var _a; return (_a = p.packagingType) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim(); })
+                                .filter(Boolean);
+                            console.log(`Manufacturer ${manufacturer._id} packaging types:`, manufacturerPackagingTypes);
+                            // Count matching packaging types
+                            let matchCount = 0;
+                            const matchedPackagingTypes = [];
+                            for (const projectPackaging of project.packaging) {
+                                const projectPackagingLower = projectPackaging.toLowerCase().trim();
+                                // Check for exact or partial matches
+                                const hasMatch = manufacturerPackagingTypes.some(mPackaging => {
+                                    if (!mPackaging)
+                                        return false;
+                                    // Check for exact or partial matches (both ways)
+                                    return mPackaging === projectPackagingLower ||
+                                        mPackaging.includes(projectPackagingLower) ||
+                                        projectPackagingLower.includes(mPackaging);
+                                });
+                                if (hasMatch) {
+                                    matchCount++;
+                                    matchedPackagingTypes.push(projectPackaging);
+                                }
+                            }
+                            // Calculate score based on percentage of matched packaging types
+                            if (matchCount > 0) {
+                                const matchPercentage = matchCount / project.packaging.length;
+                                packagingScore = Math.round(matchPercentage * 10);
+                                packagingDetails.push(`Matched ${matchCount}/${project.packaging.length} packaging types: ${matchedPackagingTypes.join(', ')}`);
+                            }
+                            else {
+                                packagingScore = 0;
+                                packagingDetails.push('No matching packaging types found');
+                            }
+                        }
+                        else {
+                            packagingScore = 5; // Half points if manufacturer has no products yet
+                            packagingDetails.push('Manufacturer has no products to check packaging compatibility');
+                        }
+                    }
+                    catch (error) {
+                        console.error('Error checking packaging compatibility:', error);
+                        packagingScore = 5; // Half points on error
+                        packagingDetails.push('Could not check packaging compatibility');
+                    }
+                }
+                else {
+                    packagingScore = 5; // Half points when no packaging specified
+                    packagingDetails.push('No packaging requirements specified');
+                }
+                totalScore += packagingScore;
+                matchDetails['packaging'] = {
+                    score: packagingScore,
+                    maxScore: 10,
+                    details: packagingDetails.join('; ')
+                };
+                // ==================== 6. ALLERGEN REQUIREMENTS (10% weight) ====================
+                let allergenScore = 0;
+                let allergenDetails = [];
+                if (project.allergen && Array.isArray(project.allergen) && project.allergen.length > 0) {
+                    console.log(`Project ${project._id} allergen requirements:`, project.allergen);
+                    try {
+                        // Find products from this manufacturer
+                        const manufacturerProducts = yield FoodProduct_1.default.find({
+                            user: manufacturer._id
+                        }).select('allergens').lean();
+                        if (manufacturerProducts && manufacturerProducts.length > 0) {
+                            // Count products that match allergen requirements
+                            let matchingProductsCount = 0;
+                            // For each product, check if it meets allergen requirements
+                            for (const product of manufacturerProducts) {
+                                if (product.allergens && Array.isArray(product.allergens)) {
+                                    // Check if product allergens match project requirements
+                                    const productAllergens = product.allergens.map(a => a.toLowerCase().trim());
+                                    console.log(`Product ${product._id} allergens:`, productAllergens);
+                                    // For allergen requirements, we need to check if the product is free from allergens
+                                    // or has the required allergen-free properties
+                                    const allergenRequirementsMet = project.allergen.every(allergenReq => {
+                                        const reqLower = allergenReq.toLowerCase().trim();
+                                        // If requirement is "Gluten Free", check if product has "Gluten Free" in allergens
+                                        // or doesn't have "Gluten" in allergens
+                                        if (reqLower.includes('free')) {
+                                            // Check if product explicitly states it's free from this allergen
+                                            return productAllergens.some(pa => pa.includes(reqLower));
+                                        }
+                                        // If requirement is a specific diet type (vegan, vegetarian, etc.)
+                                        if (['vegan', 'vegetarian', 'kosher', 'halal'].includes(reqLower)) {
+                                            return productAllergens.some(pa => pa.includes(reqLower));
+                                        }
+                                        // Default case: assume it's an allergen that should NOT be present
+                                        return true; // Skip this check for now as we don't have enough context
+                                    });
+                                    if (allergenRequirementsMet) {
+                                        matchingProductsCount++;
+                                    }
+                                }
+                            }
+                            // Calculate score based on percentage of products meeting allergen requirements
+                            if (matchingProductsCount > 0) {
+                                const matchPercentage = matchingProductsCount / manufacturerProducts.length;
+                                allergenScore = Math.round(matchPercentage * 10);
+                                allergenDetails.push(`${matchingProductsCount}/${manufacturerProducts.length} products meet allergen requirements`);
+                            }
+                            else {
+                                allergenScore = 0;
+                                allergenDetails.push('No products meet allergen requirements');
+                            }
+                        }
+                        else {
+                            allergenScore = 5; // Half points if manufacturer has no products
+                            allergenDetails.push('Manufacturer has no products to check allergen compatibility');
+                        }
+                    }
+                    catch (error) {
+                        console.error('Error checking allergen compatibility:', error);
+                        allergenScore = 5; // Half points on error
+                        allergenDetails.push('Could not check allergen compatibility');
+                    }
+                }
+                else {
+                    allergenScore = 5; // Half points when no allergen requirements
+                    allergenDetails.push('No allergen requirements specified');
+                }
+                totalScore += allergenScore;
+                matchDetails['allergen'] = {
+                    score: allergenScore,
+                    maxScore: 10,
+                    details: allergenDetails.join('; ')
+                };
+                // ==================== 7. ADDITIONAL REQUIREMENTS (5% weight) ====================
+                let additionalScore = 0;
+                let additionalDetails = [];
+                if (project.additional && project.additional.trim()) {
+                    console.log(`Project ${project._id} additional requirements:`, project.additional);
+                    try {
+                        // Extract key phrases from additional requirements
+                        const additionalText = project.additional.toLowerCase();
+                        // Define important keywords to look for
+                        const keyPhrases = {
+                            sustainability: ['sustainable', 'eco-friendly', 'recyclable', 'biodegradable', 'green', 'environmental'],
+                            quality: ['high quality', 'premium', 'certified', 'quality control', 'inspection'],
+                            customization: ['custom', 'customized', 'personalized', 'bespoke', 'tailored'],
+                            technology: ['innovative', 'technology', 'automated', 'digital', 'smart'],
+                            delivery: ['fast delivery', 'shipping', 'logistics', 'quick turnaround'],
+                            materials: ['bpa free', 'fda approved', 'food grade', 'organic', 'natural']
+                        };
+                        // Check manufacturer description and industry for matching keywords
+                        const manufacturerText = [
+                            manufacturer.description || '',
+                            manufacturer.companyDescription || '',
+                            manufacturer.industry || ''
+                        ].join(' ').toLowerCase();
+                        let matchedCategories = 0;
+                        const matchedKeywords = [];
+                        // Check each category of keywords
+                        for (const [category, keywords] of Object.entries(keyPhrases)) {
+                            // Check if any keyword from this category is in both texts
+                            const categoryMatched = keywords.some(keyword => additionalText.includes(keyword) && manufacturerText.includes(keyword));
+                            if (categoryMatched) {
+                                matchedCategories++;
+                                matchedKeywords.push(category);
+                            }
+                        }
+                        // Calculate score based on matched categories
+                        if (matchedCategories > 0) {
+                            additionalScore = Math.min(matchedCategories, 5); // Max 5 points
+                            additionalDetails.push(`Matched requirements in: ${matchedKeywords.join(', ')}`);
+                        }
+                        else {
+                            // Check if manufacturer has any products
+                            const hasProducts = yield FoodProduct_1.default.exists({ user: manufacturer._id });
+                            if (hasProducts) {
+                                additionalScore = 2; // Some points if manufacturer has products
+                                additionalDetails.push('Manufacturer has products but no specific keyword matches');
+                            }
+                            else {
+                                additionalScore = 1; // Minimal points
+                                additionalDetails.push('No specific keyword matches found');
+                            }
+                        }
+                    }
+                    catch (error) {
+                        console.error('Error analyzing additional requirements:', error);
+                        additionalScore = 2; // Some points on error
+                        additionalDetails.push('Could not fully analyze additional requirements');
+                    }
+                }
+                else {
+                    additionalScore = 3; // More than half points when no additional requirements
+                    additionalDetails.push('No additional requirements specified');
+                }
+                totalScore += additionalScore;
+                matchDetails['additional'] = {
+                    score: additionalScore,
+                    maxScore: 5,
+                    details: additionalDetails.join('; ')
+                };
+                // Remove duplicate score calculation - use only the final one
+                const finalScorePercent = Math.round(totalScore);
+                const finalNormalizedScore = finalScorePercent / 100; // Convert to 0-1 range
                 // Add match details to manufacturer object
-                return Object.assign(Object.assign({}, manufacturer), { matchScore: normalizedScore, matchScorePercent: scorePercent, // Original score as percentage
-                    matchDetails, totalScore: totalScore, matchStrength: getMatchStrength(scorePercent) // Text description of match quality
+                return Object.assign(Object.assign({}, manufacturer), { matchScore: finalNormalizedScore, matchScorePercent: finalScorePercent, // Original score as percentage
+                    matchDetails, totalScore: totalScore, matchStrength: getMatchStrength(finalScorePercent) // Text description of match quality
                  });
-            });
-            // Filter manufacturers with score >= 35%, sorted by score
-            const qualifiedManufacturers = scoredManufacturers
-                .filter(m => m.matchScorePercent >= 35) // Minimum threshold for match quality
+            }));
+            // Filter manufacturers with score >= 30%, sorted by score (lowered threshold due to more criteria)
+            // First, await all the promises to get the actual manufacturer data
+            const resolvedManufacturers = yield Promise.all(scoredManufacturers);
+            // Filter manufacturers with score >= 30%, sorted by score (lowered threshold due to more criteria)
+            const qualifiedManufacturers = resolvedManufacturers
+                .filter(m => m.matchScorePercent >= 30) // Minimum threshold for match quality
                 .sort((a, b) => b.matchScore - a.matchScore)
                 .slice(0, 50); // Return top 50 matches max
             // Log match results for debugging
@@ -1004,17 +1281,18 @@ function findMatchingManufacturers(project) {
 }
 /**
  * Get text description of match strength based on percentage score
+ * Updated thresholds to account for new matching criteria
  */
 function getMatchStrength(score) {
-    if (score >= 80)
+    if (score >= 75)
         return 'Excellent Match';
-    if (score >= 70)
+    if (score >= 65)
         return 'Very Good Match';
-    if (score >= 60)
+    if (score >= 55)
         return 'Good Match';
-    if (score >= 50)
+    if (score >= 45)
         return 'Moderate Match';
-    if (score >= 40)
+    if (score >= 35)
         return 'Fair Match';
     return 'Basic Match';
 }

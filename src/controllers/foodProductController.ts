@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import FoodProduct from "../models/FoodProduct";
 import Product from "../models/Product";
 import mongoose from "mongoose";
+import { deleteObjectFromS3, extractKeyFromUrl } from '../utils/s3Client';
 
 // @desc    Lấy tất cả sản phẩm thực phẩm
 // @route   GET /api/foodproducts
@@ -314,15 +315,15 @@ export const getFoodProductById = async (
   }
 };
 
-// @desc    Create food product
+// @desc    Create a new food product
 // @route   POST /api/foodproducts
-// @access  Private/Manufacturer
+// @access  Private
 export const createFoodProduct = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    console.log('=== CREATE FOOD PRODUCT ===');
+    console.log('=== CREATE FOOD PRODUCT - DIRECT METHOD ===');
     
     // Get user ID from authenticated user or request body
     let userId: string;
@@ -356,104 +357,93 @@ export const createFoodProduct = async (
       return;
     }
 
+    // Extract the data from req.body directly
     const {
-      // Product reference data
+      // Required fields for Product reference
       manufacturerName,
       productName,
       
-      // FoodProduct data
-      name,
-      brand,
-      category,
-      description,
-      image,
-      price,
-      countInStock,
-      manufacturer,
-      originCountry,
-      manufacturerRegion,
-      minOrderQuantity,
-      dailyCapacity,
-      currentAvailable,
-      unitType,
-      pricePerUnit,
-      priceCurrency,
-      leadTime,
-      leadTimeUnit,
-      sustainable,
-      foodType,
-      flavorType,
-      ingredients,
-      allergens,
-      usage,
-      packagingType,
-      packagingSize,
-      shelfLife,
-      shelfLifeStartDate,
-      shelfLifeEndDate,
-      storageInstruction,
-      // Remove user from the destructured fields since we handle it separately
-      user: _user, // Rename to avoid conflict
+      // Allow rest fields to pass through directly
       ...restFields
     } = req.body;
+    
+    // Log the received data for debugging
+    console.log('Direct create method - received data:', {
+      ...restFields,
+      user: userId,
+      manufacturerName,
+      productName
+    });
+
+    // Process images - ensure it's always a non-empty array if there are uploads
+    let processedImages: string[] = [];
+    let mainImage = restFields.image;
+    
+    // Handle images array
+    if (restFields.images) {
+      if (Array.isArray(restFields.images)) {
+        // Make a deep copy of the array and filter out empty strings
+        processedImages = [...restFields.images].filter(img => img && img.trim() !== '');
+        console.log(`Found ${processedImages.length} valid images in array`);
+      } else if (typeof restFields.images === 'string' && restFields.images.trim() !== '') {
+        // If it's a string, put it in an array
+        processedImages = [restFields.images];
+        console.log('Converted single image string to array');
+      }
+    }
+    
+    // Make sure main image is included in the processedImages array
+    if (mainImage && mainImage.trim() !== '') {
+      if (processedImages.indexOf(mainImage) === -1) {
+        // If main image is not in the array, add it at the beginning
+        processedImages.unshift(mainImage);
+        console.log('Added main image to images array:', mainImage);
+      } else if (processedImages.indexOf(mainImage) !== 0) {
+        // If main image is in the array but not first, reorder to put it first
+        processedImages = [
+          mainImage,
+          ...processedImages.filter(img => img !== mainImage)
+        ];
+        console.log('Moved main image to front of array:', mainImage);
+      }
+    } else if (processedImages.length > 0) {
+      // If no main image specified but images array has items, use first one as main
+      mainImage = processedImages[0];
+      console.log('Using first image as main:', mainImage);
+    }
+    
+    // Ensure images array is not empty if there's a main image
+    if (mainImage && processedImages.length === 0) {
+      processedImages = [mainImage];
+      console.log('Created images array with main image:', mainImage);
+    }
 
     // Chuẩn bị data cho Product reference
     const productData = {
-      manufacturerName: manufacturer || manufacturerName,
-      productName: productName || name,
+      manufacturerName: restFields.manufacturer || manufacturerName,
+      productName: productName || restFields.name,
     };
 
-    // Prepare data for FoodProduct with proper field validation
+    // Prepare data for FoodProduct with proper field handling
     const foodProductData = {
-      user: userId, // Use the validated userId
-      name: name ?? productName,
-      brand: brand ?? manufacturer ?? manufacturerName,
-      category: category ?? 'Other',
-      description: description ?? 'No description provided',
-      image: image ?? 'https://via.placeholder.com/300x300?text=No+Image',
-      price: Number(price ?? pricePerUnit) || 0,
-      countInStock: Number(countInStock ?? currentAvailable) || 0,
-      rating: 0,
-      numReviews: 0,
+      ...restFields, // Pass all original fields directly
+      user: userId,
+      image: mainImage,
+      images: processedImages,
       
-      // Food-specific fields - DO NOT set default values for these fields
-      manufacturer: manufacturer ?? manufacturerName, // Prioritize manufacturer field
-      originCountry: originCountry ?? 'Unknown',
-      manufacturerRegion: manufacturerRegion,
-      minOrderQuantity: Number(minOrderQuantity) || 1,
-      dailyCapacity: Number(dailyCapacity) || 100,
-      currentAvailable: Number(currentAvailable) || 0,
-      unitType: unitType ?? 'units',
-      pricePerUnit: Number(pricePerUnit) || 0,
-      priceCurrency: priceCurrency ?? 'USD',
-      leadTime: leadTime ?? '1-2',
-      leadTimeUnit: leadTimeUnit ?? 'weeks',
-      sustainable: Boolean(sustainable),
-      
-      // CRITICAL: Pass these fields exactly as received without any transformation or defaults
-      foodType,
-      packagingType,
-      packagingSize,
-      shelfLife,
-      storageInstruction,
-      
-      // Array fields - preserve exactly as received
-      flavorType: Array.isArray(flavorType) ? flavorType : (flavorType ? [flavorType] : []),
-      ingredients: Array.isArray(ingredients) ? ingredients : (ingredients ? [ingredients] : []),
-      allergens: Array.isArray(allergens) ? allergens : (allergens ? [allergens] : []),
-      usage: Array.isArray(usage) ? usage : (usage ? [usage] : []),
-      
-      // Dates
-      shelfLifeStartDate: shelfLifeStartDate ? new Date(shelfLifeStartDate) : undefined,
-      shelfLifeEndDate: shelfLifeEndDate ? new Date(shelfLifeEndDate) : undefined,
-      
-      // Include any other fields not explicitly destructured
-      ...restFields
+      // Ensure type consistency for numeric fields
+      minOrderQuantity: restFields.minOrderQuantity ? Number(restFields.minOrderQuantity) : undefined,
+      dailyCapacity: restFields.dailyCapacity ? Number(restFields.dailyCapacity) : undefined,
+      currentAvailable: restFields.currentAvailable ? Number(restFields.currentAvailable) : undefined,
+      pricePerUnit: restFields.pricePerUnit ? Number(restFields.pricePerUnit) : undefined,
+      price: restFields.price ? Number(restFields.price) : undefined,
+      countInStock: restFields.countInStock ? Number(restFields.countInStock) : undefined,
+      rating: restFields.rating ? Number(restFields.rating) : 0,
+      numReviews: restFields.numReviews ? Number(restFields.numReviews) : 0
     };
     
-    // Log the request body and processed data for debugging
-    console.log('Request body:', req.body);
-    console.log('Processed food product data:', {
+    // Log the data that will be saved
+    console.log('Data to be saved directly to FoodProduct schema:', {
       foodType: foodProductData.foodType,
       packagingType: foodProductData.packagingType,
       packagingSize: foodProductData.packagingSize,
@@ -462,7 +452,10 @@ export const createFoodProduct = async (
       flavorType: foodProductData.flavorType,
       ingredients: foodProductData.ingredients,
       allergens: foodProductData.allergens,
-      usage: foodProductData.usage
+      usage: foodProductData.usage,
+      image: foodProductData.image,
+      images: foodProductData.images,
+      imagesCount: foodProductData.images?.length || 0
     });
 
     // Validate required fields
@@ -477,91 +470,19 @@ export const createFoodProduct = async (
       return;
     }
 
-    // Create food product using static method
+    // Create food product using static method - direct save without mapping
     const result = await (FoodProduct as any).createWithProduct(productData, foodProductData);
 
-    console.log('Food product created successfully:', {
+    console.log('✅ Food product created successfully with direct method:', {
       foodProduct: {
         _id: result.foodProduct._id,
-        name: result.foodProduct.name,
-        manufacturer: result.foodProduct.manufacturer
-      },
-      product: {
-        _id: result.product._id,
-        manufacturerName: result.product.manufacturerName,
-        productName: result.product.productName
+        name: result.foodProduct.name
       }
     });
     
-    // IMPORTANT: Verify the data was saved correctly by fetching it directly from MongoDB
-    const savedFoodProduct = await FoodProduct.findById(result.foodProduct._id);
-    console.log('=== VERIFICATION: DATA SAVED TO MONGODB ===');
-    console.log('Actual data in MongoDB after save:', {
-      foodType: savedFoodProduct?.foodType,
-      packagingType: savedFoodProduct?.packagingType,
-      packagingSize: savedFoodProduct?.packagingSize,
-      shelfLife: savedFoodProduct?.shelfLife,
-      storageInstruction: savedFoodProduct?.storageInstruction,
-      flavorType: savedFoodProduct?.flavorType,
-      ingredients: savedFoodProduct?.ingredients,
-      allergens: savedFoodProduct?.allergens,
-      usage: savedFoodProduct?.usage
-    });
-    
-    // Check if data was saved correctly
-    const fieldsToCheck = [
-      'foodType', 'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction'
-    ];
-    
-    const arrayFieldsToCheck = [
-      'flavorType', 'ingredients', 'allergens', 'usage'
-    ];
-    
-    let hasDataMismatch = false;
-    
-    // Check string fields
-    fieldsToCheck.forEach(field => {
-      if (savedFoodProduct?.[field] !== foodProductData[field]) {
-        console.warn(`WARNING: Field ${field} was not saved correctly!`);
-        console.warn(`  Expected: "${foodProductData[field]}"`);
-        console.warn(`  Actual: "${savedFoodProduct?.[field]}"`);
-        hasDataMismatch = true;
-      }
-    });
-    
-    // Check array fields (need to compare differently)
-    arrayFieldsToCheck.forEach(field => {
-      const expected = foodProductData[field] || [];
-      const actual = savedFoodProduct?.[field] || [];
-      
-      if (expected.length !== actual.length) {
-        console.warn(`WARNING: Field ${field} length mismatch!`);
-        console.warn(`  Expected length: ${expected.length}, values: ${JSON.stringify(expected)}`);
-        console.warn(`  Actual length: ${actual.length}, values: ${JSON.stringify(actual)}`);
-        hasDataMismatch = true;
-      } else {
-        // Check each element
-        for (let i = 0; i < expected.length; i++) {
-          if (expected[i] !== actual[i]) {
-            console.warn(`WARNING: Field ${field}[${i}] mismatch!`);
-            console.warn(`  Expected: "${expected[i]}"`);
-            console.warn(`  Actual: "${actual[i]}"`);
-            hasDataMismatch = true;
-          }
-        }
-      }
-    });
-    
-    if (hasDataMismatch) {
-      console.warn('WARNING: Some data was not saved correctly to MongoDB!');
-      console.warn('This might be due to schema defaults or middleware modifying the data.');
-    } else {
-      console.log('SUCCESS: All data was saved correctly to MongoDB!');
-    }
-
     res.status(201).json(result.foodProduct);
   } catch (error) {
-    console.error('Error creating food product:', error);
+    console.error('❌ Error in direct createFoodProduct:', error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
@@ -578,328 +499,228 @@ export const updateFoodProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    console.log('=== UPDATE FOOD PRODUCT ===');
-    console.log('Requested product ID:', req.params.id);
-    console.log('Request body fields:', Object.keys(req.body));
-    console.log('Request body complete:', JSON.stringify(req.body, null, 2));
+    console.log('=== UPDATE FOOD PRODUCT - DIRECT METHOD ===');
+    const { id } = req.params;
     
-    // Make sure we have a valid ID format
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      console.error('⛔ Invalid product ID format:', req.params.id);
+    // Validate the ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ 
-        message: "Invalid product ID format",
-        error: "INVALID_ID"
+        message: "Invalid product ID format", 
+        error: "INVALID_ID_FORMAT" 
       });
       return;
     }
-    
-    // Get user ID from authenticated user or request body
-    let userId: string | undefined;
-    
-    // If request comes from authenticated route
-    if (req.user && req.user._id) {
-      userId = req.user._id.toString();
-      console.log('Using authenticated user ID:', userId);
-    } 
-    // If request includes user ID in body
-    else if (req.body.user) {
-      // Validate the user ID format
-      if (!mongoose.Types.ObjectId.isValid(req.body.user)) {
-        console.error('⛔ Invalid user ID format in request body:', req.body.user);
-        res.status(400).json({ 
-          message: "Invalid user ID format in request body", 
-          error: "INVALID_USER_ID" 
-        });
-        return;
-      }
-      userId = req.body.user;
-      console.log('Using user ID from request body:', userId);
-    }
 
-    // Extract manufacturer field from request body
+    // Extract fields from request body
     const { 
       manufacturer, 
-      manufacturerName, // Accept both for backward compatibility
+      manufacturerName,
+      productName,
       user: _user, // Rename to avoid conflict with userId
+      images, // Explicitly extract images array
+      image, // Explicitly extract main image
       ...updateData 
     } = req.body;
     
+    // Find the food product first to check if it exists
+    const foodProduct = await FoodProduct.findById(id);
+    
+    if (!foodProduct) {
+      res.status(404).json({ message: 'Product not found' });
+      return;
+    }
+    
     // Log the array fields to check their format
-    console.log('🔍 Array fields in request body:');
+    console.log('🔍 Image fields in request body:');
+    console.log('- Main image:', image || 'undefined');
+    console.log('- Images array:', images ? 
+      (Array.isArray(images) ? `Array with ${images.length} items` : `Not an array: ${typeof images}`) 
+      : 'undefined');
+    
+    // Process images - ensure proper synchronization
+    let updatedImages: string[] = [];
+    let updatedMainImage = image || foodProduct.image;  // Default to existing if not provided
+    
+    // CASE 1: New images array provided
+    if (images !== undefined) {
+      if (Array.isArray(images)) {
+        // Use the provided images array
+        updatedImages = [...images].filter(img => img && img.trim() !== '');
+      } else if (typeof images === 'string' && images.trim() !== '') {
+        // Convert string to array
+        updatedImages = [images];
+      } else {
+        // Empty or invalid input, use existing images
+        updatedImages = foodProduct.images || [];
+      }
+    } 
+    // CASE 2: No new images array, but existing images
+    else if (foodProduct.images && foodProduct.images.length > 0) {
+      // Keep existing images
+      updatedImages = [...foodProduct.images];
+    }
+    
+    // Ensure main image is synchronized with images array
+    if (updatedMainImage && updatedMainImage.trim() !== '') {
+      if (updatedImages.length === 0) {
+        // If images array is empty but we have a main image, create the array
+        updatedImages = [updatedMainImage];
+        console.log('🔄 Created images array from main image');
+      } else if (!updatedImages.includes(updatedMainImage)) {
+        // Add main image to beginning if not in array
+        updatedImages.unshift(updatedMainImage);
+        console.log('🔄 Added main image to front of images array');
+      } else if (updatedImages[0] !== updatedMainImage) {
+        // Move main image to front if not already there
+        updatedImages = [
+          updatedMainImage,
+          ...updatedImages.filter(img => img !== updatedMainImage)
+        ];
+        console.log('🔄 Reordered images array to put main image first');
+      }
+    } else if (updatedImages.length > 0) {
+      // No main image specified but images exist, use first as main
+      updatedMainImage = updatedImages[0];
+      console.log('🔄 Set main image from first item in images array');
+    }
+    
+    // Update the data object with processed image fields
+    updateData.image = updatedMainImage;
+    updateData.images = updatedImages;
+    
+    // Process manufacturer field
+    if (manufacturer || manufacturerName) {
+      updateData.manufacturer = manufacturer || manufacturerName;
+      updateData.brand = manufacturer || manufacturerName; // Ensure brand matches manufacturer
+      
+      // Also update the Product reference if manufacturer/product name changes
+      const productReference = await Product.findOne({
+        type: 'food',
+        productId: id
+      });
+      
+      if (productReference) {
+        const productUpdate: any = {};
+        if (manufacturer || manufacturerName) {
+          productUpdate.manufacturerName = manufacturer || manufacturerName;
+        }
+        if (productName || updateData.name) {
+          productUpdate.productName = productName || updateData.name;
+        }
+        
+        if (Object.keys(productUpdate).length > 0) {
+          await Product.findByIdAndUpdate(productReference._id, productUpdate);
+          console.log('✅ Updated Product reference:', productUpdate);
+        }
+      }
+    }
+    
+    // Process array fields to ensure they're arrays
     ['flavorType', 'ingredients', 'allergens', 'usage'].forEach(field => {
-      console.log(`  ${field}:`, 
-        Array.isArray(req.body[field]) 
-          ? `Array with ${req.body[field].length} items: ${JSON.stringify(req.body[field])}` 
-          : `Not an array: ${typeof req.body[field]} - Value: ${JSON.stringify(req.body[field])}`
-      );
+      if (req.body[field] !== undefined) {
+        // Convert to array if it's not already
+        if (!Array.isArray(req.body[field])) {
+          if (typeof req.body[field] === 'string' && req.body[field].trim() !== '') {
+            updateData[field] = [req.body[field]];
+          } else if (req.body[field] === null || req.body[field] === '') {
+            updateData[field] = [];
+          }
+        } else {
+          // Make a copy of the array
+          updateData[field] = [...req.body[field]];
+        }
+      }
     });
     
-    // Prepare update data
-    const foodProductData = {
-      ...updateData,
-      // Prioritize manufacturer field, fall back to manufacturerName
-      ...(manufacturer || manufacturerName ? { 
-        manufacturer: manufacturer || manufacturerName 
-      } : {}),
-      // Only include user field if it's provided
-      ...(userId ? { user: userId } : {})
-    };
-
-    console.log('🔧 Prepared update data:', JSON.stringify(foodProductData, null, 2));
-
-    // Validate required fields for update
-    const validationResult = validateFoodProductFields(foodProductData, true);
+    // Convert numeric fields
+    ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit', 'price', 'countInStock'].forEach(field => {
+      if (updateData[field] !== undefined) {
+        updateData[field] = Number(updateData[field]);
+      }
+    });
     
-    // Return detailed error if validation fails
-    if (!validationResult.valid) {
-      console.error('⛔ Validation failed:', {
-        missingFields: validationResult.missingFields,
-        validationErrors: validationResult.validationErrors
-      });
-      res.status(400).json({
-        message: 'Invalid update data',
-        missingFields: validationResult.missingFields,
-        validationErrors: validationResult.validationErrors
-      });
-      return;
-    }
+    // Log the final update data
+    console.log('Final update data:', {
+      image: updateData.image,
+      imageCount: updateData.images?.length || 0,
+      imageSample: updateData.images?.slice(0, 2) || [],
+      // Include other fields that were processed
+      flavorType: updateData.flavorType || 'unchanged',
+      ingredients: updateData.ingredients || 'unchanged',
+      allergens: updateData.allergens || 'unchanged',
+      usage: updateData.usage || 'unchanged'
+    });
 
-    // Tìm ID của FoodProduct - có thể nhận vào ID của Product hoặc FoodProduct
-    let foodProductId = req.params.id;
-    let productReference = null;
+    // Update the product directly - no need for additional mapping
+    const updatedProduct = await FoodProduct.findByIdAndUpdate(
+      id, 
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    console.log('✅ Food product updated successfully with direct method');
     
-    // PHƯƠNG PHÁP 1: Kiểm tra xem có phải là ID của FoodProduct không
-    console.log('🔍 Phương pháp 1: Kiểm tra nếu ID là của FoodProduct:', foodProductId);
-    let foodProduct = await FoodProduct.findById(foodProductId);
-    
-    // PHƯƠNG PHÁP 2: Nếu không phải ID của FoodProduct, thì có thể là ID của Product
-    if (!foodProduct) {
-      console.log('⚠️ Không tìm thấy FoodProduct trực tiếp, thử tìm qua Product...');
-      
-      // Tìm Product với ID được cung cấp
-      productReference = await Product.findById(foodProductId);
-      
-      if (productReference && productReference.type === 'food') {
-        console.log('✅ Tìm thấy Product reference:', {
-          _id: productReference._id,
-          productId: productReference.productId,
-          name: productReference.productName
-        });
-        
-        // Cập nhật foodProductId để sử dụng ID của FoodProduct thay vì Product
-        foodProductId = productReference.productId.toString();
-        console.log('🔄 Chuyển đổi ID thành FoodProduct ID:', foodProductId);
-        
-        // Tìm FoodProduct thông qua productId
-        foodProduct = await FoodProduct.findById(foodProductId);
-        
-        if (foodProduct) {
-          console.log('✅ Tìm thấy FoodProduct qua Product reference:', {
-            _id: foodProduct._id,
-            name: foodProduct.name
-          });
-        } else {
-          console.error('❌ Không tìm thấy FoodProduct từ Product reference! ID không khớp hoặc đã bị xóa.');
-        }
-      } else {
-        console.log('❌ Không tìm thấy Product với ID đã cung cấp hoặc không phải loại food');
-      }
-    } else {
-      console.log('✅ Tìm thấy FoodProduct trực tiếp:', {
-        _id: foodProduct._id,
-        name: foodProduct.name
-      });
-    }
-
-    // Kiểm tra xem có tìm thấy FoodProduct không
-    if (!foodProduct) {
-      console.error('❌ Food product not found with ID:', req.params.id);
-      
-      // Check if ANY food products exist in the database
-      const count = await FoodProduct.countDocuments();
-      console.log(`📊 Total food products in database: ${count}`);
-      
-      // If there are products, show some samples for comparison
-      if (count > 0) {
-        const samples = await FoodProduct.find().limit(3);
-        console.log('📋 Sample FoodProduct IDs for comparison:');
-        samples.forEach((sample, i) => {
-          console.log(`  FoodProduct ${i+1}: ${sample._id} (${sample.name})`);
-        });
-        
-        // Also show some Product references
-        const productSamples = await Product.find({type: 'food'}).limit(3);
-        console.log('📋 Sample Product IDs for comparison:');
-        productSamples.forEach((sample, i) => {
-          console.log(`  Product ${i+1}: ${sample._id} → references → ${sample.productId} (${sample.productName})`);
-        });
-      }
-      
-      res.status(404).json({ 
-        message: "Food product not found", 
-        error: "PRODUCT_NOT_FOUND",
-        requestedId: req.params.id,
-        totalProductsInDb: count,
-        tip: "ID có thể là của FoodProduct hoặc của Product. Hãy đảm bảo sử dụng đúng ID."
-      });
-      return;
-    }
-
-    // Check ownership if user ID is available
-    if (userId && foodProduct.user && foodProduct.user.toString() !== userId) {
-      console.error('⛔ Unauthorized update attempt:', {
-        productUserId: foodProduct.user.toString(),
-        requestUserId: userId
-      });
-      res.status(403).json({ 
-        message: "Not authorized to update this food product",
-        error: "UNAUTHORIZED"
-      });
-      return;
-    }
-
-    // Try to update food product
-    try {
-      // Update food product using the correct ID
-      const updatedFoodProduct = await (FoodProduct as any).updateWithProduct(
-        foodProductId,
-        // Product reference data
-        {
-          manufacturerName: foodProductData.manufacturer || foodProduct.manufacturer,
-          productName: foodProductData.name || foodProduct.name
-        },
-        // Food product data
-        foodProductData
-      );
-      
-      // IMPORTANT: Verify the data was updated correctly by fetching it directly from MongoDB
-      const savedFoodProduct = await FoodProduct.findById(foodProductId);
-      console.log('=== VERIFICATION: DATA UPDATED IN MONGODB ===');
-      console.log('Actual data in MongoDB after update:', {
-        foodType: savedFoodProduct?.foodType,
-        packagingType: savedFoodProduct?.packagingType,
-        packagingSize: savedFoodProduct?.packagingSize,
-        shelfLife: savedFoodProduct?.shelfLife,
-        storageInstruction: savedFoodProduct?.storageInstruction,
-        flavorType: savedFoodProduct?.flavorType,
-        ingredients: savedFoodProduct?.ingredients,
-        allergens: savedFoodProduct?.allergens,
-        usage: savedFoodProduct?.usage
-      });
-      
-      // Check if data was updated correctly
-      const fieldsToCheck = [
-        'foodType', 'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction'
-      ];
-      
-      const arrayFieldsToCheck = [
-        'flavorType', 'ingredients', 'allergens', 'usage'
-      ];
-      
-      let hasDataMismatch = false;
-      
-      // Check string fields - only check fields that were provided in the update
-      fieldsToCheck.forEach(field => {
-        if (foodProductData[field] !== undefined && savedFoodProduct?.[field] !== foodProductData[field]) {
-          console.warn(`WARNING: Field ${field} was not updated correctly!`);
-          console.warn(`  Expected: "${foodProductData[field]}"`);
-          console.warn(`  Actual: "${savedFoodProduct?.[field]}"`);
-          hasDataMismatch = true;
-        }
-      });
-      
-      // Check array fields (need to compare differently)
-      arrayFieldsToCheck.forEach(field => {
-        if (foodProductData[field] !== undefined) {
-          const expected = foodProductData[field] || [];
-          const actual = savedFoodProduct?.[field] || [];
-          
-          if (expected.length !== actual.length) {
-            console.warn(`WARNING: Field ${field} length mismatch!`);
-            console.warn(`  Expected length: ${expected.length}, values: ${JSON.stringify(expected)}`);
-            console.warn(`  Actual length: ${actual.length}, values: ${JSON.stringify(actual)}`);
-            hasDataMismatch = true;
-          } else {
-            // Check each element
-            for (let i = 0; i < expected.length; i++) {
-              if (expected[i] !== actual[i]) {
-                console.warn(`WARNING: Field ${field}[${i}] mismatch!`);
-                console.warn(`  Expected: "${expected[i]}"`);
-                console.warn(`  Actual: "${actual[i]}"`);
-                hasDataMismatch = true;
-              }
-            }
-          }
-        }
-      });
-      
-      if (hasDataMismatch) {
-        console.warn('WARNING: Some data was not updated correctly in MongoDB!');
-        console.warn('This might be due to schema defaults or middleware modifying the data.');
-      } else {
-        console.log('SUCCESS: All data was updated correctly in MongoDB!');
-      }
-
-      // Add source ID information to response
-      res.json({
-        ...updatedFoodProduct.toObject(),
-        lookupInfo: {
-          requestedId: req.params.id,
-          usedFoodProductId: foodProductId,
-          usedProductReference: req.params.id !== foodProductId
-        }
-      });
-    } catch (updateError) {
-      console.error('Error during product update:', updateError);
-      let errorMessage = 'Failed to update food product';
-      
-      if (updateError instanceof Error) {
-        errorMessage = updateError.message;
-      }
-      
-      res.status(400).json({ 
-        message: errorMessage,
-        error: "UPDATE_FAILED"
-      });
-    }
+    res.json(updatedProduct);
   } catch (error) {
-    console.error('Error updating food product:', error);
+    console.error('❌ Error in direct updateFoodProduct:', error);
     if (error instanceof Error) {
-      res.status(500).json({ 
-        message: error.message,
-        error: "SERVER_ERROR"
-      });
+      res.status(500).json({ message: error.message });
     } else {
-      res.status(500).json({ 
-        message: "Unknown error occurred", 
-        error: "SERVER_ERROR"
-      });
+      res.status(500).json({ message: "Unknown error occurred" });
     }
   }
 };
 
-// @desc    Xóa sản phẩm thực phẩm
-// @route   DELETE /api/foodproducts/:id
-// @access  Private/Manufacturer
-export const deleteFoodProduct = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// @desc    Delete a food product
+// @route   DELETE /api/food-products/:id
+export const deleteFoodProduct = async (req: Request, res: Response) => {
   try {
-    // Sử dụng static method deleteWithProduct
-    const deletedFoodProduct = await (FoodProduct as any).deleteWithProduct(req.params.id);
+    const { id } = req.params;
+    
+    const foodProduct = await FoodProduct.findById(id);
 
-    if (deletedFoodProduct) {
-      res.json({ message: "Food product deleted successfully" });
-    } else {
-      res.status(404).json({ message: "Food product not found" });
+    if (!foodProduct) {
+      return res.status(404).json({ message: 'Food product not found' });
     }
+    
+    // Delete associated images from S3 before deleting the product
+    const imagesToDelete = [...(foodProduct.images || [])];
+    if (foodProduct.image && !imagesToDelete.includes(foodProduct.image)) {
+      imagesToDelete.push(foodProduct.image);
+    }
+
+    // Track deletion results
+    const deletionResults: Record<string, boolean> = {};
+    
+    // Process each image for deletion
+    for (const imageUrl of imagesToDelete) {
+      try {
+        // Extract key from URL
+        const key = extractKeyFromUrl(imageUrl);
+        
+        if (key) {
+          // Delete the object from S3
+          const isDeleted = await deleteObjectFromS3(key);
+          deletionResults[key] = isDeleted;
+        } else {
+          console.warn(`Could not extract key from URL: ${imageUrl}`);
+        }
+      } catch (imgError) {
+        console.error(`Error deleting image ${imageUrl}:`, imgError);
+      }
+    }
+    
+    // Delete the product from the database
+    const deletedProduct = await FoodProduct.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: 'Food product deleted successfully',
+      deletedProduct,
+      imagesDeleted: deletionResults
+    });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: "Unknown error occurred" });
-    }
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -1095,4 +916,221 @@ const validateFoodProductFields = (data: Record<string, any>, isUpdate = false):
   });
 
   return result;
+};
+
+// @desc    Upload product images
+// @route   POST /api/foodproducts/upload or /api/foodproducts/upload/multiple
+// @access  Private
+export const uploadProductImages = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const files = req.files || (req.file ? [req.file] : []);
+    
+    if (!files || files.length === 0) {
+      res.status(400).json({ message: 'No files uploaded' });
+      return;
+    }
+    
+    // For EC2 deployment, construct URLs based on server URL
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const fileDetails = Array.isArray(files) 
+      ? files.map(file => ({
+          filename: file.filename,
+          path: file.path,
+          url: `${baseUrl}/Storage/${file.filename}`
+        }))
+      : [{
+          filename: files.filename,
+          path: files.path,
+          url: `${baseUrl}/Storage/${files.filename}`
+        }];
+    
+    console.log('Files uploaded successfully:', fileDetails);
+    
+    res.status(200).json({ 
+      message: 'Files uploaded successfully',
+      files: fileDetails
+    });
+  } catch (error) {
+    console.error('Error uploading files:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'Unknown error occurred' });
+    }
+  }
+};
+
+// @desc    Update product image
+// @route   PUT /api/foodproducts/:id/image
+// @access  Private
+export const updateProductImage = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+    
+    if (!file) {
+      res.status(400).json({ message: 'No file uploaded' });
+      return;
+    }
+    
+    // Validate the ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ 
+        message: "Invalid product ID format", 
+        error: "INVALID_ID_FORMAT" 
+      });
+      return;
+    }
+    
+    // Find the product
+    const foodProduct = await FoodProduct.findById(id);
+    
+    if (!foodProduct) {
+      res.status(404).json({ message: 'Product not found' });
+      return;
+    }
+    
+    // Construct the URL for the uploaded file
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/Storage/${file.filename}`;
+    
+    // IMPORTANT: Preserve existing images
+    let updatedImages = foodProduct.images || [];
+    
+    // Update the product with the new image URL as the main image
+    foodProduct.image = imageUrl;
+    
+    // Add the new image to the front of the images array if it doesn't exist already
+    if (!updatedImages.includes(imageUrl)) {
+      // Put the new image at the beginning of the array as the main image
+      updatedImages.unshift(imageUrl);
+    } else {
+      // If the image already exists in the array but isn't the first one,
+      // move it to the front of the array
+      if (updatedImages[0] !== imageUrl) {
+        updatedImages = [
+          imageUrl,
+          ...updatedImages.filter(img => img !== imageUrl)
+        ];
+      }
+    }
+    
+    // Update the images array
+    foodProduct.images = updatedImages;
+    
+    // Save the updated product
+    await foodProduct.save();
+    
+    console.log('Product image updated successfully:', {
+      productId: id,
+      newImage: imageUrl,
+      totalImages: foodProduct.images.length
+    });
+    
+    res.status(200).json({
+      message: 'Product image updated successfully',
+      image: imageUrl,
+      images: foodProduct.images
+    });
+  } catch (error) {
+    console.error('Error updating product image:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'Unknown error occurred' });
+    }
+  }
+};
+
+// @desc    Update product images
+// @route   PUT /api/foodproducts/:id/images
+// @access  Private
+export const updateProductImages = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { images, mainImage } = req.body;
+    
+    // Validate the ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ 
+        message: "Invalid product ID format", 
+        error: "INVALID_ID_FORMAT" 
+      });
+      return;
+    }
+    
+    // Find the product
+    const foodProduct = await FoodProduct.findById(id);
+    
+    if (!foodProduct) {
+      res.status(404).json({ message: 'Product not found' });
+      return;
+    }
+    
+    // Validate images array
+    if (!Array.isArray(images) || images.length === 0) {
+      res.status(400).json({ message: 'Images must be a non-empty array' });
+      return;
+    }
+    
+    console.log('Updating product images:', {
+      productId: id,
+      providedImages: images,
+      providedMainImage: mainImage,
+      currentImages: foodProduct.images,
+      currentMainImage: foodProduct.image
+    });
+    
+    // Set main image - either from explicit mainImage parameter or use first image
+    const newMainImage = mainImage || images[0];
+    
+    // Make sure the main image is included in the images array
+    let updatedImages = [...images]; // Create a copy to avoid reference issues
+    if (!updatedImages.includes(newMainImage)) {
+      updatedImages.unshift(newMainImage);
+      console.log('Main image not in array, adding it');
+    } else if (updatedImages[0] !== newMainImage) {
+      // Rearrange to ensure main image is first
+      updatedImages = [
+        newMainImage,
+        ...updatedImages.filter(img => img !== newMainImage)
+      ];
+      console.log('Reordering images to ensure main image is first');
+    }
+    
+    // Update the product with the new images array and main image
+    foodProduct.images = updatedImages;
+    foodProduct.image = newMainImage;
+    
+    await foodProduct.save();
+    
+    console.log('Product images updated successfully:', {
+      productId: id,
+      totalImages: foodProduct.images.length,
+      mainImage: foodProduct.image,
+      imagesList: foodProduct.images
+    });
+    
+    res.status(200).json({
+      message: 'Product images updated successfully',
+      image: foodProduct.image,
+      images: foodProduct.images
+    });
+  } catch (error) {
+    console.error('Error updating product images:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'Unknown error occurred' });
+    }
+  }
 }; 

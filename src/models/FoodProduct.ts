@@ -217,7 +217,10 @@ foodProductSchema.pre('save', function(next) {
     flavorType: this.flavorType,
     ingredients: this.ingredients,
     allergens: this.allergens,
-    usage: this.usage
+    usage: this.usage,
+    image: this.image,
+    images: this.images,
+    imagesCount: this.images ? this.images.length : 0
   });
 
   // Auto-generate SKU if not provided
@@ -226,36 +229,63 @@ foodProductSchema.pre('save', function(next) {
     const timestamp = Date.now().toString().slice(-6);
     this.sku = `${prefix}${timestamp}`;
   }
-
-  // Make sure the main image is also in the images array
-  if (this.image && (!this.images || this.images.length === 0)) {
-    this.images = [this.image];
-  } else if (this.image && this.images.indexOf(this.image) === -1) {
-    this.images.unshift(this.image);
+  
+  // Make sure arrays exist and are actually arrays
+  ['flavorType', 'ingredients', 'allergens', 'usage'].forEach(field => {
+    if (!this[field]) {
+      this[field] = [];
+      console.log(`Created empty array for ${field}`);
+    } else if (!Array.isArray(this[field])) {
+      this[field] = [this[field]].filter(Boolean);
+      console.log(`Converted ${field} to array:`, this[field]);
+    }
+  });
+  
+  // CRITICAL: Special handling for images array
+  if (!this.images) {
+    this.images = [];
+    console.log('Created empty images array');
+  } else if (!Array.isArray(this.images)) {
+    // If it's not an array, convert to array
+    this.images = [this.images].filter(Boolean);
+    console.log('Converted non-array images to array:', this.images);
+  } 
+  
+  // Handle main image relationship with images array
+  if (this.image) {
+    // If main image exists but not in images array, add it
+    if (!this.images.includes(this.image)) {
+      this.images.unshift(this.image);
+      console.log('Added main image to images array:', this.image);
+    } else if (this.images[0] !== this.image) {
+      // If main image is in array but not first, move to front
+      const newImagesArray = [
+        this.image,
+        ...this.images.filter(img => img !== this.image)
+      ];
+      this.images = newImagesArray;
+      console.log('Moved main image to front of images array:', this.image);
+    }
+  } else if (this.images.length > 0) {
+    // If no main image but images exist, use first as main
+    this.image = this.images[0];
+    console.log('Set main image from images array:', this.image);
   }
 
-  // IMPORTANT: Don't modify these fields at all - preserve user input exactly
-  // NO default values for these fields
-  
-  // Sync countInStock with currentAvailable for compatibility
-  this.countInStock = this.currentAvailable;
-  
-  // Sync price with pricePerUnit for compatibility
-  this.price = this.pricePerUnit;
+  // Auto-assign first image as main image if main image not set
+  if (!this.image && this.images && this.images.length > 0) {
+    this.image = this.images[0];
+  }
 
+  // Log changes after processing
   console.log('=== PRE SAVE MIDDLEWARE - AFTER PROCESSING ===');
-  console.log('Final data being saved to MongoDB:', {
-    foodType: this.foodType,
-    packagingType: this.packagingType,
-    packagingSize: this.packagingSize,
-    shelfLife: this.shelfLife,
-    storageInstruction: this.storageInstruction,
-    flavorType: this.flavorType,
-    ingredients: this.ingredients,
-    allergens: this.allergens,
-    usage: this.usage
+  console.log('Data after pre-save processing:', {
+    image: this.image,
+    images: this.images,
+    imagesCount: this.images ? this.images.length : 0,
+    imagesSample: this.images ? this.images.slice(0, 3) : []
   });
-
+  
   next();
 });
 
@@ -271,13 +301,17 @@ foodProductSchema.methods.saveWithoutDefaults = async function() {
     flavorType: this.flavorType,
     ingredients: this.ingredients,
     allergens: this.allergens,
-    usage: this.usage
+    usage: this.usage,
+    image: this.image,
+    images: this.images
   });
   
   // Sử dụng insertOne trực tiếp để bypass schema defaults
   if (this.isNew) {
     // Lấy collection trực tiếp từ constructor
     const collection = (this.constructor as any).collection;
+    
+    // Create a clean document object with all fields explicitly defined
     const doc = this.toObject({ depopulate: true });
     
     // Xóa _id nếu nó là null hoặc undefined
@@ -285,10 +319,41 @@ foodProductSchema.methods.saveWithoutDefaults = async function() {
       delete doc._id;
     }
     
+    // Ensure images array is properly initialized
+    if (!doc.images) {
+      doc.images = doc.image ? [doc.image] : [];
+    } else if (!Array.isArray(doc.images)) {
+      doc.images = typeof doc.images === 'string' && doc.images.trim() !== '' 
+        ? [doc.images] 
+        : (doc.image ? [doc.image] : []);
+    } else if (doc.image && !doc.images.includes(doc.image)) {
+      // Ensure main image is in the images array
+      doc.images.unshift(doc.image);
+    }
+    
+    // Log the final document that will be inserted
+    console.log('Final document to be inserted:', {
+      image: doc.image,
+      images: doc.images,
+      imagesCount: doc.images ? doc.images.length : 0,
+      imagesSample: doc.images ? doc.images.slice(0, 2) : []
+    });
+
+    // Create the document in MongoDB
     const result = await collection.insertOne(doc);
     this._id = result.insertedId;
     
     console.log('Document inserted directly, bypassing schema defaults');
+    
+    // Verify that images were saved correctly
+    const savedDoc = await collection.findOne({ _id: this._id });
+    console.log('Saved document verification:', {
+      image: savedDoc.image,
+      images: savedDoc.images,
+      imagesCount: savedDoc.images ? savedDoc.images.length : 0,
+      imagesSample: savedDoc.images ? savedDoc.images.slice(0, 2) : []
+    });
+    
     return this;
   } else {
     // Nếu không phải document mới, sử dụng save thông thường
@@ -315,7 +380,10 @@ foodProductSchema.statics.createWithProduct = async function(
       flavorType: foodProductData.flavorType,
       ingredients: foodProductData.ingredients,
       allergens: foodProductData.allergens,
-      usage: foodProductData.usage
+      usage: foodProductData.usage,
+      image: foodProductData.image,
+      images: foodProductData.images,
+      imagesCount: foodProductData.images ? foodProductData.images.length : 0
     });
     
     // Set brand to manufacturer if not provided
@@ -349,8 +417,8 @@ foodProductSchema.statics.createWithProduct = async function(
       }
     });
 
-    // Ensure array fields are actually arrays WITHOUT modifying their content
-    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
+    // IMPROVED: Better handling of array fields
+    ['flavorType', 'ingredients', 'allergens', 'usage'].forEach(field => {
       if (foodProductData[field] !== undefined && !Array.isArray(foodProductData[field])) {
         // If it's a string, try to convert it to an array
         if (typeof foodProductData[field] === 'string' && foodProductData[field].trim() !== '') {
@@ -359,9 +427,21 @@ foodProductSchema.statics.createWithProduct = async function(
           // Otherwise, make it an empty array
           foodProductData[field] = [];
         }
+      } else if (Array.isArray(foodProductData[field])) {
+        // Create a copy to avoid reference issues
+        foodProductData[field] = [...foodProductData[field]];
       }
     });
-
+    
+    // Ensure images is initialized as an array
+    if (!foodProductData.images) {
+      foodProductData.images = [];
+    } else if (!Array.isArray(foodProductData.images)) {
+      foodProductData.images = typeof foodProductData.images === 'string' && foodProductData.images.trim() !== '' 
+        ? [foodProductData.images] 
+        : [];
+    }
+    
     // Set countInStock from currentAvailable if not provided
     if (foodProductData.currentAvailable !== undefined && foodProductData.countInStock === undefined) {
       foodProductData.countInStock = foodProductData.currentAvailable;
@@ -382,7 +462,10 @@ foodProductSchema.statics.createWithProduct = async function(
       flavorType: foodProductData.flavorType,
       ingredients: foodProductData.ingredients,
       allergens: foodProductData.allergens,
-      usage: foodProductData.usage
+      usage: foodProductData.usage,
+      image: foodProductData.image,
+      images: foodProductData.images,
+      imagesCount: foodProductData.images ? foodProductData.images.length : 0
     });
 
     // IMPORTANT: Create a direct instance without any schema defaults
@@ -398,14 +481,20 @@ foodProductSchema.statics.createWithProduct = async function(
       flavorType: foodProduct.flavorType,
       ingredients: foodProduct.ingredients,
       allergens: foodProduct.allergens,
-      usage: foodProduct.usage
+      usage: foodProduct.usage,
+      image: foodProduct.image,
+      images: foodProduct.images,
+      imagesCount: foodProduct.images ? foodProduct.images.length : 0
     });
     
     // Sử dụng phương thức saveWithoutDefaults thay vì save thông thường
     await foodProduct.saveWithoutDefaults();
     
+    // Double check the saved data
+    const freshFoodProduct = await this.findById(foodProduct._id);
+    
     console.log('=== CREATE WITH PRODUCT - AFTER SAVE ===');
-    console.log('Food product after save:', {
+    console.log('Food product after save (from instance):', {
       foodType: foodProduct.foodType,
       packagingType: foodProduct.packagingType,
       packagingSize: foodProduct.packagingSize,
@@ -414,7 +503,17 @@ foodProductSchema.statics.createWithProduct = async function(
       flavorType: foodProduct.flavorType,
       ingredients: foodProduct.ingredients,
       allergens: foodProduct.allergens,
-      usage: foodProduct.usage
+      usage: foodProduct.usage,
+      image: foodProduct.image,
+      images: foodProduct.images,
+      imagesCount: foodProduct.images ? foodProduct.images.length : 0
+    });
+    
+    console.log('Food product after save (from database):', {
+      _id: freshFoodProduct?._id,
+      image: freshFoodProduct?.image,
+      images: freshFoodProduct?.images,
+      imagesCount: freshFoodProduct?.images ? freshFoodProduct.images.length : 0
     });
 
     // Tạo Product reference
@@ -426,7 +525,7 @@ foodProductSchema.statics.createWithProduct = async function(
     });
     
     await product.save();
-    return { product, foodProduct };
+    return { product, foodProduct: freshFoodProduct || foodProduct };
   } catch (error) {
     // Cleanup nếu có lỗi
     if (foodProduct && foodProduct._id) {
@@ -479,7 +578,9 @@ foodProductSchema.statics.updateWithProduct = async function(
       flavorType: foodProductData.flavorType,
       ingredients: foodProductData.ingredients,
       allergens: foodProductData.allergens,
-      usage: foodProductData.usage
+      usage: foodProductData.usage,
+      image: foodProductData.image,
+      images: foodProductData.images
     });
     
     // Tìm sản phẩm hiện có để lấy giá trị hiện tại cho các trường không được cung cấp
@@ -496,7 +597,7 @@ foodProductSchema.statics.updateWithProduct = async function(
     
     // CRITICAL FIX: Ensure array fields are actually arrays WITHOUT modifying their content
     // This is essential for proper update operation
-    ['flavorType', 'ingredients', 'allergens', 'usage', 'images'].forEach(field => {
+    ['flavorType', 'ingredients', 'allergens', 'usage'].forEach(field => {
       if (foodProductData[field] !== undefined) {
         // If it's already an array, leave it as is
         if (Array.isArray(foodProductData[field])) {
@@ -534,6 +635,91 @@ foodProductSchema.statics.updateWithProduct = async function(
       }
     });
 
+    // Enhanced handling for images array
+    if (foodProductData.images !== undefined) {
+      // Ensure images is an array
+      if (!Array.isArray(foodProductData.images)) {
+        if (typeof foodProductData.images === 'string') {
+          // Try to parse as JSON if it's a string
+          try {
+            if (foodProductData.images.startsWith('[') && foodProductData.images.endsWith(']')) {
+              const parsed = JSON.parse(foodProductData.images);
+              if (Array.isArray(parsed)) {
+                foodProductData.images = parsed;
+                console.log(`Parsed images from JSON string to array with ${parsed.length} items`);
+              } else {
+                foodProductData.images = [foodProductData.images];
+                console.log(`Converted images string to single-item array`);
+              }
+            } else {
+              // Regular string, wrap in array
+              foodProductData.images = [foodProductData.images];
+              console.log(`Converted images string to single-item array`);
+            }
+          } catch (e) {
+            // Parse failed, use as single string
+            foodProductData.images = [foodProductData.images];
+            console.log(`Converted images from string to single-item array (parse failed)`);
+          }
+        } else if (foodProductData.images) {
+          // Non-string value, convert to array
+          foodProductData.images = [String(foodProductData.images)];
+          console.log(`Converted images to single-item array`);
+        } else {
+          // Null/undefined, initialize as empty array
+          foodProductData.images = [];
+          console.log('Initialized empty images array');
+        }
+      }
+      
+      // Handle main image synchronization with images array
+      if (foodProductData.image) {
+        // Ensure main image is in the images array and is the first element
+        if (!foodProductData.images.includes(foodProductData.image)) {
+          foodProductData.images.unshift(foodProductData.image);
+          console.log(`Added main image to images array: ${foodProductData.image}`);
+        } else if (foodProductData.images[0] !== foodProductData.image) {
+          // Rearrange to put main image first
+          foodProductData.images = [
+            foodProductData.image,
+            ...foodProductData.images.filter(img => img !== foodProductData.image)
+          ];
+          console.log(`Moved main image to front of images array: ${foodProductData.image}`);
+        }
+          } else if (foodProductData.images && foodProductData.images.length > 0) {
+      // If no main image provided but images array exists, use first image as main
+      foodProductData.image = foodProductData.images[0];
+      console.log(`Set main image from images array: ${foodProductData.image}`);
+    }
+    
+    console.log(`Final images array for update: ${foodProductData.images ? foodProductData.images.length : 0} items`);
+      console.log(`Main image for update: ${foodProductData.image}`);
+    } else if (foodProductData.image) {
+      // If only main image provided (not images array), update images array from existing
+      if (existingFoodProduct.images && existingFoodProduct.images.length > 0) {
+        // If existing product has images, update array to include new main image
+        if (!existingFoodProduct.images.includes(foodProductData.image)) {
+          foodProductData.images = [
+            foodProductData.image,
+            ...existingFoodProduct.images
+          ];
+        } else if (existingFoodProduct.images[0] !== foodProductData.image) {
+          // Rearrange to put new main image first
+          foodProductData.images = [
+            foodProductData.image,
+            ...existingFoodProduct.images.filter(img => img !== foodProductData.image)
+          ];
+        } else {
+          // Keep existing array
+          foodProductData.images = [...existingFoodProduct.images];
+        }
+      } else {
+        // No existing images, create new array with main image
+        foodProductData.images = [foodProductData.image];
+      }
+      console.log(`Created/updated images array from main image: ${foodProductData.images ? foodProductData.images.length : 0} items`);
+    }
+
     // Handle numeric fields - ensure they are numbers
     ['minOrderQuantity', 'dailyCapacity', 'currentAvailable', 'pricePerUnit'].forEach(field => {
       if (foodProductData[field] !== undefined) {
@@ -564,7 +750,9 @@ foodProductSchema.statics.updateWithProduct = async function(
       flavorType: foodProductData.flavorType,
       ingredients: foodProductData.ingredients,
       allergens: foodProductData.allergens,
-      usage: foodProductData.usage
+      usage: foodProductData.usage,
+      image: foodProductData.image,
+      images: foodProductData.images
     });
 
     // Update FoodProduct - IMPORTANT: Use { new: true, runValidators: true, setDefaultsOnInsert: false }
@@ -593,7 +781,9 @@ foodProductSchema.statics.updateWithProduct = async function(
       flavorType: foodProduct.flavorType,
       ingredients: foodProduct.ingredients,
       allergens: foodProduct.allergens,
-      usage: foodProduct.usage
+      usage: foodProduct.usage,
+      image: foodProduct.image,
+      images: foodProduct.images
     });
 
     // Update Product reference nếu có thay đổi
@@ -693,4 +883,4 @@ foodProductSchema.statics.deleteWithProduct = async function(foodProductId: stri
 
 const FoodProduct = mongoose.model<IFoodProduct>("FoodProduct", foodProductSchema);
 
-export default FoodProduct; 
+export default FoodProduct;

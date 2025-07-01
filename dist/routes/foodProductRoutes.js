@@ -11,26 +11,6 @@ const router = express_1.default.Router();
 router.route("/")
     .get(foodProductController_1.getFoodProducts)
     .post(authMiddleware_1.protect, authMiddleware_1.manufacturer, foodProductController_1.createFoodProduct);
-// Public route for testing/development - không yêu cầu authentication
-router.route("/public")
-    .post(foodProductController_1.createFoodProduct);
-// Public route for updating - không yêu cầu authentication
-router.route("/public/:id")
-    .put(foodProductController_1.updateFoodProduct);
-// Test endpoint để debug data
-router.route("/test")
-    .post((req, res) => {
-    console.log('=== TEST ENDPOINT DEBUG ===');
-    console.log('Headers:', req.headers);
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('Body keys:', Object.keys(req.body));
-    console.log('Body type:', typeof req.body);
-    res.json({
-        message: 'Test endpoint - check server logs',
-        receivedData: req.body,
-        dataKeys: Object.keys(req.body)
-    });
-});
 // Get metadata routes
 router.get("/categories", foodProductController_1.getCategories);
 router.get("/types", foodProductController_1.getProductTypes);
@@ -39,6 +19,6 @@ router.get("/foodtypes", foodProductController_1.getFoodTypes);
 // Route /api/foodproducts/:id
 router.route("/:id")
     .get(foodProductController_1.getFoodProductById)
-    .put(authMiddleware_1.protect, authMiddleware_1.manufacturer, foodProductController_1.updateFoodProduct)
+    .put(foodProductController_1.updateFoodProduct)
     .delete(authMiddleware_1.protect, authMiddleware_1.manufacturer, foodProductController_1.deleteFoodProduct);
 exports.default = router;

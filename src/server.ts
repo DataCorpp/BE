@@ -10,6 +10,7 @@ import userRoutes from "./routes/userRoutes";
 import productRoutes from "./routes/productRoutes";
 import foodProductRoutes from "./routes/foodProductRoutes";
 import projectRoutes from "./routes/projectRoutes";
+import uploadRoutes from "./routes/uploadRoutes";
 import User from "./models/User";
 
 // Load environment variables from .env file
@@ -147,6 +148,9 @@ console.log('✓ Food product routes mounted at /api/foodproducts');
 app.use("/api/projects", projectRoutes);
 console.log('✓ Project routes mounted at /api/projects');
 
+app.use("/api/upload", uploadRoutes);
+console.log('✓ Upload routes mounted at /api/upload');
+
 console.log('=====================');
 
 // Health check
@@ -190,6 +194,11 @@ app.get("/api", (req: Request, res: Response) => {
         getManufacturers: "GET /api/projects/:id/manufacturers",
         contactManufacturer: "POST /api/projects/:id/contact/:manufacturerId",
         analytics: "GET /api/projects/analytics"
+      },
+      upload: {
+        uploadSingleImage: "POST /api/upload",
+        uploadMultipleImages: "POST /api/upload/multiple (up to 6 images)",
+        getSignedUrl: "GET /api/upload/signed-url"
       }
     },
     authenticationGuide: {
@@ -218,15 +227,16 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
     console.log(`👥 User API: http://localhost:${PORT}/api/users`);
-    console.log(`  ├── Session Auth: /api/users/login, /api/users/logout`);
-    console.log(`  └── Google OAuth: /api/users/google-login`);
+    // console.log(`  ├── Session Auth: /api/users/login, /api/users/logout`);
+    // console.log(`  └── Google OAuth: /api/users/google-login`);
     console.log(`🛡️  Admin API: http://localhost:${PORT}/api/admin`);
     console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
     console.log(`🍎 Food Products API: http://localhost:${PORT}/api/foodproducts`);
     console.log(`🏭 Projects API: http://localhost:${PORT}/api/projects`);
-    console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
-    console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
-    console.log(`  └── Analytics: /api/projects/analytics`);
+    console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
+    // console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
+    // console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
+    // console.log(`  └── Analytics: /api/projects/analytics`);
     console.log(`💚 Health Check: http://localhost:${PORT}/health`);
     console.log(`🗄️  Session Storage: MongoDB`);
   });
