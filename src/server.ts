@@ -103,6 +103,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// After dotenv.config(); line (we want the proxy trust before session middleware)
+app.set("trust proxy", (process.env.TRUST_PROXY ?? "1"));
+
 // Session configuration with MongoDB storage
 app.use(
   session({
@@ -114,11 +117,13 @@ app.use(
       collectionName: "sessions",
       touchAfter: 24 * 3600, // Lazy session update - only update session every 24 hours
     }),
+    proxy: process.env.NODE_ENV === "production", // respect X-Forwarded-* headers when behind a proxy
     cookie: {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      domain: process.env.COOKIE_DOMAIN || undefined // allow cross-sub-domain cookies if needed
     },
     name: "sessionId", // Custom session name for security
   })
