@@ -1,6 +1,6 @@
 [
     {
-      "_id": "prod1",
+      "_id": "1",
       "user": "68504311bd7da6832650547a",
       "name": "Kikkoman Naturally Brewed Soy Sauce",
       "brand": "Kikkoman",
@@ -37,7 +37,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod2",
+      "_id": "2",
       "user": "68504311bd7da6832650547a",
       "name": "Kikkoman Less Sodium Soy Sauce",
       "brand": "Kikkoman",
@@ -74,7 +74,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod3",
+      "_id": "3",
       "user": "68504311bd7da6832650547b",
       "name": "Yamasa Regular Soy Sauce",
       "brand": "Yamasa",
@@ -111,7 +111,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod4",
+      "_id": "4",
       "user": "68504311bd7da6832650547b",
       "name": "Yamasa Sushi Soy Sauce",
       "brand": "Yamasa",
@@ -148,7 +148,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod5",
+      "_id": "5",
       "user": "68504311bd7da6832650547c",
       "name": "Marunaka Brewing Soy Sauce (300 mL)",
       "brand": "Marunaka Brewing",
@@ -185,7 +185,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod6",
+      "_id": "6",
       "user": "68504311bd7da6832650547c",
       "name": "Marunaka Brewing Soy Sauce (720 mL)",
       "brand": "Marunaka Brewing",
@@ -222,7 +222,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod7",
+      "_id": "7",
       "user": "68504311bd7da6832650547d",
       "name": "Marukome Ryotei no Aji Miso Paste w/ Dashi",
       "brand": "Marukome",
@@ -259,7 +259,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod8",
+      "_id": "8",
       "user": "68504311bd7da6832650547d",
       "name": "Marukome Instant Miso Soup (4 Flavors, 36 Pack)",
       "brand": "Marukome",
@@ -296,7 +296,7 @@
       "storageInstruction": "Store in a cool, dry place away from moisture."
     },
     {
-      "_id": "prod9",
+      "_id": "9",
       "user": "68504311bd7da6832650547e",
       "name": "Hikari Daikanjikomi Miso",
       "brand": "Hikari Miso",
@@ -333,7 +333,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod10",
+      "_id": "10",
       "user": "68504311bd7da6832650547e",
       "name": "Hikari Ginza Kuki Hana Miso",
       "brand": "Hikari Miso",
@@ -370,7 +370,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod11",
+      "_id": "11",
       "user": "68504311bd7da6832650547f",
       "name": "Shinsyuichi Miso Paste",
       "brand": "Shinsyuichi",
@@ -407,7 +407,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod12",
+      "_id": "12",
       "user": "68504311bd7da6832650547f",
       "name": "Shinsyuichi Instant Miso Soup (8 Pack)",
       "brand": "Shinsyuichi",
@@ -444,7 +444,7 @@
       "storageInstruction": "Store in a cool, dry place away from moisture."
     },
     {
-      "_id": "prod13",
+      "_id": "13",
       "user": "68504311bd7da68326505480",
       "name": "Kenko Japanese Mayonnaise",
       "brand": "Kenko",
@@ -481,7 +481,7 @@
       "storageInstruction": "Store in refrigerator after opening."
     },
     {
-      "_id": "prod14",
+      "_id": "14",
       "user": "68504311bd7da68326505480",
       "name": "Kenko Goma Mayo Sesame Dressing",
       "brand": "Kenko",
@@ -518,7 +518,7 @@
       "storageInstruction": "Store in refrigerator after opening."
     },
     {
-      "_id": "prod15",
+      "_id": "15",
       "user": "68504311bd7da68326505481",
       "name": "Kewpie Real Mayonnaise Tube",
       "brand": "Kewpie",
@@ -555,7 +555,7 @@
       "storageInstruction": "Store in refrigerator after opening."
     },
     {
-      "_id": "prod16",
+      "_id": "16",
       "user": "68504311bd7da68326505481",
       "name": "Kewpie Sushi Mayonnaise Dressing",
       "brand": "Kewpie",
@@ -592,7 +592,7 @@
       "storageInstruction": "Store in refrigerator after opening."
     },
     {
-      "_id": "prod17",
+      "_id": "17",
       "user": "68504311bd7da68326505482",
       "name": "Mizkan Ponzu Citrus Seasoning",
       "brand": "Mizkan",
@@ -629,7 +629,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod18",
+      "_id": "18",
       "user": "68504311bd7da68326505482",
       "name": "Mizkan Honteri Sweet Seasoning",
       "brand": "Mizkan",
@@ -666,7 +666,7 @@
       "storageInstruction": "Store in a cool, dry place."
     },
     {
-      "_id": "prod19",
+      "_id": "19",
       "user": "68504311bd7da68326505483",
       "name": "Otafuku Yakiniku Sauce",
       "brand": "Otafuku",
@@ -703,7 +703,7 @@
       "storageInstruction": "Store in a cool, dry place. Refrigerate after opening."
     },
     {
-      "_id": "prod20",
+      "_id": "20",
       "user": "68504311bd7da68326505483",
       "name": "Otafuku Okonomi Sauce (1.2 kg)",
       "brand": "Otafuku",
