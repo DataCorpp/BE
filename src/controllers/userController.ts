@@ -595,13 +595,13 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
           }
 
           // Successful response with session cookie set
-          res.json({
-            success: true,
+      res.json({
+        success: true,
             message: "Email verified successfully",
-            user: {
-              _id: user._id,
-              name: user.name,
-              email: user.email,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
               role: user.role,
             },
           });
@@ -668,14 +668,14 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 
     // Remove used verification code
     delete verificationCodes[email];
-
+    
     console.log(`✅ Email verified successfully: ${email}`);
 
     return createSessionAndRespond();
 
   } catch (error) {
     console.error('❌ Email verification error');
-
+    
     if (error instanceof Error) {
       res.status(500).json({ message: "Verification failed" });
     } else {
@@ -998,95 +998,95 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
 // @desc    Lấy danh sách manufacturers
 // @route   GET /api/users/manufacturers
 // @access  Public
-export const getManufacturers = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const getManufacturers = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 12;
+    const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
+    const query = req.query.q as string || '';
+    const searchType = req.query.searchType as string || 'basic';
 
-    // Build filter object
-    const filter: any = { 
-      role: "manufacturer",
-      status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
-    };
+    // Build search filter based on search type and query
+    let searchFilter: any = { role: 'manufacturer' };
+    
+    if (query && query.trim()) {
+      // Split search terms for more advanced searching
+      const searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
+      
+      if (searchTerms.length > 0) {
+        // Create simple regex search conditions - same for basic and advanced
+        // The front-end will handle additional filtering/ranking for advanced search
+        const searchConditions = searchTerms.map(term => {
+          const regex = new RegExp(term, 'i');
+          return {
+            $or: [
+              { name: regex },
+              { companyName: regex },
+              { industry: regex },
+              { address: regex },
+              { description: regex },
+              { companyDescription: regex },
+              { 'manufacturerSettings.certifications': regex },
+              { certificates: regex }
+            ]
+          };
+        });
+        
+        // All terms must match at least one field (AND of ORs)
+        searchFilter.$and = searchConditions;
+      }
+    }
 
-    // Optional filters
+    // Additional filters if provided
     if (req.query.industry) {
-      filter.industry = new RegExp(req.query.industry as string, 'i');
+      searchFilter.industry = new RegExp(req.query.industry as string, 'i');
     }
     
     if (req.query.location) {
-      filter.address = new RegExp(req.query.location as string, 'i');
+      searchFilter.address = new RegExp(req.query.location as string, 'i');
     }
-
+    
     // Add establish year filtering
-    if (req.query.establish_gte) {
-      filter.establish = { ...filter.establish, $gte: parseInt(req.query.establish_gte as string) };
-    }
-    
-    if (req.query.establish_lte) {
-      filter.establish = { ...filter.establish, $lte: parseInt(req.query.establish_lte as string) };
-    }
-
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search as string, 'i');
-      filter.$or = [
-        { name: searchRegex },
-        { companyName: searchRegex },
-        { industry: searchRegex },
-        { description: searchRegex },
-        { companyDescription: searchRegex }
-      ];
-    }
-
-    // Get total count for pagination
-    const total = await User.countDocuments(filter);
-    
-    // Get manufacturers with pagination
-    const manufacturers = await User.find(filter)
-      .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
-      .sort({ createdAt: -1 }) // Sort by newest first
-      .skip(skip)
-      .limit(limit)
-      .lean(); // Use lean for better performance
+    if (req.query.establish_gte || req.query.establish_lte) {
+      searchFilter.establish = {};
       
-    console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
+      if (req.query.establish_gte) {
+        searchFilter.establish.$gte = parseInt(req.query.establish_gte as string);
+      }
+      
+      if (req.query.establish_lte) {
+        searchFilter.establish.$lte = parseInt(req.query.establish_lte as string);
+      }
+    }
 
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    console.log('Search filter:', JSON.stringify(searchFilter));
 
+    // Get manufacturers with pagination
+    const manufacturers = await User.find(searchFilter)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .sort({ companyName: 1, name: 1 })
+      .skip(skip)
+      .limit(limit);
+    
+    // Get total count for pagination
+    const total = await User.countDocuments(searchFilter);
+    
     res.json({
       success: true,
       manufacturers,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: total,
-        itemsPerPage: limit,
-        hasNextPage,
-        hasPrevPage
-      },
-      total // Keep this for backward compatibility
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
     });
-
+    
   } catch (error) {
-    console.error('Error in getManufacturers:', error);
-    if (error instanceof Error) {
-      res.status(500).json({ 
-        success: false,
-        message: error.message 
-      });
-    } else {
-      res.status(500).json({ 
-        success: false,
-        message: "Unknown error occurred" 
-      });
-    }
+    console.error('Error fetching manufacturers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
