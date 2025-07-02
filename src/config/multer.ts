@@ -29,8 +29,16 @@ if (process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID && process.e
     },
     key: function (req, file, cb) {
       const timestamp = Date.now().toString();
-      const filename = file.originalname;
-      cb(null, `images/${timestamp}_${filename}`);
+      const rawName = file.originalname;
+
+      // Normalize and remove unsafe characters to ensure S3 key is URL-safe.
+      const sanitizedName = rawName
+        .normalize('NFKD')                // Decompose accents
+        .replace(/[^\w.\-]+/g, '_')      // Replace non-word/unapproved chars with _
+        .replace(/_+/g, '_')               // Collapse consecutive underscores
+        .replace(/^_+|_+$/g, '');          // Trim leading/trailing _
+
+      cb(null, `images/${timestamp}_${sanitizedName}`);
     }
   });
 
