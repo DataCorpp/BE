@@ -4,8 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import { s3Client } from '../utils/s3Client';
 
-// File size limit (5MB)
-const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
+// File size limit (10MB) – larger to accommodate high-resolution images
+const FILE_SIZE_LIMIT = 10 * 1024 * 1024;
 
 // Allowed file formats
 const ALLOWED_FORMATS = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -69,13 +69,13 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   cb(new Error('Only .jpg, .jpeg, .png, and .webp formats are allowed'));
 };
 
-// Configure multer
+// Multer instance with enhanced error messages
 export const upload = multer({
   storage,
-  fileFilter: fileFilter,
+  fileFilter,
   limits: {
-    fileSize: FILE_SIZE_LIMIT
-  }
+    fileSize: FILE_SIZE_LIMIT,
+  },
 });
 
 // Export single file upload middleware

@@ -15,10 +15,23 @@ export const uploadFile = async (req: Request, res: Response) => {
     }
 
     const file = req.file as any;
-    const fileKey = file.key; // S3 object key
+    // If using S3 storage, multer-s3 provides `key` and `location`.
+    // If using disk storage, fallback to `filename` and build a pseudo key.
+    const fileKey: string | undefined = file.key || file.filename;
     
-    // Generate a signed URL that expires in 1 hour (3600 seconds)
-    const signedUrl = await generateSignedUrl(fileKey, 3600);
+    // Attempt to generate a signed URL that expires in 1 hour (3600 seconds)
+    // If this fails (e.g., due to missing AWS permissions), we will still return
+    // a successful response containing the fileUrl so that the front-end can
+    // continue working.
+    let signedUrl: string | null = null;
+    if (fileKey) {
+      try {
+        signedUrl = await generateSignedUrl(fileKey, 3600);
+      } catch (signErr) {
+        console.error('Failed to generate signed URL:', signErr);
+        // Continue without signedUrl; front-end can decide how to handle
+      }
+    }
     
     // Store original S3 location for database purposes
     const fileLocation = file.location;
@@ -93,7 +106,7 @@ export const uploadFile = async (req: Request, res: Response) => {
     return res.status(200).json({
       message: 'File uploaded successfully',
       fileUrl: fileLocation, // Original S3 URL (for database storage)
-      signedUrl, // Signed URL for client access (expires in 1 hour)
+      signedUrl, // Signed URL for client access (may be null if generation failed)
       key: fileKey, // S3 object key for generating future signed URLs
       expiresIn: 3600,
       mimetype: file.mimetype,
@@ -180,9 +193,16 @@ export const uploadMultipleFiles = async (req: Request, res: Response) => {
     // Generate signed URLs for each file
     const uploadResults = await Promise.all(
       files.map(async (file) => {
-        const fileKey = file.key;
+        const fileKey: string | undefined = file.key || file.filename;
         const fileLocation = file.location;
-        const signedUrl = await generateSignedUrl(fileKey, 3600);
+        let signedUrl: string | null = null;
+        if (fileKey) {
+          try {
+            signedUrl = await generateSignedUrl(fileKey, 3600);
+          } catch (err) {
+            console.error('Failed to generate signed URL (multiple):', err);
+          }
+        }
         
         return {
           fileUrl: fileLocation,
