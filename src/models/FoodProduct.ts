@@ -31,8 +31,8 @@ export interface IFoodProduct extends Document {
   
   // Description & Media
   description: string; // productDescription in JSON
-  image: string; // productImage in JSON
-  images: string[]; // Added to support multiple images
+  image: string; // productImage in JSON = images[0]
+  images: string[]; // Added to support multiple images 
   
   // Food Details
   foodType: string;

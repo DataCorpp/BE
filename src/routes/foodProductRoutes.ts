@@ -11,7 +11,8 @@ import {
   getFoodTypes,
   uploadProductImages,
   updateProductImage,
-  updateProductImages
+  updateProductImages,
+  deleteProductImage
 } from "../controllers/foodProductController";
 import { protect, manufacturer } from "../middleware/authMiddleware";
 
@@ -38,6 +39,7 @@ router.get("/foodtypes", getFoodTypes);
 router.post("/images", protect, manufacturer, uploadProductImages);
 router.put("/images", protect, manufacturer, updateProductImages);
 router.put("/image", protect, manufacturer, updateProductImage);
+router.delete("/image", protect, deleteProductImage);
 
 // @route   /api/foodproducts/:id
 // @desc    CRUD operations for individual food products

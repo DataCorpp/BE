@@ -20,7 +20,7 @@ export const s3Client = new S3Client(s3Config);
 export const generateSignedUrl = async (key: string, expiresIn: number = 3600): Promise<string> => {
   try {
     const command = new GetObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME || 'datacom-uploads',
+      Bucket: process.env.AWS_S3_BUCKET_NAME || '',
       Key: key
     });
 
@@ -45,7 +45,7 @@ export const deleteObjectFromS3 = async (key: string): Promise<boolean> => {
     }
 
     const command = new DeleteObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME || 'datacom-uploads',
+      Bucket: process.env.AWS_S3_BUCKET_NAME || 'datacom-imgs',
       Key: key
     });
 

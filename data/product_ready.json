@@ -1,0 +1,196 @@
+[
+  {
+    "_id": "6864365fbb226eaf9ad814ff",
+    "manufacturerName": "Kikkoman Corporation",
+    "productName": "Kikkoman Naturally Brewed Soy Sauce",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814eb",
+    "createdAt": "2024-01-15T08:00:00.000Z",
+    "updatedAt": "2024-01-15T08:00:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547a"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81500",
+    "manufacturerName": "Kikkoman Corporation",
+    "productName": "Kikkoman Less Sodium Soy Sauce",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814ec",
+    "createdAt": "2024-01-15T08:15:00.000Z",
+    "updatedAt": "2024-01-15T08:15:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547a"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81501",
+    "manufacturerName": "Yamasa Corporation",
+    "productName": "Yamasa Regular Soy Sauce",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814ed",
+    "createdAt": "2024-01-15T08:30:00.000Z",
+    "updatedAt": "2024-01-15T08:30:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547b"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81502",
+    "manufacturerName": "Yamasa Corporation",
+    "productName": "Yamasa Sushi Soy Sauce",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814ee",
+    "createdAt": "2024-01-15T08:45:00.000Z",
+    "updatedAt": "2024-01-15T08:45:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547b"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81503",
+    "manufacturerName": "Marunaka Brewing Company",
+    "productName": "Marunaka Brewing Soy Sauce (300 mL)",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814ef",
+    "createdAt": "2024-01-15T09:00:00.000Z",
+    "updatedAt": "2024-01-15T09:00:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81504",
+    "manufacturerName": "Marunaka Brewing Company",
+    "productName": "Marunaka Brewing Soy Sauce (720 mL)",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f0",
+    "createdAt": "2024-01-15T09:15:00.000Z",
+    "updatedAt": "2024-01-15T09:15:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81505",
+    "manufacturerName": "Marukome Co., Ltd.",
+    "productName": "Marukome Ryotei no Aji Miso Paste w/ Dashi",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f1",
+    "createdAt": "2024-01-15T09:30:00.000Z",
+    "updatedAt": "2024-01-15T09:30:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547d"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81506",
+    "manufacturerName": "Marukome Co., Ltd.",
+    "productName": "Marukome Instant Miso Soup (4 Flavors, 36 Pack)",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f2",
+    "createdAt": "2024-01-15T09:45:00.000Z",
+    "updatedAt": "2024-01-15T09:45:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547d"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81507",
+    "manufacturerName": "Hikari Miso Co., Ltd.",
+    "productName": "Hikari Daikanjikomi Miso",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f3",
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547e"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81508",
+    "manufacturerName": "Hikari Miso Co., Ltd.",
+    "productName": "Hikari Ginza Kuki Hana Miso",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f4",
+    "createdAt": "2024-01-15T10:15:00.000Z",
+    "updatedAt": "2024-01-15T10:15:00.000Z",
+    "manufacturerId": "68504311bd7da6832650547e"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81509",
+    "manufacturerName": "Shinsyuichi Co., Ltd.",
+    "productName": "Shinsyuichi Miso Paste",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f5",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150a",
+    "manufacturerName": "Shinsyuichi Co., Ltd.",
+    "productName": "Shinsyuichi Instant Miso Soup (8 Pack)",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f6",
+    "createdAt": "2024-01-15T10:45:00.000Z",
+    "updatedAt": "2024-01-15T10:45:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150b",
+    "manufacturerName": "Kenko Foods Co., Ltd.",
+    "productName": "Kenko Japanese Mayonnaise",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f7",
+    "createdAt": "2024-01-15T11:00:00.000Z",
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150c",
+    "manufacturerName": "Kenko Foods Co., Ltd.",
+    "productName": "Kenko Goma Mayo Sesame Dressing",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f8",
+    "createdAt": "2024-01-15T11:15:00.000Z",
+    "updatedAt": "2024-01-15T11:15:00.000Z"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150d",
+    "manufacturerName": "Kewpie Corporation",
+    "productName": "Kewpie Real Mayonnaise Tube",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814f9",
+    "createdAt": "2024-01-15T11:30:00.000Z",
+    "updatedAt": "2024-01-15T11:30:00.000Z",
+    "manufacturerId": "68504311bd7da68326505481"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150e",
+    "manufacturerName": "Kewpie Corporation",
+    "productName": "Kewpie Sushi Mayonnaise Dressing",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814fa",
+    "createdAt": "2024-01-15T11:45:00.000Z",
+    "updatedAt": "2024-01-15T11:45:00.000Z",
+    "manufacturerId": "68504311bd7da68326505481"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad8150f",
+    "manufacturerName": "Mizkan Holdings Co., Ltd.",
+    "productName": "Mizkan Ponzu Citrus Seasoning",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814fb",
+    "createdAt": "2024-01-15T12:00:00.000Z",
+    "updatedAt": "2024-01-15T12:00:00.000Z",
+    "manufacturerId": "68504311bd7da68326505482"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81510",
+    "manufacturerName": "Mizkan Holdings Co., Ltd.",
+    "productName": "Mizkan Honteri Sweet Seasoning",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814fc",
+    "createdAt": "2024-01-15T12:15:00.000Z",
+    "updatedAt": "2024-01-15T12:15:00.000Z",
+    "manufacturerId": "68504311bd7da68326505482"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81511",
+    "manufacturerName": "Otafuku Sauce Co., Ltd.",
+    "productName": "Otafuku Yakiniku Sauce",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814fd",
+    "createdAt": "2024-01-15T12:30:00.000Z",
+    "updatedAt": "2024-01-15T12:30:00.000Z",
+    "manufacturerId": "68504311bd7da68326505483"
+  },
+  {
+    "_id": "6864365fbb226eaf9ad81512",
+    "manufacturerName": "Otafuku Sauce Co., Ltd.",
+    "productName": "Otafuku Okonomi Sauce (1.2 kg)",
+    "type": "food",
+    "productId": "6864365fbb226eaf9ad814fe",
+    "createdAt": "2024-01-15T12:45:00.000Z",
+    "updatedAt": "2024-01-15T12:45:00.000Z",
+    "manufacturerId": "68504311bd7da68326505483"
+  }
+]
