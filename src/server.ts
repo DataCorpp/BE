@@ -104,6 +104,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Configure Express to trust reverse proxy (needed for secure cookies behind Nginx)
+// Accept values:
+//   - If TRUST_PROXY is a valid integer => use that many hops
+//   - If TRUST_PROXY is "true" / "yes" => trust first proxy (1)
+//   - Otherwise default to 1
+const trustProxyEnv = process.env.TRUST_PROXY;
+let trustProxy: any = 1;
+if (trustProxyEnv) {
+  if (/^(true|yes)$/i.test(trustProxyEnv)) {
+    trustProxy = 1;
+  } else if (!isNaN(parseInt(trustProxyEnv, 10))) {
+    trustProxy = parseInt(trustProxyEnv, 10);
+  } else {
+    trustProxy = trustProxyEnv; // allow special strings like 'loopback'
+  }
+}
+app.set("trust proxy", trustProxy);
+
 // Session configuration with MongoDB storage
 app.use(
   session({
@@ -115,11 +133,14 @@ app.use(
       collectionName: "sessions",
       touchAfter: 24 * 3600, // Lazy session update - only update session every 24 hours
     }),
+    proxy: process.env.NODE_ENV === "production", // respect X-Forwarded-* headers when behind a proxy
     cookie: {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      // No explicit domain -> cookie scoped to current host (api.datacorpsolutions.com)
+      domain: undefined
     },
     name: "sessionId", // Custom session name for security
   })

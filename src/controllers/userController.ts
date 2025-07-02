@@ -976,6 +976,14 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
         };
         
         console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+
+        // Clear possible legacy cookies that may exist on parent domain
+        try {
+          res.clearCookie('sessionId', { domain: '.datacorpsolutions.com', path: '/' });
+          res.clearCookie('sessionId', { domain: 'datacorpsolutions.com', path: '/' });
+        } catch (clearErr) {
+          console.warn('Unable to clear legacy cookies:', clearErr);
+        }
         
         // Send response with user data directly at top level
         res.json({
