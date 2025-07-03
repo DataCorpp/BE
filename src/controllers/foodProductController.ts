@@ -1133,4 +1133,102 @@ export const updateProductImages = async (
       res.status(500).json({ message: 'Unknown error occurred' });
     }
   }
+};
+
+// @desc    Delete product image from S3
+// @route   DELETE /api/foodproducts/image
+// @access  Protected
+export const deleteProductImage = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { url, productId } = req.query;
+    
+    if (!url) {
+      res.status(400).json({
+        success: false,
+        message: "Image URL is required"
+      });
+      return;
+    }
+    
+    // Extract the key from the URL
+    const imageKey = extractKeyFromUrl(url as string);
+    
+    if (!imageKey) {
+      res.status(400).json({
+        success: false,
+        message: "Could not extract image key from URL"
+      });
+      return;
+    }
+    
+    // If productId is provided, verify user owns this product
+    if (productId) {
+      // Validate the ID format
+      if (!mongoose.Types.ObjectId.isValid(productId as string)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid product ID format"
+        });
+        return;
+      }
+
+      // Find the product to verify ownership
+      const product = await FoodProduct.findById(productId);
+      
+      if (!product) {
+        res.status(404).json({
+          success: false,
+          message: "Product not found"
+        });
+        return;
+      }
+      
+      // Check if user is the owner (only if user ID is attached to the product)
+      if (product.user && req.user && product.user.toString() !== req.user._id.toString()) {
+        res.status(403).json({
+          success: false,
+          message: "You are not authorized to delete this image"
+        });
+        return;
+      }
+      
+      // Update product to remove this image from the array
+      if (product.image === url) {
+        // If it's the main image, clear it
+        product.image = '';
+      }
+      
+      // If the product has an images array, remove the URL from it
+      if (product.images && Array.isArray(product.images)) {
+        product.images = product.images.filter(img => img !== url);
+      }
+      
+      // Save the product
+      await product.save();
+    }
+    
+    // Delete the image from S3
+    const deleted = await deleteObjectFromS3(imageKey);
+    
+    if (deleted) {
+      res.status(200).json({
+        success: true,
+        message: "Image deleted successfully"
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete image from storage"
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting product image:", error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "An unknown error occurred"
+    });
+  }
 }; 
