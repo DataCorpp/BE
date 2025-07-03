@@ -1,1451 +1,1449 @@
-[
-  {
-    "_id": "68504311bd7da6832650547a",
-    "name": "Kikkoman Corporation",
-    "email": "info@kikkoman.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Kikkoman Corporation",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-15T10:30:00.000Z",
-    "phone": "+81-4-7123-5111",
-    "website": "https://www.kikkoman.com",
-    "websiteUrl": "https://www.kikkoman.com",
-    "address": "250 Noda, Noda-shi, Chiba 278-8601, Japan; Tokyo: 2-1-1 Nishi-Shinbashi, Minato-ku, Tokyo 105-8428, Japan",
-    "description": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
-    "companyDescription": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
-    "avatar": "https://www.kikkoman.com/_resources/images/logo.png",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 9001, FSSC 22000, Halal, GFSI",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Condiments",
-        "Soy Sauce"
-      ],
-      "interests": [
-        "Traditional Brewing",
-        "Quality Manufacturing",
-        "Global Distribution"
-      ],
-      "lookingFor": [
-        "Partnership",
-        "Distribution",
-        "Retail Opportunities"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 1000000,
-      "certifications": [
-        "ISO 9001",
-        "FSSC 22000",
-        "Halal",
-        "GFSI"
-      ],
-      "preferredCategories": [
-        "Soy Sauce",
-        "Seasonings",
-        "Condiments"
-      ],
-      "minimumOrderValue": 10000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z",
-    "establish": 1917
+[{
+  "_id": "68504311bd7da6832650547a",
+  "name": "Kikkoman Corporation",
+  "email": "info@kikkoman.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Kikkoman Corporation",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-15T10:30:00.000Z",
+  "phone": "+81-4-7123-5111",
+  "website": "https://www.kikkoman.com",
+  "websiteUrl": "https://www.kikkoman.com",
+  "address": "250 Noda, Noda-shi, Chiba 278-8601, Japan; Tokyo: 2-1-1 Nishi-Shinbashi, Minato-ku, Tokyo 105-8428, Japan",
+  "description": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
+  "companyDescription": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/1%2C+Kikkoman+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 9001, FSSC 22000, Halal, GFSI",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Condiments",
+      "Soy Sauce"
+    ],
+    "interests": [
+      "Traditional Brewing",
+      "Quality Manufacturing",
+      "Global Distribution"
+    ],
+    "lookingFor": [
+      "Partnership",
+      "Distribution",
+      "Retail Opportunities"
+    ]
   },
-  {
-    "_id": "68504311bd7da6832650547b",
-    "name": "Yamasa Corporation",
-    "email": "contact@yamasa.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Yamasa Corporation",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-14T09:15:00.000Z",
-    "phone": "+81-479-22-0095",
-    "website": "https://www.yamasa.com",
-    "websiteUrl": "https://www.yamasa.com",
-    "address": "2-10-1 Araoicho, Choshi, Chiba 288-0056, Japan",
-    "description": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
-    "companyDescription": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "FSSC 22000, HACCP, GFSI",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Traditional Foods",
-        "Soy Sauce"
-      ],
-      "interests": [
-        "Traditional Manufacturing",
-        "Heritage Products",
-        "Quality Control"
-      ],
-      "lookingFor": [
-        "Partnership",
-        "Export Opportunities",
-        "Distribution"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 800000,
-      "certifications": [
-        "FSSC 22000",
-        "HACCP",
-        "GFSI"
-      ],
-      "preferredCategories": [
-        "Soy Sauce",
-        "Seasonings",
-        "Traditional Foods"
-      ],
-      "minimumOrderValue": 8000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-14T09:15:00.000Z",
-    "establish": 1645
+  "manufacturerSettings": {
+    "productionCapacity": 1000000,
+    "certifications": [
+      "ISO 9001",
+      "FSSC 22000",
+      "Halal",
+      "GFSI"
+    ],
+    "preferredCategories": [
+      "Soy Sauce",
+      "Seasonings",
+      "Condiments"
+    ],
+    "minimumOrderValue": 10000
   },
-  {
-    "_id": "68504311bd7da6832650547c",
-    "name": "Marunaka Shoyu Co., Ltd.",
-    "email": "info@marunaka-shouyu.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Marunaka Shoyu Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-13T14:20:00.000Z",
-    "phone": "0749-37-2719",
-    "website": "https://www.marunaka-shouyu.com",
-    "websiteUrl": "https://www.marunaka-shouyu.com",
-    "address": "229, HIGASHIDE, AISHOCHO, ECHI-GUN, SHIGA 529-1233, Japan",
-    "description": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
-    "companyDescription": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "National Tangible Cultural Property",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Traditional Crafts",
-        "Premium Products"
-      ],
-      "interests": [
-        "Traditional Methods",
-        "Heritage Preservation",
-        "Artisan Quality"
-      ],
-      "lookingFor": [
-        "Premium Market",
-        "Cultural Exchange",
-        "Specialty Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 50000,
-      "certifications": [
-        "National Tangible Cultural Property"
-      ],
-      "preferredCategories": [
-        "Premium Soy Sauce",
-        "Traditional Foods",
-        "Artisan Products"
-      ],
-      "minimumOrderValue": 5000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-13T14:20:00.000Z",
-    "establish": 1907
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
   },
-  {
-    "_id": "68504311bd7da6832650547d",
-    "name": "Marukome Co., Ltd.",
-    "email": "info@marukome.co.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Marukome Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-12T11:45:00.000Z",
-    "phone": "0120-060-070",
-    "website": "http://www.marukome.co.jp",
-    "websiteUrl": "http://www.marukome.co.jp",
-    "address": "883 Amori, Nagano-shi, Nagano Prefecture 380-8533, Japan",
-    "description": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
-    "companyDescription": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 22000",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Soup Products",
-        "Traditional Foods"
-      ],
-      "interests": [
-        "Miso Production",
-        "Traditional Recipes",
-        "Health Foods"
-      ],
-      "lookingFor": [
-        "Distribution",
-        "Health Food Market",
-        "International Expansion"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 600000,
-      "certifications": [
-        "ISO 22000"
-      ],
-      "preferredCategories": [
-        "Miso",
-        "Soup Products",
-        "Traditional Foods"
-      ],
-      "minimumOrderValue": 7000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-12T11:45:00.000Z",
-    "establish": 1854
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
   },
-  {
-    "_id": "68504311bd7da6832650547e",
-    "name": "Hikari Miso Co., Ltd.",
-    "email": "info@hikarimiso.co.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Hikari Miso Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-11T08:30:00.000Z",
-    "phone": "+81-266-27-1111",
-    "website": "https://hikarimiso.com",
-    "websiteUrl": "https://hikarimiso.com",
-    "address": "4848-1 Shimosuwa, Suwa-gun, Nagano 393-0041, Japan",
-    "description": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
-    "companyDescription": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "JAS Organic, USDA Certified Organic, EU Organic, OCIA",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Organic Foods",
-        "Health Products"
-      ],
-      "interests": [
-        "Organic Production",
-        "Sustainable Manufacturing",
-        "Health Foods"
-      ],
-      "lookingFor": [
-        "Organic Market",
-        "Health Food Retailers",
-        "International Distribution"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 300000,
-      "certifications": [
-        "JAS Organic",
-        "USDA Certified Organic",
-        "EU Organic",
-        "OCIA"
-      ],
-      "preferredCategories": [
-        "Organic Miso",
-        "Health Foods",
-        "Organic Products"
-      ],
-      "minimumOrderValue": 6000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-11T08:30:00.000Z",
-    "establish": 1936
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-15T10:30:00.000Z",
+  "establish": 1917
+},
+{
+  "_id": "68504311bd7da6832650547b",
+  "name": "Yamasa Corporation",
+  "email": "contact@yamasa.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Yamasa Corporation",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-14T09:15:00.000Z",
+  "phone": "+81-479-22-0095",
+  "website": "https://www.yamasa.com",
+  "websiteUrl": "https://www.yamasa.com",
+  "address": "2-10-1 Araoicho, Choshi, Chiba 288-0056, Japan",
+  "description": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
+  "companyDescription": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/2%2C+Yamasa+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "FSSC 22000, HACCP, GFSI",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Traditional Foods",
+      "Soy Sauce"
+    ],
+    "interests": [
+      "Traditional Manufacturing",
+      "Heritage Products",
+      "Quality Control"
+    ],
+    "lookingFor": [
+      "Partnership",
+      "Export Opportunities",
+      "Distribution"
+    ]
   },
-  {
-    "_id": "68504311bd7da6832650547f",
-    "name": "Shinsyuichi Miso Co., Ltd.",
-    "email": "contact@shinsyuichi.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Shinsyuichi Miso Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-10T16:15:00.000Z",
-    "phone": "+81-3-5796-1176",
-    "website": "https://www.shinsyuichi.jp/english",
-    "websiteUrl": "https://www.shinsyuichi.jp/english",
-    "address": "Yebisu Garden Place, 4-20-1 Ebisu, Shibuya-ku, Tokyo 150-0013, Japan",
-    "description": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
-    "companyDescription": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "USDA Organic, Kosher",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Traditional Foods",
-        "Health Products"
-      ],
-      "interests": [
-        "Traditional Methods",
-        "Health Diet",
-        "Quality Products"
-      ],
-      "lookingFor": [
-        "Health Market",
-        "Traditional Food Retailers",
-        "Export Opportunities"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 200000,
-      "certifications": [
-        "USDA Organic",
-        "Kosher"
-      ],
-      "preferredCategories": [
-        "Miso",
-        "Traditional Foods",
-        "Health Products"
-      ],
-      "minimumOrderValue": 5500
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-10T16:15:00.000Z",
-    "establish": 1662
+  "manufacturerSettings": {
+    "productionCapacity": 800000,
+    "certifications": [
+      "FSSC 22000",
+      "HACCP",
+      "GFSI"
+    ],
+    "preferredCategories": [
+      "Soy Sauce",
+      "Seasonings",
+      "Traditional Foods"
+    ],
+    "minimumOrderValue": 8000
   },
-  {
-    "_id": "68504311bd7da68326505480",
-    "name": "Kenko Mayonnaise Co., Ltd.",
-    "email": "info@kenkomayo.co.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Kenko Mayonnaise Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-09T13:20:00.000Z",
-    "phone": "+81-3-5962-7777",
-    "website": "https://www.kenkomayo.co.jp",
-    "websiteUrl": "https://www.kenkomayo.co.jp",
-    "address": "3-8-13 Takaido-Higashi No.3 Bldg., Suginami-ku, Tokyo 168-0072, Japan",
-    "description": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
-    "companyDescription": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "Halal (MUI), ISO 22000",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Condiments",
-        "Prepared Foods"
-      ],
-      "interests": [
-        "Mayonnaise Production",
-        "Food Safety",
-        "Halal Products"
-      ],
-      "lookingFor": [
-        "Retail Distribution",
-        "Food Service",
-        "Halal Market"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 400000,
-      "certifications": [
-        "Halal (MUI)",
-        "ISO 22000"
-      ],
-      "preferredCategories": [
-        "Mayonnaise",
-        "Dressings",
-        "Sauces",
-        "Prepared Foods"
-      ],
-      "minimumOrderValue": 6500
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-09T13:20:00.000Z",
-    "establish": 1958
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505481",
-    "name": "Kewpie Corporation",
-    "email": "makoto_onodera@kewpie.co.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Kewpie Corporation",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-08T10:45:00.000Z",
-    "phone": "+81-3-3486-3331",
-    "website": "https://www.kewpie.com/en/",
-    "websiteUrl": "https://www.kewpie.com/en/",
-    "address": "1-4-13 Shibuya, Shibuya-ku, Tokyo 150-0002, Japan",
-    "description": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
-    "companyDescription": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "GFSI, ISO 14001, Outstanding Health and Productivity Management",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Mayonnaise",
-        "Baby Food"
-      ],
-      "interests": [
-        "Quality Manufacturing",
-        "Brand Excellence",
-        "Health Management"
-      ],
-      "lookingFor": [
-        "Global Distribution",
-        "Premium Market",
-        "Brand Partnership"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 1500000,
-      "certifications": [
-        "GFSI",
-        "ISO 14001",
-        "Outstanding Health and Productivity Management"
-      ],
-      "preferredCategories": [
-        "Mayonnaise",
-        "Dressings",
-        "Baby Food",
-        "Prepared Foods"
-      ],
-      "minimumOrderValue": 12000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-08T10:45:00.000Z",
-    "establish": 1925
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505482",
-    "name": "Mizkan Holdings Co., Ltd.",
-    "email": "info@mizkan.co.jp",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Mizkan Holdings Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-07T15:30:00.000Z",
-    "phone": "+81-569-21-3331",
-    "website": "https://www.mizkan.com",
-    "websiteUrl": "https://www.mizkan.com",
-    "address": "2-6 Nakamura-cho, Handa City, Aichi Prefecture 475-8585, Japan",
-    "description": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
-    "companyDescription": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Vinegar",
-        "Traditional Foods"
-      ],
-      "interests": [
-        "Traditional Brewing",
-        "Quality Control",
-        "Environmental Management"
-      ],
-      "lookingFor": [
-        "International Expansion",
-        "Food Service",
-        "Retail Partnership"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 2000000,
-      "certifications": [
-        "ISO 22000",
-        "GFSI",
-        "ISO 14001",
-        "Outstanding Health and Productivity Management"
-      ],
-      "preferredCategories": [
-        "Vinegar",
-        "Sauces",
-        "Dressings",
-        "Condiments"
-      ],
-      "minimumOrderValue": 15000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-07T15:30:00.000Z",
-    "establish": 1804
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-14T09:15:00.000Z",
+  "establish": 1645
+},
+{
+  "_id": "68504311bd7da6832650547c",
+  "name": "Marunaka Shoyu Co., Ltd.",
+  "email": "info@marunaka-shouyu.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Marunaka Shoyu Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-13T14:20:00.000Z",
+  "phone": "0749-37-2719",
+  "website": "https://www.marunaka-shouyu.com",
+  "websiteUrl": "https://www.marunaka-shouyu.com",
+  "address": "229, HIGASHIDE, AISHOCHO, ECHI-GUN, SHIGA 529-1233, Japan",
+  "description": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
+  "companyDescription": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/3%2C+Marunaka+Shoyu+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "National Tangible Cultural Property",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Traditional Crafts",
+      "Premium Products"
+    ],
+    "interests": [
+      "Traditional Methods",
+      "Heritage Preservation",
+      "Artisan Quality"
+    ],
+    "lookingFor": [
+      "Premium Market",
+      "Cultural Exchange",
+      "Specialty Retailers"
+    ]
   },
-  {
-    "_id": "68504311bd7da68326505483",
-    "name": "Otafuku Sauce Co., Ltd.",
-    "email": "info@otafukusauce.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Otafuku Sauce Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-06T12:10:00.000Z",
-    "phone": "+81-3-5796-1176",
-    "website": "https://otafukusauce.com/e",
-    "websiteUrl": "https://otafukusauce.com/e",
-    "address": "1-1-10 Higashi-Shinbashi, Minato-ku, Tokyo 105-0004, Japan",
-    "description": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
-    "companyDescription": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Japanese Cuisine",
-        "Specialty Sauces"
-      ],
-      "interests": [
-        "Traditional Japanese Flavors",
-        "Quality Manufacturing",
-        "Cultural Foods"
-      ],
-      "lookingFor": [
-        "International Market",
-        "Japanese Restaurant Chain",
-        "Specialty Food Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 800000,
-      "certifications": [
-        "ISO 22000",
-        "GFSI",
-        "ISO 14001",
-        "Outstanding Health and Productivity Management"
-      ],
-      "preferredCategories": [
-        "Okonomiyaki Sauce",
-        "Yakisoba Sauce",
-        "Japanese Sauces",
-        "Specialty Condiments"
-      ],
-      "minimumOrderValue": 9000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-06T12:10:00.000Z",
-    "establish": 1922
+  "manufacturerSettings": {
+    "productionCapacity": 50000,
+    "certifications": [
+      "National Tangible Cultural Property"
+    ],
+    "preferredCategories": [
+      "Premium Soy Sauce",
+      "Traditional Foods",
+      "Artisan Products"
+    ],
+    "minimumOrderValue": 5000
   },
-  {
-    "_id": "68504311bd7da68326505484",
-    "name": "Lee Kum Kee Co., Ltd.",
-    "email": "info@lkk.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Lee Kum Kee Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-05T14:25:00.000Z",
-    "phone": "+852-2888-3888",
-    "website": "https://www.lkk.com",
-    "websiteUrl": "https://www.lkk.com",
-    "address": "Lee Kum Kee Building, 8 Tai Yip Street, Chai Wan, Hong Kong",
-    "description": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
-    "companyDescription": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "HACCP, ISO 22000, SQF, BRC",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Asian Cuisine",
-        "Chinese Sauces"
-      ],
-      "interests": [
-        "Traditional Chinese Flavors",
-        "Premium Quality",
-        "International Expansion"
-      ],
-      "lookingFor": [
-        "Global Distribution",
-        "Asian Food Market",
-        "Premium Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 1200000,
-      "certifications": [
-        "HACCP",
-        "ISO 22000",
-        "SQF",
-        "BRC"
-      ],
-      "preferredCategories": [
-        "Oyster Sauce",
-        "Soy Sauce",
-        "Chinese Condiments",
-        "Asian Sauces"
-      ],
-      "minimumOrderValue": 11000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-05T14:25:00.000Z",
-    "establish": 1888
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505485",
-    "name": "Barilla G. e R. Fratelli S.p.A.",
-    "email": "info@barilla.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Barilla G. e R. Fratelli S.p.A.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-04T09:40:00.000Z",
-    "phone": "+39-0521-262626",
-    "website": "https://www.barilla.com",
-    "websiteUrl": "https://www.barilla.com",
-    "address": "Via Mantova 166, 43122 Parma, Italy",
-    "description": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
-    "companyDescription": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, IFS",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Pasta",
-        "Italian Cuisine"
-      ],
-      "interests": [
-        "Sustainable Production",
-        "Italian Heritage",
-        "Quality Excellence"
-      ],
-      "lookingFor": [
-        "Global Expansion",
-        "Premium Market",
-        "Sustainable Partnerships"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 3500000,
-      "certifications": [
-        "ISO 9001",
-        "ISO 14001",
-        "OHSAS 18001",
-        "BRC",
-        "IFS"
-      ],
-      "preferredCategories": [
-        "Pasta",
-        "Pasta Sauces",
-        "Italian Foods",
-        "Grain Products"
-      ],
-      "minimumOrderValue": 20000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-04T09:40:00.000Z",
-    "establish": 1877
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505486",
-    "name": "Maesri (Thai) Co., Ltd.",
-    "email": "export@maesri.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Maesri (Thai) Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-03T16:55:00.000Z",
-    "phone": "+66-2-429-3636",
-    "website": "https://www.maesri.com",
-    "websiteUrl": "https://www.maesri.com",
-    "address": "898/1 Moo 1, Bangpoo Industrial Estate, Sukhumvit Road, Samutprakarn 10280, Thailand",
-    "description": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
-    "companyDescription": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "HACCP, GMP, Halal (CICOT), Kosher",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Thai Cuisine",
-        "Ethnic Foods"
-      ],
-      "interests": [
-        "Authentic Thai Flavors",
-        "Traditional Recipes",
-        "Export Excellence"
-      ],
-      "lookingFor": [
-        "International Distribution",
-        "Asian Food Chains",
-        "Ethnic Food Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 600000,
-      "certifications": [
-        "HACCP",
-        "GMP",
-        "Halal (CICOT)",
-        "Kosher"
-      ],
-      "preferredCategories": [
-        "Curry Paste",
-        "Coconut Cream",
-        "Thai Condiments",
-        "Ethnic Foods"
-      ],
-      "minimumOrderValue": 8500
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-03T16:55:00.000Z",
-    "establish": 1966
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-13T14:20:00.000Z",
+  "establish": 1907
+},
+{
+  "_id": "68504311bd7da6832650547d",
+  "name": "Marukome Co., Ltd.",
+  "email": "info@marukome.co.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Marukome Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-12T11:45:00.000Z",
+  "phone": "0120-060-070",
+  "website": "http://www.marukome.co.jp",
+  "websiteUrl": "http://www.marukome.co.jp",
+  "address": "883 Amori, Nagano-shi, Nagano Prefecture 380-8533, Japan",
+  "description": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
+  "companyDescription": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/4%2C+Marukome+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 22000",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Soup Products",
+      "Traditional Foods"
+    ],
+    "interests": [
+      "Miso Production",
+      "Traditional Recipes",
+      "Health Foods"
+    ],
+    "lookingFor": [
+      "Distribution",
+      "Health Food Market",
+      "International Expansion"
+    ]
   },
-  {
-    "_id": "68504311bd7da68326505487",
-    "name": "Knorr (Unilever)",
-    "email": "contact@unilever.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Knorr (Unilever)",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-02T11:30:00.000Z",
-    "phone": "+44-20-7822-5252",
-    "website": "https://www.knorr.com",
-    "websiteUrl": "https://www.knorr.com",
-    "address": "Unilever House, 100 Victoria Embankment, London EC4Y 0DY, United Kingdom",
-    "description": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
-    "companyDescription": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, Rainforest Alliance",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Seasonings",
-        "Convenience Foods"
-      ],
-      "interests": [
-        "Sustainable Sourcing",
-        "Global Reach",
-        "Innovation"
-      ],
-      "lookingFor": [
-        "Global Partnership",
-        "Sustainable Supply Chain",
-        "Market Expansion"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 5000000,
-      "certifications": [
-        "ISO 9001",
-        "ISO 14001",
-        "OHSAS 18001",
-        "BRC",
-        "Rainforest Alliance"
-      ],
-      "preferredCategories": [
-        "Soups",
-        "Bouillons",
-        "Seasonings",
-        "Convenience Foods"
-      ],
-      "minimumOrderValue": 25000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-02T11:30:00.000Z",
-    "establish": 1838
+  "manufacturerSettings": {
+    "productionCapacity": 600000,
+    "certifications": [
+      "ISO 22000"
+    ],
+    "preferredCategories": [
+      "Miso",
+      "Soup Products",
+      "Traditional Foods"
+    ],
+    "minimumOrderValue": 7000
   },
-  {
-    "_id": "68504311bd7da68326505488",
-    "name": "Ajinomoto Co., Inc.",
-    "email": "info@ajinomoto.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Ajinomoto Co., Inc.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2024-01-01T08:15:00.000Z",
-    "phone": "+81-3-5250-8111",
-    "website": "https://www.ajinomoto.com",
-    "websiteUrl": "https://www.ajinomoto.com",
-    "address": "15-1 Kyoboshi 1-chome, Chuo-ku, Tokyo 104-8315, Japan",
-    "description": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
-    "companyDescription": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 9001, ISO 14001, FSSC 22000, Halal, Kosher",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Food Ingredients",
-        "Seasonings"
-      ],
-      "interests": [
-        "Umami Research",
-        "Food Innovation",
-        "Nutritional Science"
-      ],
-      "lookingFor": [
-        "Global Food Industry",
-        "R&D Partnership",
-        "Innovation Collaboration"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 4000000,
-      "certifications": [
-        "ISO 9001",
-        "ISO 14001",
-        "FSSC 22000",
-        "Halal",
-        "Kosher"
-      ],
-      "preferredCategories": [
-        "MSG",
-        "Amino Acids",
-        "Seasonings",
-        "Food Ingredients"
-      ],
-      "minimumOrderValue": 18000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T08:15:00.000Z",
-    "establish": 1909
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505489",
-    "name": "McCormick & Company, Inc.",
-    "email": "info@mccormick.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "McCormick & Company, Inc.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2023-12-31T15:45:00.000Z",
-    "phone": "+1-410-771-7301",
-    "website": "https://www.mccormick.com",
-    "websiteUrl": "https://www.mccormick.com",
-    "address": "18 Loveton Circle, Sparks, MD 21152, USA",
-    "description": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
-    "companyDescription": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "SQF, BRC, ISO 9001, Organic Certified, Non-GMO Project Verified",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Spices",
-        "Flavor Innovation"
-      ],
-      "interests": [
-        "Flavor Leadership",
-        "Sustainable Sourcing",
-        "Culinary Innovation"
-      ],
-      "lookingFor": [
-        "Global Distribution",
-        "Culinary Partnerships",
-        "Innovation Collaboration"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 2800000,
-      "certifications": [
-        "SQF",
-        "BRC",
-        "ISO 9001",
-        "Organic Certified",
-        "Non-GMO Project Verified"
-      ],
-      "preferredCategories": [
-        "Spices",
-        "Seasonings",
-        "Herbs",
-        "Flavor Solutions"
-      ],
-      "minimumOrderValue": 16000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2023-12-31T15:45:00.000Z",
-    "establish": 1889
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505490",
-    "name": "Maggi (Nestlé S.A.)",
-    "email": "contact@nestle.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Maggi (Nestlé S.A.)",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2023-12-30T13:20:00.000Z",
-    "phone": "+41-21-924-2111",
-    "website": "https://www.maggi.com",
-    "websiteUrl": "https://www.maggi.com",
-    "address": "Avenue Nestlé 55, 1800 Vevey, Switzerland",
-    "description": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
-    "companyDescription": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "ISO 9001, ISO 14001, FSSC 22000, Rainforest Alliance, UTZ",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Convenience Foods",
-        "Instant Products"
-      ],
-      "interests": [
-        "Convenience Innovation",
-        "Global Reach",
-        "Nutritional Enhancement"
-      ],
-      "lookingFor": [
-        "Global Partnership",
-        "Emerging Markets",
-        "Convenience Food Sector"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 6000000,
-      "certifications": [
-        "ISO 9001",
-        "ISO 14001",
-        "FSSC 22000",
-        "Rainforest Alliance",
-        "UTZ"
-      ],
-      "preferredCategories": [
-        "Instant Soups",
-        "Bouillon Cubes",
-        "Sauces",
-        "Convenience Foods"
-      ],
-      "minimumOrderValue": 30000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2023-12-30T13:20:00.000Z",
-    "establish": 1884
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-12T11:45:00.000Z",
+  "establish": 1854
+},
+{
+  "_id": "68504311bd7da6832650547e",
+  "name": "Hikari Miso Co., Ltd.",
+  "email": "info@hikarimiso.co.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Hikari Miso Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-11T08:30:00.000Z",
+  "phone": "+81-266-27-1111",
+  "website": "https://hikarimiso.com",
+  "websiteUrl": "https://hikarimiso.com",
+  "address": "4848-1 Shimosuwa, Suwa-gun, Nagano 393-0041, Japan",
+  "description": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
+  "companyDescription": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/5%2C+Hikari+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "JAS Organic, USDA Certified Organic, EU Organic, OCIA",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Organic Foods",
+      "Health Products"
+    ],
+    "interests": [
+      "Organic Production",
+      "Sustainable Manufacturing",
+      "Health Foods"
+    ],
+    "lookingFor": [
+      "Organic Market",
+      "Health Food Retailers",
+      "International Distribution"
+    ]
   },
-  {
-    "_id": "68504311bd7da68326505491",
-    "name": "Sriracha Panich Co., Ltd.",
-    "email": "info@srirachapanich.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Sriracha Panich Co., Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2023-12-29T10:35:00.000Z",
-    "phone": "+66-38-311-368",
-    "website": "https://www.srirachapanich.com",
-    "websiteUrl": "https://www.srirachapanich.com",
-    "address": "79/3 Moo 6, Sriracha District, Chonburi 20110, Thailand",
-    "description": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
-    "companyDescription": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "GMP, HACCP, Halal (CICOT), Thai FDA",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Hot Sauce",
-        "Thai Condiments"
-      ],
-      "interests": [
-        "Authentic Thai Flavor",
-        "Traditional Recipe",
-        "Quality Spices"
-      ],
-      "lookingFor": [
-        "International Market",
-        "Spicy Food Enthusiasts",
-        "Authentic Food Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 350000,
-      "certifications": [
-        "GMP",
-        "HACCP",
-        "Halal (CICOT)",
-        "Thai FDA"
-      ],
-      "preferredCategories": [
-        "Sriracha Sauce",
-        "Chili Sauce",
-        "Hot Sauce",
-        "Thai Condiments"
-      ],
-      "minimumOrderValue": 7500
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2023-12-29T10:35:00.000Z",
-    "establish": 1949
+  "manufacturerSettings": {
+    "productionCapacity": 300000,
+    "certifications": [
+      "JAS Organic",
+      "USDA Certified Organic",
+      "EU Organic",
+      "OCIA"
+    ],
+    "preferredCategories": [
+      "Organic Miso",
+      "Health Foods",
+      "Organic Products"
+    ],
+    "minimumOrderValue": 6000
   },
-  {
-    "_id": "68504311bd7da68326505492",
-    "name": "Cholula Food Company",
-    "email": "info@cholula.com",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Cholula Food Company",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2023-12-28T14:50:00.000Z",
-    "phone": "+52-222-283-0900",
-    "website": "https://www.cholula.com",
-    "websiteUrl": "https://www.cholula.com",
-    "address": "Carretera México-Puebla Km 116.5, Chapulco, Puebla 74230, Mexico",
-    "description": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
-    "companyDescription": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "SQF, BRC, HACCP, Kosher, Gluten-Free",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Mexican Cuisine",
-        "Hot Sauce"
-      ],
-      "interests": [
-        "Authentic Mexican Flavor",
-        "Premium Quality",
-        "Traditional Recipe"
-      ],
-      "lookingFor": [
-        "International Expansion",
-        "Mexican Food Market",
-        "Premium Food Retailers"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 450000,
-      "certifications": [
-        "SQF",
-        "BRC",
-        "HACCP",
-        "Kosher",
-        "Gluten-Free"
-      ],
-      "preferredCategories": [
-        "Hot Sauce",
-        "Mexican Condiments",
-        "Chili Products",
-        "Specialty Sauces"
-      ],
-      "minimumOrderValue": 8000
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2023-12-28T14:50:00.000Z",
-    "establish": 1989
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
   },
-  {
-    "_id": "68504311bd7da68326505493",
-    "name": "Pataks Foods Ltd.",
-    "email": "info@pataks.co.uk",
-    "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
-    "companyName": "Pataks Foods Ltd.",
-    "role": "manufacturer",
-    "status": "active",
-    "profileComplete": true,
-    "lastLogin": "2023-12-27T09:25:00.000Z",
-    "phone": "+44-151-486-3988",
-    "website": "https://www.pataks.co.uk",
-    "websiteUrl": "https://www.pataks.co.uk",
-    "address": "Patak's Foods Ltd, Lockwood Road, Huddersfield HD1 3QX, United Kingdom",
-    "description": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
-    "companyDescription": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
-    "avatar": "",
-    "industry": "Food and Beverage",
-    "certificates": "BRC, ISO 9001, Halal (HFA), Kosher, Vegetarian Society",
-    "connectionPreferences": {
-      "connectWith": [
-        "brand",
-        "retailer"
-      ],
-      "industryInterests": [
-        "Food and Beverage",
-        "Indian Cuisine",
-        "Ethnic Foods"
-      ],
-      "interests": [
-        "Authentic Indian Recipes",
-        "Quality Spices",
-        "Cultural Heritage"
-      ],
-      "lookingFor": [
-        "Global Indian Food Market",
-        "Ethnic Food Retailers",
-        "Restaurant Chains"
-      ]
-    },
-    "manufacturerSettings": {
-      "productionCapacity": 750000,
-      "certifications": [
-        "BRC",
-        "ISO 9001",
-        "Halal (HFA)",
-        "Kosher",
-        "Vegetarian Society"
-      ],
-      "preferredCategories": [
-        "Curry Pastes",
-        "Indian Sauces",
-        "Spice Blends",
-        "Ethnic Foods"
-      ],
-      "minimumOrderValue": 9500
-    },
-    "brandSettings": {
-      "marketSegments": [],
-      "brandValues": [],
-      "targetDemographics": [],
-      "productCategories": []
-    },
-    "retailerSettings": {
-      "storeLocations": 0,
-      "averageOrderValue": 0,
-      "customerBase": [],
-      "preferredCategories": []
-    },
-    "notifications": 0,
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2023-12-27T09:25:00.000Z",
-    "establish": 1957
-  }
-]
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-11T08:30:00.000Z",
+  "establish": 1936
+},
+{
+  "_id": "68504311bd7da6832650547f",
+  "name": "Shinsyuichi Miso Co., Ltd.",
+  "email": "contact@shinsyuichi.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Shinsyuichi Miso Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-10T16:15:00.000Z",
+  "phone": "+81-3-5796-1176",
+  "website": "https://www.shinsyuichi.jp/english",
+  "websiteUrl": "https://www.shinsyuichi.jp/english",
+  "address": "Yebisu Garden Place, 4-20-1 Ebisu, Shibuya-ku, Tokyo 150-0013, Japan",
+  "description": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
+  "companyDescription": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/6%2C+Shinsyuichi+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "USDA Organic, Kosher",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Traditional Foods",
+      "Health Products"
+    ],
+    "interests": [
+      "Traditional Methods",
+      "Health Diet",
+      "Quality Products"
+    ],
+    "lookingFor": [
+      "Health Market",
+      "Traditional Food Retailers",
+      "Export Opportunities"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 200000,
+    "certifications": [
+      "USDA Organic",
+      "Kosher"
+    ],
+    "preferredCategories": [
+      "Miso",
+      "Traditional Foods",
+      "Health Products"
+    ],
+    "minimumOrderValue": 5500
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-10T16:15:00.000Z",
+  "establish": 1662
+},
+{
+  "_id": "68504311bd7da68326505480",
+  "name": "Kenko Mayonnaise Co., Ltd.",
+  "email": "info@kenkomayo.co.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Kenko Mayonnaise Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-09T13:20:00.000Z",
+  "phone": "+81-3-5962-7777",
+  "website": "https://www.kenkomayo.co.jp",
+  "websiteUrl": "https://www.kenkomayo.co.jp",
+  "address": "3-8-13 Takaido-Higashi No.3 Bldg., Suginami-ku, Tokyo 168-0072, Japan",
+  "description": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
+  "companyDescription": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/7%2C+Kenko+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "Halal (MUI), ISO 22000",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Condiments",
+      "Prepared Foods"
+    ],
+    "interests": [
+      "Mayonnaise Production",
+      "Food Safety",
+      "Halal Products"
+    ],
+    "lookingFor": [
+      "Retail Distribution",
+      "Food Service",
+      "Halal Market"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 400000,
+    "certifications": [
+      "Halal (MUI)",
+      "ISO 22000"
+    ],
+    "preferredCategories": [
+      "Mayonnaise",
+      "Dressings",
+      "Sauces",
+      "Prepared Foods"
+    ],
+    "minimumOrderValue": 6500
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-09T13:20:00.000Z",
+  "establish": 1958
+},
+{
+  "_id": "68504311bd7da68326505481",
+  "name": "Kewpie Corporation",
+  "email": "makoto_onodera@kewpie.co.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Kewpie Corporation",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-08T10:45:00.000Z",
+  "phone": "+81-3-3486-3331",
+  "website": "https://www.kewpie.com/en/",
+  "websiteUrl": "https://www.kewpie.com/en/",
+  "address": "1-4-13 Shibuya, Shibuya-ku, Tokyo 150-0002, Japan",
+  "description": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
+  "companyDescription": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/8%2C+Kewpie+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "GFSI, ISO 14001, Outstanding Health and Productivity Management",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Mayonnaise",
+      "Baby Food"
+    ],
+    "interests": [
+      "Quality Manufacturing",
+      "Brand Excellence",
+      "Health Management"
+    ],
+    "lookingFor": [
+      "Global Distribution",
+      "Premium Market",
+      "Brand Partnership"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 1500000,
+    "certifications": [
+      "GFSI",
+      "ISO 14001",
+      "Outstanding Health and Productivity Management"
+    ],
+    "preferredCategories": [
+      "Mayonnaise",
+      "Dressings",
+      "Baby Food",
+      "Prepared Foods"
+    ],
+    "minimumOrderValue": 12000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-08T10:45:00.000Z",
+  "establish": 1925
+},
+{
+  "_id": "68504311bd7da68326505482",
+  "name": "Mizkan Holdings Co., Ltd.",
+  "email": "info@mizkan.co.jp",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Mizkan Holdings Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-07T15:30:00.000Z",
+  "phone": "+81-569-21-3331",
+  "website": "https://www.mizkan.com",
+  "websiteUrl": "https://www.mizkan.com",
+  "address": "2-6 Nakamura-cho, Handa City, Aichi Prefecture 475-8585, Japan",
+  "description": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
+  "companyDescription": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/9%2C+Mizkan+Holdings+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Vinegar",
+      "Traditional Foods"
+    ],
+    "interests": [
+      "Traditional Brewing",
+      "Quality Control",
+      "Environmental Management"
+    ],
+    "lookingFor": [
+      "International Expansion",
+      "Food Service",
+      "Retail Partnership"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 2000000,
+    "certifications": [
+      "ISO 22000",
+      "GFSI",
+      "ISO 14001",
+      "Outstanding Health and Productivity Management"
+    ],
+    "preferredCategories": [
+      "Vinegar",
+      "Sauces",
+      "Dressings",
+      "Condiments"
+    ],
+    "minimumOrderValue": 15000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-07T15:30:00.000Z",
+  "establish": 1804
+},
+{
+  "_id": "68504311bd7da68326505483",
+  "name": "Otafuku Sauce Co., Ltd.",
+  "email": "info@otafukusauce.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Otafuku Sauce Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-06T12:10:00.000Z",
+  "phone": "+81-3-5796-1176",
+  "website": "https://otafukusauce.com/e",
+  "websiteUrl": "https://otafukusauce.com/e",
+  "address": "1-1-10 Higashi-Shinbashi, Minato-ku, Tokyo 105-0004, Japan",
+  "description": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
+  "companyDescription": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/10%2C+Otafuku+Sauce+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Japanese Cuisine",
+      "Specialty Sauces"
+    ],
+    "interests": [
+      "Traditional Japanese Flavors",
+      "Quality Manufacturing",
+      "Cultural Foods"
+    ],
+    "lookingFor": [
+      "International Market",
+      "Japanese Restaurant Chain",
+      "Specialty Food Retailers"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 800000,
+    "certifications": [
+      "ISO 22000",
+      "GFSI",
+      "ISO 14001",
+      "Outstanding Health and Productivity Management"
+    ],
+    "preferredCategories": [
+      "Okonomiyaki Sauce",
+      "Yakisoba Sauce",
+      "Japanese Sauces",
+      "Specialty Condiments"
+    ],
+    "minimumOrderValue": 9000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-06T12:10:00.000Z",
+  "establish": 1922
+},
+{
+  "_id": "68504311bd7da68326505484",
+  "name": "Lee Kum Kee Co., Ltd.",
+  "email": "info@lkk.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Lee Kum Kee Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-05T14:25:00.000Z",
+  "phone": "+852-2888-3888",
+  "website": "https://www.lkk.com",
+  "websiteUrl": "https://www.lkk.com",
+  "address": "Lee Kum Kee Building, 8 Tai Yip Street, Chai Wan, Hong Kong",
+  "description": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
+  "companyDescription": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/11%2C+Lee+Kum+Kee+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "HACCP, ISO 22000, SQF, BRC",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Asian Cuisine",
+      "Chinese Sauces"
+    ],
+    "interests": [
+      "Traditional Chinese Flavors",
+      "Premium Quality",
+      "International Expansion"
+    ],
+    "lookingFor": [
+      "Global Distribution",
+      "Asian Food Market",
+      "Premium Retailers"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 1200000,
+    "certifications": [
+      "HACCP",
+      "ISO 22000",
+      "SQF",
+      "BRC"
+    ],
+    "preferredCategories": [
+      "Oyster Sauce",
+      "Soy Sauce",
+      "Chinese Condiments",
+      "Asian Sauces"
+    ],
+    "minimumOrderValue": 11000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-05T14:25:00.000Z",
+  "establish": 1888
+},
+{
+  "_id": "68504311bd7da68326505485",
+  "name": "Barilla G. e R. Fratelli S.p.A.",
+  "email": "info@barilla.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Barilla G. e R. Fratelli S.p.A.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-04T09:40:00.000Z",
+  "phone": "+39-0521-262626",
+  "website": "https://www.barilla.com",
+  "websiteUrl": "https://www.barilla.com",
+  "address": "Via Mantova 166, 43122 Parma, Italy",
+  "description": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
+  "companyDescription": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/12%2C+Barilla+G.+e+R.+Fratelli+S.p.A+corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, IFS",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Pasta",
+      "Italian Cuisine"
+    ],
+    "interests": [
+      "Sustainable Production",
+      "Italian Heritage",
+      "Quality Excellence"
+    ],
+    "lookingFor": [
+      "Global Expansion",
+      "Premium Market",
+      "Sustainable Partnerships"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 3500000,
+    "certifications": [
+      "ISO 9001",
+      "ISO 14001",
+      "OHSAS 18001",
+      "BRC",
+      "IFS"
+    ],
+    "preferredCategories": [
+      "Pasta",
+      "Pasta Sauces",
+      "Italian Foods",
+      "Grain Products"
+    ],
+    "minimumOrderValue": 20000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-04T09:40:00.000Z",
+  "establish": 1877
+},
+{
+  "_id": "68504311bd7da68326505486",
+  "name": "Maesri (Thai) Co., Ltd.",
+  "email": "export@maesri.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Maesri (Thai) Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-03T16:55:00.000Z",
+  "phone": "+66-2-429-3636",
+  "website": "https://www.maesri.com",
+  "websiteUrl": "https://www.maesri.com",
+  "address": "898/1 Moo 1, Bangpoo Industrial Estate, Sukhumvit Road, Samutprakarn 10280, Thailand",
+  "description": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
+  "companyDescription": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/13%2C+Maesri+(Thai)+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "HACCP, GMP, Halal (CICOT), Kosher",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Thai Cuisine",
+      "Ethnic Foods"
+    ],
+    "interests": [
+      "Authentic Thai Flavors",
+      "Traditional Recipes",
+      "Export Excellence"
+    ],
+    "lookingFor": [
+      "International Distribution",
+      "Asian Food Chains",
+      "Ethnic Food Retailers"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 600000,
+    "certifications": [
+      "HACCP",
+      "GMP",
+      "Halal (CICOT)",
+      "Kosher"
+    ],
+    "preferredCategories": [
+      "Curry Paste",
+      "Coconut Cream",
+      "Thai Condiments",
+      "Ethnic Foods"
+    ],
+    "minimumOrderValue": 8500
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-03T16:55:00.000Z",
+  "establish": 1966
+},
+{
+  "_id": "68504311bd7da68326505487",
+  "name": "Knorr (Unilever)",
+  "email": "contact@unilever.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Knorr (Unilever)",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-02T11:30:00.000Z",
+  "phone": "+44-20-7822-5252",
+  "website": "https://www.knorr.com",
+  "websiteUrl": "https://www.knorr.com",
+  "address": "Unilever House, 100 Victoria Embankment, London EC4Y 0DY, United Kingdom",
+  "description": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
+  "companyDescription": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/14%2C+Knorr+(Unilever)+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, Rainforest Alliance",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Seasonings",
+      "Convenience Foods"
+    ],
+    "interests": [
+      "Sustainable Sourcing",
+      "Global Reach",
+      "Innovation"
+    ],
+    "lookingFor": [
+      "Global Partnership",
+      "Sustainable Supply Chain",
+      "Market Expansion"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 5000000,
+    "certifications": [
+      "ISO 9001",
+      "ISO 14001",
+      "OHSAS 18001",
+      "BRC",
+      "Rainforest Alliance"
+    ],
+    "preferredCategories": [
+      "Soups",
+      "Bouillons",
+      "Seasonings",
+      "Convenience Foods"
+    ],
+    "minimumOrderValue": 25000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-02T11:30:00.000Z",
+  "establish": 1838
+},
+{
+  "_id": "68504311bd7da68326505488",
+  "name": "Ajinomoto Co., Inc.",
+  "email": "info@ajinomoto.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Ajinomoto Co., Inc.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2024-01-01T08:15:00.000Z",
+  "phone": "+81-3-5250-8111",
+  "website": "https://www.ajinomoto.com",
+  "websiteUrl": "https://www.ajinomoto.com",
+  "address": "15-1 Kyoboshi 1-chome, Chuo-ku, Tokyo 104-8315, Japan",
+  "description": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
+  "companyDescription": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/15%2C+Ajinomoto+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 9001, ISO 14001, FSSC 22000, Halal, Kosher",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Food Ingredients",
+      "Seasonings"
+    ],
+    "interests": [
+      "Umami Research",
+      "Food Innovation",
+      "Nutritional Science"
+    ],
+    "lookingFor": [
+      "Global Food Industry",
+      "R&D Partnership",
+      "Innovation Collaboration"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 4000000,
+    "certifications": [
+      "ISO 9001",
+      "ISO 14001",
+      "FSSC 22000",
+      "Halal",
+      "Kosher"
+    ],
+    "preferredCategories": [
+      "MSG",
+      "Amino Acids",
+      "Seasonings",
+      "Food Ingredients"
+    ],
+    "minimumOrderValue": 18000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T08:15:00.000Z",
+  "establish": 1909
+},
+{
+  "_id": "68504311bd7da68326505489",
+  "name": "McCormick & Company, Inc.",
+  "email": "info@mccormick.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "McCormick & Company, Inc.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2023-12-31T15:45:00.000Z",
+  "phone": "+1-410-771-7301",
+  "website": "https://www.mccormick.com",
+  "websiteUrl": "https://www.mccormick.com",
+  "address": "18 Loveton Circle, Sparks, MD 21152, USA",
+  "description": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
+  "companyDescription": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/16%2C+McCormick+%26+Company.png",
+  "industry": "Food and Beverage",
+  "certificates": "SQF, BRC, ISO 9001, Organic Certified, Non-GMO Project Verified",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Spices",
+      "Flavor Innovation"
+    ],
+    "interests": [
+      "Flavor Leadership",
+      "Sustainable Sourcing",
+      "Culinary Innovation"
+    ],
+    "lookingFor": [
+      "Global Distribution",
+      "Culinary Partnerships",
+      "Innovation Collaboration"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 2800000,
+    "certifications": [
+      "SQF",
+      "BRC",
+      "ISO 9001",
+      "Organic Certified",
+      "Non-GMO Project Verified"
+    ],
+    "preferredCategories": [
+      "Spices",
+      "Seasonings",
+      "Herbs",
+      "Flavor Solutions"
+    ],
+    "minimumOrderValue": 16000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2023-12-31T15:45:00.000Z",
+  "establish": 1889
+},
+{
+  "_id": "68504311bd7da68326505490",
+  "name": "Maggi (Nestlé S.A.)",
+  "email": "contact@nestle.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Maggi (Nestlé S.A.)",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2023-12-30T13:20:00.000Z",
+  "phone": "+41-21-924-2111",
+  "website": "https://www.maggi.com",
+  "websiteUrl": "https://www.maggi.com",
+  "address": "Avenue Nestlé 55, 1800 Vevey, Switzerland",
+  "description": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
+  "companyDescription": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/17%2C+Maggi+(Nestl%C3%A9+S.A.)+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "ISO 9001, ISO 14001, FSSC 22000, Rainforest Alliance, UTZ",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Convenience Foods",
+      "Instant Products"
+    ],
+    "interests": [
+      "Convenience Innovation",
+      "Global Reach",
+      "Nutritional Enhancement"
+    ],
+    "lookingFor": [
+      "Global Partnership",
+      "Emerging Markets",
+      "Convenience Food Sector"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 6000000,
+    "certifications": [
+      "ISO 9001",
+      "ISO 14001",
+      "FSSC 22000",
+      "Rainforest Alliance",
+      "UTZ"
+    ],
+    "preferredCategories": [
+      "Instant Soups",
+      "Bouillon Cubes",
+      "Sauces",
+      "Convenience Foods"
+    ],
+    "minimumOrderValue": 30000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2023-12-30T13:20:00.000Z",
+  "establish": 1884
+},
+{
+  "_id": "68504311bd7da68326505491",
+  "name": "Sriracha Panich Co., Ltd.",
+  "email": "info@srirachapanich.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Sriracha Panich Co., Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2023-12-29T10:35:00.000Z",
+  "phone": "+66-38-311-368",
+  "website": "https://www.srirachapanich.com",
+  "websiteUrl": "https://www.srirachapanich.com",
+  "address": "79/3 Moo 6, Sriracha District, Chonburi 20110, Thailand",
+  "description": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
+  "companyDescription": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/18%2C+Sriracha+Panich+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "GMP, HACCP, Halal (CICOT), Thai FDA",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Hot Sauce",
+      "Thai Condiments"
+    ],
+    "interests": [
+      "Authentic Thai Flavor",
+      "Traditional Recipe",
+      "Quality Spices"
+    ],
+    "lookingFor": [
+      "International Market",
+      "Spicy Food Enthusiasts",
+      "Authentic Food Retailers"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 350000,
+    "certifications": [
+      "GMP",
+      "HACCP",
+      "Halal (CICOT)",
+      "Thai FDA"
+    ],
+    "preferredCategories": [
+      "Sriracha Sauce",
+      "Chili Sauce",
+      "Hot Sauce",
+      "Thai Condiments"
+    ],
+    "minimumOrderValue": 7500
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2023-12-29T10:35:00.000Z",
+  "establish": 1949
+},
+{
+  "_id": "68504311bd7da68326505492",
+  "name": "Cholula Food Company",
+  "email": "info@cholula.com",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Cholula Food Company",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2023-12-28T14:50:00.000Z",
+  "phone": "+52-222-283-0900",
+  "website": "https://www.cholula.com",
+  "websiteUrl": "https://www.cholula.com",
+  "address": "Carretera México-Puebla Km 116.5, Chapulco, Puebla 74230, Mexico",
+  "description": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
+  "companyDescription": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/19%2C+Cholula+Food+Company.png",
+  "industry": "Food and Beverage",
+  "certificates": "SQF, BRC, HACCP, Kosher, Gluten-Free",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Mexican Cuisine",
+      "Hot Sauce"
+    ],
+    "interests": [
+      "Authentic Mexican Flavor",
+      "Premium Quality",
+      "Traditional Recipe"
+    ],
+    "lookingFor": [
+      "International Expansion",
+      "Mexican Food Market",
+      "Premium Food Retailers"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 450000,
+    "certifications": [
+      "SQF",
+      "BRC",
+      "HACCP",
+      "Kosher",
+      "Gluten-Free"
+    ],
+    "preferredCategories": [
+      "Hot Sauce",
+      "Mexican Condiments",
+      "Chili Products",
+      "Specialty Sauces"
+    ],
+    "minimumOrderValue": 8000
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2023-12-28T14:50:00.000Z",
+  "establish": 1989
+},
+{
+  "_id": "68504311bd7da68326505493",
+  "name": "Pataks Foods Ltd.",
+  "email": "info@pataks.co.uk",
+  "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
+  "companyName": "Pataks Foods Ltd.",
+  "role": "manufacturer",
+  "status": "active",
+  "profileComplete": true,
+  "lastLogin": "2023-12-27T09:25:00.000Z",
+  "phone": "+44-151-486-3988",
+  "website": "https://www.pataks.co.uk",
+  "websiteUrl": "https://www.pataks.co.uk",
+  "address": "Patak's Foods Ltd, Lockwood Road, Huddersfield HD1 3QX, United Kingdom",
+  "description": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
+  "companyDescription": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
+  "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/20%2C+Pataks+Foods+Corporation.png",
+  "industry": "Food and Beverage",
+  "certificates": "BRC, ISO 9001, Halal (HFA), Kosher, Vegetarian Society",
+  "connectionPreferences": {
+    "connectWith": [
+      "brand",
+      "retailer"
+    ],
+    "industryInterests": [
+      "Food and Beverage",
+      "Indian Cuisine",
+      "Ethnic Foods"
+    ],
+    "interests": [
+      "Authentic Indian Recipes",
+      "Quality Spices",
+      "Cultural Heritage"
+    ],
+    "lookingFor": [
+      "Global Indian Food Market",
+      "Ethnic Food Retailers",
+      "Restaurant Chains"
+    ]
+  },
+  "manufacturerSettings": {
+    "productionCapacity": 750000,
+    "certifications": [
+      "BRC",
+      "ISO 9001",
+      "Halal (HFA)",
+      "Kosher",
+      "Vegetarian Society"
+    ],
+    "preferredCategories": [
+      "Curry Pastes",
+      "Indian Sauces",
+      "Spice Blends",
+      "Ethnic Foods"
+    ],
+    "minimumOrderValue": 9500
+  },
+  "brandSettings": {
+    "marketSegments": [],
+    "brandValues": [],
+    "targetDemographics": [],
+    "productCategories": []
+  },
+  "retailerSettings": {
+    "storeLocations": 0,
+    "averageOrderValue": 0,
+    "customerBase": [],
+    "preferredCategories": []
+  },
+  "notifications": 0,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2023-12-27T09:25:00.000Z",
+  "establish": 1957
+}]

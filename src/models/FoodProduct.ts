@@ -147,7 +147,7 @@ const foodProductSchema = new Schema({
   },
   image: {
     type: String,
-    required: true,
+    required: false,
   },
   images: {
     type: [String],
@@ -395,7 +395,7 @@ foodProductSchema.statics.createWithProduct = async function(
     const requiredFields = ['name', 'category', 'manufacturer', 'originCountry', 
                            'packagingType', 'packagingSize', 'shelfLife', 'storageInstruction',
                            'minOrderQuantity', 'dailyCapacity', 'unitType', 'pricePerUnit',
-                           'description', 'image', 'foodType'];
+                           'description', 'foodType'];
     
     const missingFields = requiredFields.filter(field => 
       foodProductData[field] === undefined || 

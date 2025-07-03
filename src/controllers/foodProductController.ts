@@ -852,7 +852,6 @@ const validateFoodProductFields = (data: Record<string, any>, isUpdate = false):
         'unitType', 
         'pricePerUnit',
         'description', 
-        'image', 
         'foodType'
       ];
 
