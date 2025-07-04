@@ -49,6 +49,11 @@ export const getProducts = async (
       query.manufacturerName = { $regex: manufacturer, $options: 'i' };
     }
 
+    // Filter by user (owner)
+    if (req.query.user) {
+      query.user = req.query.user;
+    }
+
     // Pagination
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -85,35 +90,110 @@ export const getProductDetails = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log(`=== GET PRODUCT DETAILS - START ===`);
+    console.log(`Looking up product reference with ID: ${req.params.id}`);
+    
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log(`Invalid ObjectId format: ${req.params.id}`);
+      res.status(400).json({ message: "Invalid product ID format" });
+      return;
+    }
+    
     // Tìm Product reference trước
     const product = await Product.findById(req.params.id);
 
     if (!product) {
+      console.log(`Product reference not found with ID: ${req.params.id}`);
       res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    console.log(`Product reference found:`, {
+      _id: product._id.toString(),
+      type: product.type,
+      productId: product.productId ? product.productId.toString() : 'undefined',
+      manufacturerName: product.manufacturerName,
+      productName: product.productName
+    });
+    
+    // Validate productId
+    if (!product.productId) {
+      console.error(`Product reference is missing productId field: ${req.params.id}`);
+      res.status(500).json({ 
+        message: "Product reference has invalid or missing productId",
+        productReference: product 
+      });
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(product.productId)) {
+      console.error(`Product has invalid productId format: ${product.productId}`);
+      res.status(500).json({ 
+        message: "Product has invalid productId format",
+        productReference: product 
+      });
       return;
     }
 
     // Lấy chi tiết từ collection con tương ứng
     let productDetails;
+    console.log(`Looking up product details in ${product.type} collection with ID: ${product.productId}`);
+    
     switch (product.type) {
       case 'food':
         productDetails = await FoodProduct.findById(product.productId);
         break;
       default:
+        console.log(`Product type ${product.type} is not yet supported`);
         res.status(400).json({ message: `Product type ${product.type} is not yet supported` });
         return;
     }
 
     if (!productDetails) {
-      res.status(404).json({ message: "Product details not found" });
+      console.error(`Product details not found in ${product.type} collection. ID: ${product.productId}`);
+      
+      // Try to check if the ID exists in any other collections for debugging
+      if (product.type === 'food') {
+        console.log('Attempting to verify if the ID exists in other collections...');
+        try {
+          const idExistsInProduct = await Product.exists({ _id: product.productId });
+          console.log(`ID exists in Product collection? ${idExistsInProduct ? 'YES' : 'NO'}`);
+          
+          // If the product.productId is actually pointing to another Product document
+          // instead of a FoodProduct document, this is a major issue
+          if (idExistsInProduct) {
+            console.error('CRITICAL DATA INTEGRITY ERROR: productId is pointing to another Product document');
+          }
+        } catch (verifyError) {
+          console.error('Error during collection verification:', verifyError);
+        }
+      }
+      
+      res.status(404).json({ 
+        message: "Product details not found",
+        error: `The productId ${product.productId} does not exist in the ${product.type} collection`,
+        productReference: {
+          _id: product._id,
+          type: product.type,
+          productId: product.productId,
+          manufacturerName: product.manufacturerName,
+          productName: product.productName
+        }
+      });
       return;
     }
 
+    console.log(`Product details found successfully`);
+    console.log(`=== GET PRODUCT DETAILS - SUCCESS ===`);
+    
     res.json({
       productReference: product,
       productDetails: productDetails
     });
   } catch (error) {
+    console.error(`=== GET PRODUCT DETAILS - ERROR ===`);
+    console.error('Error fetching product details:', error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {
@@ -130,10 +210,18 @@ export const createProductGeneric = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log('=== CREATE PRODUCT GENERIC - START ===');
+    console.log('Request body:', JSON.stringify({
+      type: req.body.type,
+      manufacturerName: req.body.manufacturerName,
+      productName: req.body.productName,
+    }));
+    
     const { type, manufacturerName, productName, ...otherData } = req.body;
 
     // Validate product type
     if (!isValidProductType(type)) {
+      console.log(`Invalid product type: ${type}`);
       res.status(400).json({ 
         message: "Invalid product type", 
         validTypes: ['food', 'beverage', 'health', 'other'] 
@@ -143,6 +231,11 @@ export const createProductGeneric = async (
 
     // Validate required fields
     if (!manufacturerName || !productName) {
+      console.log('Missing required fields:', {
+        manufacturerName: !!manufacturerName,
+        productName: !!productName
+      });
+      
       res.status(400).json({
         message: 'Manufacturer name and product name are required',
         missingFields: [
@@ -163,12 +256,14 @@ export const createProductGeneric = async (
       console.log("Using default user ID:", userId);
     }
 
-    const productData = { manufacturerName, productName };
+    const productData = { manufacturerName, productName, user: userId };
+    console.log('Product reference data prepared:', productData);
     
     // Chuẩn bị detail data dựa trên type
     let detailData;
     switch (type) {
       case 'food':
+        console.log('Mapping form data to food product structure');
         const mappedData = mapFormDataToFoodProduct({ 
           manufacturerName, 
           productName, 
@@ -180,19 +275,77 @@ export const createProductGeneric = async (
           ...mappedData.foodProductData,
           user: userId // Đảm bảo trường user luôn được đặt
         };
-        console.log("Food product data with user:", {
+        console.log("Food product data prepared:", {
           userId: userId,
           name: detailData.name,
-          manufacturer: detailData.manufacturer
+          manufacturer: detailData.manufacturer,
+          category: detailData.category,
+          // Other important fields
+          foodType: detailData.foodType,
+          packagingType: detailData.packagingType
         });
         break;
       default:
+        console.log(`Product type ${type} not yet supported`);
         res.status(400).json({ message: `Product type ${type} is not yet supported` });
         return;
     }
 
+    console.log('Calling createProductHelper to create product with reference');
     // Tạo product với transaction
     const result = await createProductHelper(type, productData, detailData);
+    
+    if (!result) {
+      console.error('Create product helper returned null or undefined result');
+      res.status(500).json({ message: 'Failed to create product (helper returned no result)' });
+      return;
+    }
+    
+    if (!result.product || !result.product._id) {
+      console.error('Product reference not created properly', result);
+      res.status(500).json({ message: 'Failed to create product reference' });
+      return;
+    }
+    
+    if (type === 'food' && (!result.foodProduct || !result.foodProduct._id)) {
+      console.error('Food product details not created properly', result);
+      res.status(500).json({ message: 'Failed to create food product details' });
+      return;
+    }
+
+    // Verify that productId matches the detail document _id
+    const productIdStr = result.product.productId.toString();
+    const detailIdStr = (type === 'food' ? result.foodProduct._id.toString() : result.productDetails._id.toString());
+    
+    console.log('Verification check:', {
+      productReference: {
+        _id: result.product._id.toString(),
+        productId: productIdStr
+      },
+      detailDocument: {
+        _id: detailIdStr
+      },
+      match: productIdStr === detailIdStr
+    });
+    
+    if (productIdStr !== detailIdStr) {
+      console.error('Critical error: productId does not match detail document _id');
+      console.error('Product.productId:', productIdStr);
+      console.error('Detail document._id:', detailIdStr);
+      res.status(500).json({ 
+        message: 'Data integrity error: Product reference does not correctly link to detail document',
+        product: result.product,
+        detail: type === 'food' ? result.foodProduct : result.productDetails
+      });
+      return;
+    }
+
+    console.log('=== CREATE PRODUCT GENERIC - SUCCESS ===');
+    console.log('Product created successfully:', {
+      productReferenceId: result.product._id,
+      detailId: type === 'food' ? result.foodProduct._id : result.productDetails._id,
+      type: type
+    });
 
     res.status(201).json({
       message: 'Product created successfully',
@@ -200,6 +353,7 @@ export const createProductGeneric = async (
       productDetails: result.foodProduct || result.productDetails
     });
   } catch (error) {
+    console.error('=== CREATE PRODUCT ERROR ===');
     console.error('Error creating product:', error);
     if (error instanceof Error) {
       res.status(400).json({ message: error.message });

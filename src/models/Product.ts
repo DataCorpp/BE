@@ -20,6 +20,7 @@ export interface IProduct extends Document {
   productId: mongoose.Types.ObjectId; // ID tham chiếu đến collection con
   createdAt?: Date;
   updatedAt?: Date;
+  user: mongoose.Types.ObjectId; // Tham chiếu user (manufacturer) sở hữu sản phẩm
 }
 
 // Schema cho Inventory
@@ -47,6 +48,11 @@ const productSchema = new Schema(
       required: true,
       trim: true,
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     type: {
       type: String,
       required: true,
@@ -68,6 +74,7 @@ productSchema.index({ type: 1 });
 productSchema.index({ manufacturerName: 1 });
 productSchema.index({ productName: 1 });
 productSchema.index({ productId: 1 });
+productSchema.index({ user: 1 });
 
 // Compound index cho tìm kiếm kết hợp
 productSchema.index({ type: 1, manufacturerName: 1 });

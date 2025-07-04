@@ -487,52 +487,95 @@ foodProductSchema.statics.createWithProduct = async function(
       imagesCount: foodProduct.images ? foodProduct.images.length : 0
     });
     
-    // Sử dụng phương thức saveWithoutDefaults thay vì save thông thường
+    // STEP 1: Tạo và lưu food product trước
     await foodProduct.saveWithoutDefaults();
+    console.log('STEP 1 ✅ Food product saved successfully with ID:', foodProduct._id);
+    
+    if (!foodProduct._id) {
+      throw new Error('Failed to generate _id for food product');
+    }
     
     // Double check the saved data
     const freshFoodProduct = await this.findById(foodProduct._id);
+    if (!freshFoodProduct) {
+      throw new Error('Failed to retrieve saved food product');
+    }
     
-    console.log('=== CREATE WITH PRODUCT - AFTER SAVE ===');
-    console.log('Food product after save (from instance):', {
-      foodType: foodProduct.foodType,
-      packagingType: foodProduct.packagingType,
-      packagingSize: foodProduct.packagingSize,
-      shelfLife: foodProduct.shelfLife,
-      storageInstruction: foodProduct.storageInstruction,
-      flavorType: foodProduct.flavorType,
-      ingredients: foodProduct.ingredients,
-      allergens: foodProduct.allergens,
-      usage: foodProduct.usage,
-      image: foodProduct.image,
-      images: foodProduct.images,
-      imagesCount: foodProduct.images ? foodProduct.images.length : 0
-    });
-    
-    console.log('Food product after save (from database):', {
-      _id: freshFoodProduct?._id,
-      image: freshFoodProduct?.image,
-      images: freshFoodProduct?.images,
-      imagesCount: freshFoodProduct?.images ? freshFoodProduct.images.length : 0
+    console.log('Food product verification from database:', {
+      _id: freshFoodProduct._id,
+      name: freshFoodProduct.name,
+      foodType: freshFoodProduct.foodType,
+      image: freshFoodProduct.image,
+      images: freshFoodProduct.images,
+      imagesCount: freshFoodProduct.images ? freshFoodProduct.images.length : 0
     });
 
-    // Tạo Product reference
+    // STEP 2: Tạo Product reference với productId chính là _id của food product
+    console.log('STEP 2: Creating Product reference with foodProduct._id:', foodProduct._id);
     product = new Product({
       manufacturerName: productData.manufacturerName || foodProductData.manufacturer,
       productName: productData.productName || foodProductData.name,
       type: 'food',
-      productId: foodProduct._id,
+      productId: foodProduct._id, // Assign the ID of the food product as productId
+      user: productData.user || foodProductData.user,
     });
     
+    console.log('Product reference before save:', {
+      manufacturerName: product.manufacturerName,
+      productName: product.productName, 
+      type: product.type,
+      productId: product.productId
+    });
+    
+    // STEP 3: Lưu Product reference
     await product.save();
-    return { product, foodProduct: freshFoodProduct || foodProduct };
+    console.log('STEP 3 ✅ Product reference saved successfully with ID:', product._id);
+    
+    // STEP 4: Kiểm tra lại sau khi lưu
+    const freshProduct = await Product.findById(product._id);
+    if (!freshProduct) {
+      throw new Error('Failed to retrieve saved product reference');
+    }
+    
+    console.log('Final verification - Product reference after save:', {
+      _id: freshProduct._id,
+      manufacturerName: freshProduct.manufacturerName,
+      productName: freshProduct.productName,
+      type: freshProduct.type,
+      productId: freshProduct.productId
+    });
+    
+    // Verify that productId matches the food product _id
+    const productIdStr = freshProduct.productId.toString();
+    const foodProductIdStr = foodProduct._id.toString();
+    
+    if (productIdStr !== foodProductIdStr) {
+      console.error('ERROR: productId does not match foodProduct._id');
+      console.error(`Product.productId: ${productIdStr}`);
+      console.error(`FoodProduct._id: ${foodProductIdStr}`);
+      throw new Error('Product reference points to incorrect food product ID');
+    }
+    
+    console.log('✅ VERIFICATION PASSED: productId correctly points to foodProduct._id');
+    
+    return { product: freshProduct || product, foodProduct: freshFoodProduct || foodProduct };
   } catch (error) {
     // Cleanup nếu có lỗi
     if (foodProduct && foodProduct._id) {
       try {
         await this.findByIdAndDelete(foodProduct._id);
+        console.log('Cleaned up food product after error:', foodProduct._id);
       } catch (cleanupError) {
         console.error('Error during cleanup:', cleanupError);
+      }
+    }
+    
+    if (product && product._id) {
+      try {
+        await Product.findByIdAndDelete(product._id);
+        console.log('Cleaned up product reference after error:', product._id);
+      } catch (cleanupError) {
+        console.error('Error during product reference cleanup:', cleanupError);
       }
     }
     

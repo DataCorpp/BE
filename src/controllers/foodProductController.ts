@@ -676,30 +676,35 @@ export const updateFoodProduct = async (
 export const deleteFoodProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
-    const foodProduct = await FoodProduct.findById(id);
 
+    // Validate ObjectId format first
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+
+    // Fetch the product to capture images before deletion
+    const foodProduct = await FoodProduct.findById(id);
     if (!foodProduct) {
       return res.status(404).json({ message: 'Food product not found' });
     }
-    
-    // Delete associated images from S3 before deleting the product
+
+    // Collect images that need to be removed from S3 ***before*** we delete the DB records
     const imagesToDelete = [...(foodProduct.images || [])];
     if (foodProduct.image && !imagesToDelete.includes(foodProduct.image)) {
       imagesToDelete.push(foodProduct.image);
     }
 
-    // Track deletion results
+    // === 1. Cascade delete in MongoDB (FoodProduct + Product reference)
+    // This helper already deletes both the child (FoodProduct) and its corresponding Product reference.
+    // Using it guarantees data integrity and keeps all logic in backend.
+    const deletedProduct = await (FoodProduct as any).deleteWithProduct(id);
+
+    // === 2. Delete assets from S3 (done **after** DB delete; not transactional but safe)
     const deletionResults: Record<string, boolean> = {};
-    
-    // Process each image for deletion
     for (const imageUrl of imagesToDelete) {
       try {
-        // Extract key from URL
         const key = extractKeyFromUrl(imageUrl);
-        
         if (key) {
-          // Delete the object from S3
           const isDeleted = await deleteObjectFromS3(key);
           deletionResults[key] = isDeleted;
         } else {
@@ -709,18 +714,18 @@ export const deleteFoodProduct = async (req: Request, res: Response) => {
         console.error(`Error deleting image ${imageUrl}:`, imgError);
       }
     }
-    
-    // Delete the product from the database
-    const deletedProduct = await FoodProduct.findByIdAndDelete(id);
 
     return res.status(200).json({
-      message: 'Food product deleted successfully',
+      message: 'Food product and reference deleted successfully',
       deletedProduct,
-      imagesDeleted: deletionResults
+      imagesDeleted: deletionResults,
     });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({
+      message: 'Server error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 };
 
