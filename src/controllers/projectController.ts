@@ -284,7 +284,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     // ==================== RECALCULATE MATCHING MANUFACTURERS ====================
     // Clear cached match results so we use fresh project data
     try {
-      const cacheKey = `${id}_manufacturers`;
+      const cacheKey = `${id}_manufacturers_${project.updatedAt?.getTime() || ''}`;
       if (manufacturerMatchCache.has(cacheKey)) {
         console.log('Clearing cached manufacturer matches for updated project:', id);
         manufacturerMatchCache.delete(cacheKey);
@@ -748,7 +748,7 @@ export const getProjectAnalytics = async (req: AuthRequest, res: Response) => {
 
 // Cache for manufacturer matching results
 const manufacturerMatchCache = new Map<string, { data: any[], timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 0; // Disable cache – force fresh calculation
 
 /**
  * Find matching manufacturers for a project
@@ -757,7 +757,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 async function findMatchingManufacturers(project: IProject) {
   try {
     // Check cache first
-    const cacheKey = `${project._id}_manufacturers`;
+    const cacheKey = `${project._id}_manufacturers_${project.updatedAt?.getTime() || ''}`;
     const cached = manufacturerMatchCache.get(cacheKey);
     
     // Use cache if available and fresh
@@ -1019,6 +1019,50 @@ async function findMatchingManufacturers(project: IProject) {
           }
         }
         
+        // === Additional check: does manufacturer actually produce this product category? ===
+        try {
+          let productDocs = await FoodProduct.find({ user: manufacturer._id }).select('foodType category').lean();
+          // fallback by companyName if none found
+          if ((!productDocs || productDocs.length === 0) && manufacturer.companyName) {
+            productDocs = await FoodProduct.find({ manufacturer: { $regex: new RegExp(manufacturer.companyName, 'i') } }).select('foodType category').lean();
+          }
+
+          if (productDocs && productDocs.length > 0) {
+            const productCategories = productDocs
+              .flatMap(p => [p.foodType, p.category])
+              .filter(Boolean)
+              .map((c: any) => typeof c === 'string' ? c.toLowerCase().trim() : '')
+              .filter(Boolean);
+
+            const normalisedProjectName = productName.toLowerCase();
+
+            const hasDirectProduct = productCategories.some(cat => normalisedProjectName.includes(cat) || cat.includes(normalisedProjectName));
+
+            // Simple synonym map – extend as needed
+            const synonymMap: Record<string, string[]> = {
+              'soy sauce': ['soy sauce', 'soysauce'],
+              'sauce': ['sauce', 'dressing', 'marinade', 'condiment'],
+              'miso': ['miso'],
+              'seasoning': ['seasoning', 'spice', 'mix'],
+            };
+
+            let hasSynonymMatch = false;
+            for (const [key, syns] of Object.entries(synonymMap)) {
+              if (syns.some(s => normalisedProjectName.includes(s))) {
+                hasSynonymMatch = productCategories.some(cat => syns.some(syn => cat.includes(syn)));
+                if (hasSynonymMatch) break;
+              }
+            }
+
+            if (hasDirectProduct || hasSynonymMatch) {
+              industryScore = Math.min(25, Math.max(industryScore, 20));
+              industryDetails.push('Product catalog match');
+            }
+          }
+        } catch (prodErr) {
+          console.error('Error checking manufacturer product catalog for industry match:', prodErr);
+        }
+        
         // Check manufacturer preferred categories
         if (manufacturer.manufacturerSettings?.preferredCategories?.length) {
           const preferredCategories = manufacturer.manufacturerSettings.preferredCategories
@@ -1169,64 +1213,91 @@ async function findMatchingManufacturers(project: IProject) {
       if (project.packaging && Array.isArray(project.packaging) && project.packaging.length > 0) {
         console.log(`Project ${project._id} packaging requirements:`, project.packaging);
         
-        // Get manufacturer's products to check packaging types
+        // Normalise project packaging names (lowercase)
+        const requiredPackages = project.packaging.map(p => p.toLowerCase().trim());
+        // Synonym map for packaging categories
+        const packagingSynonyms: Record<string, string[]> = {
+          'bottle': ['bottle', 'glass bottle', 'plastic bottle'],
+          'can': ['can', 'canned', 'tin'],
+          'jar': ['jar'],
+          'bag': ['bag', 'sack'],
+          'pouch': ['pouch', 'sachet', 'pack'],
+          'box': ['box', 'carton', 'case'],
+          'sachet': ['sachet', 'pouch'],
+          'tray': ['tray', 'clamshell'],
+          'tub': ['tub', 'cup'],
+        };
+        
+        // Helper to map a packaging term to its canonical key
+        const mapToCanonical = (term: string): string | null => {
+          for (const [key, synonyms] of Object.entries(packagingSynonyms)) {
+            if (synonyms.some(s => term.includes(s))) {
+              return key;
+            }
+          }
+          return null; // unknown type
+        };
+        
         try {
-          // Find products from this manufacturer
-          const manufacturerProducts = await FoodProduct.find({
-            user: manufacturer._id
+          const userIdStr = typeof manufacturer._id === 'string' ? manufacturer._id : manufacturer._id.toString();
+          let productsArray = await FoodProduct.find({
+            $or: [
+              { user: manufacturer._id }, // ObjectId match
+              { user: userIdStr }          // stored as string id
+            ]
           }).select('packagingType packagingSize').lean();
           
-          if (manufacturerProducts && manufacturerProducts.length > 0) {
-            // Extract all packaging types from manufacturer's products
-            const manufacturerPackagingTypes = manufacturerProducts
+          // Fallback: if no products found by user id, try to match by manufacturer name
+          if ((!productsArray || productsArray.length === 0) && manufacturer.companyName) {
+            productsArray = await FoodProduct.find({
+              manufacturer: { $regex: new RegExp(manufacturer.companyName, 'i') }
+            }).select('packagingType packagingSize').lean();
+            if (productsArray && productsArray.length > 0) {
+              console.log(`Fallback packaging search by companyName for ${manufacturer.companyName} returned ${productsArray.length} products`);
+            }
+          }
+
+          if (productsArray && productsArray.length > 0) {
+            const manufacturerPackagingTypes = productsArray
               .map(p => p.packagingType?.toLowerCase().trim())
               .filter(Boolean);
               
-            console.log(`Manufacturer ${manufacturer._id} packaging types:`, manufacturerPackagingTypes);
+            // Convert to canonical set for easier matching
+            const manufacturerCanonicalSet = new Set<string>();
+            manufacturerPackagingTypes.forEach(pt => {
+              const canon = mapToCanonical(pt);
+              if (canon) manufacturerCanonicalSet.add(canon);
+            });
             
-            // Count matching packaging types
             let matchCount = 0;
-            const matchedPackagingTypes = [];
-            
-            for (const projectPackaging of project.packaging) {
-              const projectPackagingLower = projectPackaging.toLowerCase().trim();
-              
-              // Check for exact or partial matches
-              const hasMatch = manufacturerPackagingTypes.some(mPackaging => {
-                if (!mPackaging) return false;
-                
-                // Check for exact or partial matches (both ways)
-                return mPackaging === projectPackagingLower || 
-                       mPackaging.includes(projectPackagingLower) ||
-                       projectPackagingLower.includes(mPackaging);
-              });
-              
-              if (hasMatch) {
+            const matchedTypes: string[] = [];
+            requiredPackages.forEach(req => {
+              const canonReq = mapToCanonical(req) || req; // fallback to raw
+              if (manufacturerCanonicalSet.has(canonReq) || manufacturerPackagingTypes.some(pt => pt.includes(req))) {
                 matchCount++;
-                matchedPackagingTypes.push(projectPackaging);
+                matchedTypes.push(req);
               }
-            }
+            });
             
-            // Calculate score based on percentage of matched packaging types
             if (matchCount > 0) {
-              const matchPercentage = matchCount / project.packaging.length;
-              packagingScore = Math.round(matchPercentage * 10);
-              packagingDetails.push(`Matched ${matchCount}/${project.packaging.length} packaging types: ${matchedPackagingTypes.join(', ')}`);
+              const matchPercentage = matchCount / requiredPackages.length;
+              packagingScore = Math.max(6, Math.round(matchPercentage * 10)); // Ensure >5 when any match
+              packagingDetails.push(`Matched ${matchCount}/${requiredPackages.length} packaging types: ${matchedTypes.join(', ')}`);
             } else {
               packagingScore = 0;
               packagingDetails.push('No matching packaging types found');
             }
           } else {
-            packagingScore = 5; // Half points if manufacturer has no products yet
-            packagingDetails.push('Manufacturer has no products to check packaging compatibility');
+            packagingScore = 4; // slightly lower default score to distinguish from unknown
+            packagingDetails.push('No product data available to evaluate packaging compatibility');
           }
         } catch (error) {
           console.error('Error checking packaging compatibility:', error);
-          packagingScore = 5; // Half points on error
-          packagingDetails.push('Could not check packaging compatibility');
+          packagingScore = 4;
+          packagingDetails.push('Could not evaluate packaging compatibility');
         }
       } else {
-        packagingScore = 5; // Half points when no packaging specified
+        packagingScore = 4; // default lower score
         packagingDetails.push('No packaging requirements specified');
       }
       
@@ -1244,71 +1315,56 @@ async function findMatchingManufacturers(project: IProject) {
       if (project.allergen && Array.isArray(project.allergen) && project.allergen.length > 0) {
         console.log(`Project ${project._id} allergen requirements:`, project.allergen);
         
+        // Normalize requirement tokens (strip " free" suffix)
+        const requirementTokens = project.allergen.map(a => a.toLowerCase().trim()).map(tok => tok.endsWith(' free') ? tok.replace(' free', '').trim() : tok);
+        
         try {
-          // Find products from this manufacturer
-          const manufacturerProducts = await FoodProduct.find({
-            user: manufacturer._id
+          const userIdStr2 = typeof manufacturer._id === 'string' ? manufacturer._id : manufacturer._id.toString();
+          let manufacturerProducts = await FoodProduct.find({
+            $or: [
+              { user: manufacturer._id },
+              { user: userIdStr2 }
+            ]
           }).select('allergens').lean();
-          
+
+          if ((!manufacturerProducts || manufacturerProducts.length === 0) && manufacturer.companyName) {
+            manufacturerProducts = await FoodProduct.find({
+              manufacturer: { $regex: new RegExp(manufacturer.companyName, 'i') }
+            }).select('allergens').lean();
+          }
+
           if (manufacturerProducts && manufacturerProducts.length > 0) {
-            // Count products that match allergen requirements
-            let matchingProductsCount = 0;
-            
-            // For each product, check if it meets allergen requirements
-            for (const product of manufacturerProducts) {
-              if (product.allergens && Array.isArray(product.allergens)) {
-                // Check if product allergens match project requirements
-                const productAllergens = product.allergens.map(a => a.toLowerCase().trim());
-                
-                console.log(`Product ${product._id} allergens:`, productAllergens);
-                
-                // For allergen requirements, we need to check if the product is free from allergens
-                // or has the required allergen-free properties
-                const allergenRequirementsMet = project.allergen.every(allergenReq => {
-                  const reqLower = allergenReq.toLowerCase().trim();
-                  
-                  // If requirement is "Gluten Free", check if product has "Gluten Free" in allergens
-                  // or doesn't have "Gluten" in allergens
-                  if (reqLower.includes('free')) {
-                    // Check if product explicitly states it's free from this allergen
-                    return productAllergens.some(pa => pa.includes(reqLower));
-                  }
-                  
-                  // If requirement is a specific diet type (vegan, vegetarian, etc.)
-                  if (['vegan', 'vegetarian', 'kosher', 'halal'].includes(reqLower)) {
-                    return productAllergens.some(pa => pa.includes(reqLower));
-                  }
-                  
-                  // Default case: assume it's an allergen that should NOT be present
-                  return true; // Skip this check for now as we don't have enough context
-                });
-                
-                if (allergenRequirementsMet) {
-                  matchingProductsCount++;
+            const matchedTokensSet = new Set<string>();
+
+            manufacturerProducts.forEach(prod => {
+              const productAllergens = (prod.allergens || []).map((al: string) => al.toLowerCase().trim());
+              requirementTokens.forEach(req => {
+                if (productAllergens.includes(req)) {
+                  matchedTokensSet.add(req);
                 }
-              }
-            }
-            
-            // Calculate score based on percentage of products meeting allergen requirements
-            if (matchingProductsCount > 0) {
-              const matchPercentage = matchingProductsCount / manufacturerProducts.length;
-              allergenScore = Math.round(matchPercentage * 10);
-              allergenDetails.push(`${matchingProductsCount}/${manufacturerProducts.length} products meet allergen requirements`);
+              });
+            });
+
+            const matchedCount = matchedTokensSet.size;
+            if (matchedCount > 0) {
+              const matchPct = matchedCount / requirementTokens.length;
+              allergenScore = Math.round(matchPct * 10);
+              allergenDetails.push(`Matched ${matchedCount}/${requirementTokens.length} allergens: ${Array.from(matchedTokensSet).join(', ')}`);
             } else {
               allergenScore = 0;
-              allergenDetails.push('No products meet allergen requirements');
+              allergenDetails.push('No allergens matched');
             }
           } else {
-            allergenScore = 5; // Half points if manufacturer has no products
-            allergenDetails.push('Manufacturer has no products to check allergen compatibility');
+            allergenScore = 4;
+            allergenDetails.push('No product data available to evaluate allergen compatibility');
           }
         } catch (error) {
           console.error('Error checking allergen compatibility:', error);
-          allergenScore = 5; // Half points on error
-          allergenDetails.push('Could not check allergen compatibility');
+          allergenScore = 4;
+          allergenDetails.push('Could not evaluate allergen compatibility');
         }
       } else {
-        allergenScore = 5; // Half points when no allergen requirements
+        allergenScore = 4;
         allergenDetails.push('No allergen requirements specified');
       }
       
