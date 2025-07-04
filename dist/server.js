@@ -24,6 +24,7 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const foodProductRoutes_1 = __importDefault(require("./routes/foodProductRoutes"));
 const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
+const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const User_1 = __importDefault(require("./models/User"));
 // Load environment variables from .env file
 dotenv_1.default.config();
@@ -108,6 +109,25 @@ app.use((req, res, next) => {
     console.log('===================');
     next();
 });
+// Configure Express to trust reverse proxy (needed for secure cookies behind Nginx)
+// Accept values:
+//   - If TRUST_PROXY is a valid integer => use that many hops
+//   - If TRUST_PROXY is "true" / "yes" => trust first proxy (1)
+//   - Otherwise default to 1
+const trustProxyEnv = process.env.TRUST_PROXY;
+let trustProxy = 1;
+if (trustProxyEnv) {
+    if (/^(true|yes)$/i.test(trustProxyEnv)) {
+        trustProxy = 1;
+    }
+    else if (!isNaN(parseInt(trustProxyEnv, 10))) {
+        trustProxy = parseInt(trustProxyEnv, 10);
+    }
+    else {
+        trustProxy = trustProxyEnv; // allow special strings like 'loopback'
+    }
+}
+app.set("trust proxy", trustProxy);
 // Session configuration with MongoDB storage
 app.use((0, express_session_1.default)({
     secret: process.env.SESSION_SECRET || process.env.GOOGLE_CLIENT_SECRET || "fallback-session-secret",
@@ -118,11 +138,14 @@ app.use((0, express_session_1.default)({
         collectionName: "sessions",
         touchAfter: 24 * 3600, // Lazy session update - only update session every 24 hours
     }),
+    proxy: process.env.NODE_ENV === "production", // respect X-Forwarded-* headers when behind a proxy
     cookie: {
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
         secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        // No explicit domain -> cookie scoped to current host (api.datacorpsolutions.com)
+        domain: undefined
     },
     name: "sessionId", // Custom session name for security
 }));
@@ -138,6 +161,8 @@ app.use("/api/foodproducts", foodProductRoutes_1.default);
 console.log('✓ Food product routes mounted at /api/foodproducts');
 app.use("/api/projects", projectRoutes_1.default);
 console.log('✓ Project routes mounted at /api/projects');
+app.use("/api/upload", uploadRoutes_1.default);
+console.log('✓ Upload routes mounted at /api/upload');
 console.log('=====================');
 // Health check
 app.get("/health", (req, res) => {
@@ -179,6 +204,11 @@ app.get("/api", (req, res) => {
                 getManufacturers: "GET /api/projects/:id/manufacturers",
                 contactManufacturer: "POST /api/projects/:id/contact/:manufacturerId",
                 analytics: "GET /api/projects/analytics"
+            },
+            upload: {
+                uploadSingleImage: "POST /api/upload",
+                uploadMultipleImages: "POST /api/upload/multiple (up to 6 images)",
+                getSignedUrl: "GET /api/upload/signed-url"
             }
         },
         authenticationGuide: {
@@ -211,6 +241,7 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
         console.log(`🍎 Food Products API: http://localhost:${PORT}/api/foodproducts`);
         console.log(`🏭 Projects API: http://localhost:${PORT}/api/projects`);
+        console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
         // console.log(`  ├── Project CRUD: /api/projects (GET, POST, PUT, DELETE)`);
         // console.log(`  ├── Manufacturer Matching: /api/projects/:id/manufacturers`);
         // console.log(`  └── Analytics: /api/projects/analytics`);
