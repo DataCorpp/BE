@@ -505,19 +505,47 @@ const verifyEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(404).json({ message: "User not found" });
             return;
         }
-        // If user is already active
-        if (user.status === 'active') {
-            res.json({
-                success: true,
-                message: "Your email has already been verified",
-                user: {
+        // Helper to create a logged-in session for the verified user
+        const createSessionAndRespond = () => {
+            req.session.regenerate((err) => {
+                if (err) {
+                    console.error("Session regenerate error after email verification", err);
+                    return res.status(500).json({ message: "Failed to create session" });
+                }
+                req.session.userId = user._id.toString();
+                req.session.userRole = user.role;
+                req.session.role = user.role;
+                req.session.user = {
                     _id: user._id,
                     name: user.name,
                     email: user.email,
-                    role: user.role
-                }
+                    role: user.role,
+                    status: user.status,
+                    companyName: user.companyName,
+                    profileComplete: user.profileComplete,
+                };
+                req.session.save((saveErr) => {
+                    if (saveErr) {
+                        console.error("Session save error after email verification", saveErr);
+                        return res.status(500).json({ message: "Failed to save session" });
+                    }
+                    // Successful response with session cookie set
+                    res.json({
+                        success: true,
+                        message: "Email verified successfully",
+                        user: {
+                            _id: user._id,
+                            name: user.name,
+                            email: user.email,
+                            role: user.role,
+                        },
+                    });
+                });
             });
-            return;
+        };
+        // If user is already active
+        if (user.status === 'active') {
+            return createSessionAndRespond();
         }
         // Check if we have a verification code for this email
         const storedVerification = verificationCodes[email];
@@ -531,17 +559,7 @@ const verifyEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             // Remove verification code from memory
             delete verificationCodes[email];
             console.log(`✅ Email verified in development mode: ${email}`);
-            res.json({
-                success: true,
-                message: "Email verified successfully (development mode)",
-                user: {
-                    _id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role
-                }
-            });
-            return;
+            return createSessionAndRespond();
         }
         if (!storedVerification) {
             // Handle the case where verification code is missing or expired
@@ -550,17 +568,7 @@ const verifyEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 console.log('⚠️ DEV MODE: Auto-verifying user');
                 user.status = 'active';
                 yield user.save();
-                res.json({
-                    success: true,
-                    message: "Auto-verified in development mode",
-                    user: {
-                        _id: user._id,
-                        name: user.name,
-                        email: user.email,
-                        role: user.role
-                    }
-                });
-                return;
+                return createSessionAndRespond();
             }
             else {
                 res.status(400).json({ message: "Verification code is invalid or has expired" });
@@ -586,16 +594,7 @@ const verifyEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         // Remove used verification code
         delete verificationCodes[email];
         console.log(`✅ Email verified successfully: ${email}`);
-        res.json({
-            success: true,
-            message: "Email verified successfully",
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
+        return createSessionAndRespond();
     }
     catch (error) {
         console.error('❌ Email verification error');
@@ -861,6 +860,14 @@ const googleLogin = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
                     avatar: user.avatar
                 };
                 console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+                // Clear possible legacy cookies that may exist on parent domain
+                try {
+                    res.clearCookie('sessionId', { domain: '.datacorpsolutions.com', path: '/' });
+                    res.clearCookie('sessionId', { domain: 'datacorpsolutions.com', path: '/' });
+                }
+                catch (clearErr) {
+                    console.warn('Unable to clear legacy cookies:', clearErr);
+                }
                 // Send response with user data directly at top level
                 res.json(Object.assign(Object.assign({}, userData), { isNewUser }));
             });
@@ -883,79 +890,79 @@ exports.googleLogin = googleLogin;
 const getManufacturers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        // Build filter object
-        const filter = {
-            role: "manufacturer",
-            status: { $in: ["active", "online", "away", "busy"] } // Only active manufacturers
-        };
-        // Optional filters
+        const query = req.query.q || '';
+        const searchType = req.query.searchType || 'basic';
+        // Build search filter based on search type and query
+        let searchFilter = { role: 'manufacturer' };
+        if (query && query.trim()) {
+            // Split search terms for more advanced searching
+            const searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
+            if (searchTerms.length > 0) {
+                // Create simple regex search conditions - same for basic and advanced
+                // The front-end will handle additional filtering/ranking for advanced search
+                const searchConditions = searchTerms.map(term => {
+                    const regex = new RegExp(term, 'i');
+                    return {
+                        $or: [
+                            { name: regex },
+                            { companyName: regex },
+                            { industry: regex },
+                            { address: regex },
+                            { description: regex },
+                            { companyDescription: regex },
+                            { 'manufacturerSettings.certifications': regex },
+                            { certificates: regex }
+                        ]
+                    };
+                });
+                // All terms must match at least one field (AND of ORs)
+                searchFilter.$and = searchConditions;
+            }
+        }
+        // Additional filters if provided
         if (req.query.industry) {
-            filter.industry = new RegExp(req.query.industry, 'i');
+            searchFilter.industry = new RegExp(req.query.industry, 'i');
         }
         if (req.query.location) {
-            filter.address = new RegExp(req.query.location, 'i');
+            searchFilter.address = new RegExp(req.query.location, 'i');
         }
         // Add establish year filtering
-        if (req.query.establish_gte) {
-            filter.establish = Object.assign(Object.assign({}, filter.establish), { $gte: parseInt(req.query.establish_gte) });
+        if (req.query.establish_gte || req.query.establish_lte) {
+            searchFilter.establish = {};
+            if (req.query.establish_gte) {
+                searchFilter.establish.$gte = parseInt(req.query.establish_gte);
+            }
+            if (req.query.establish_lte) {
+                searchFilter.establish.$lte = parseInt(req.query.establish_lte);
+            }
         }
-        if (req.query.establish_lte) {
-            filter.establish = Object.assign(Object.assign({}, filter.establish), { $lte: parseInt(req.query.establish_lte) });
-        }
-        if (req.query.search) {
-            const searchRegex = new RegExp(req.query.search, 'i');
-            filter.$or = [
-                { name: searchRegex },
-                { companyName: searchRegex },
-                { industry: searchRegex },
-                { description: searchRegex },
-                { companyDescription: searchRegex }
-            ];
-        }
-        // Get total count for pagination
-        const total = yield User_1.default.countDocuments(filter);
+        console.log('Search filter:', JSON.stringify(searchFilter));
         // Get manufacturers with pagination
-        const manufacturers = yield User_1.default.find(filter)
-            .select('-password -resetPasswordToken -resetPasswordExpires') // Exclude sensitive fields
-            .sort({ createdAt: -1 }) // Sort by newest first
+        const manufacturers = yield User_1.default.find(searchFilter)
+            .select('-password -resetPasswordToken -resetPasswordExpires')
+            .sort({ companyName: 1, name: 1 })
             .skip(skip)
-            .limit(limit)
-            .lean(); // Use lean for better performance
-        console.log(`[SERVER] Fetched ${manufacturers.length} manufacturers`);
-        // Calculate pagination info
-        const totalPages = Math.ceil(total / limit);
-        const hasNextPage = page < totalPages;
-        const hasPrevPage = page > 1;
+            .limit(limit);
+        // Get total count for pagination
+        const total = yield User_1.default.countDocuments(searchFilter);
         res.json({
             success: true,
             manufacturers,
-            pagination: {
-                currentPage: page,
-                totalPages,
-                totalItems: total,
-                itemsPerPage: limit,
-                hasNextPage,
-                hasPrevPage
-            },
-            total // Keep this for backward compatibility
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
         });
     }
     catch (error) {
-        console.error('Error in getManufacturers:', error);
-        if (error instanceof Error) {
-            res.status(500).json({
-                success: false,
-                message: error.message
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: "Unknown error occurred"
-            });
-        }
+        console.error('Error fetching manufacturers:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 });
 exports.getManufacturers = getManufacturers;
