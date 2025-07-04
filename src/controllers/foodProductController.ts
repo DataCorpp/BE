@@ -50,7 +50,8 @@ export const getFoodProducts = async (
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
         { manufacturer: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } }
+        { category: { $regex: search, $options: 'i' } },
+        { manufacturerRegion: { $regex: search, $options: 'i' } },
       ];
     }
     
@@ -107,6 +108,16 @@ export const getFoodProducts = async (
       }
     }
     
+    // Filter by manufacturerRegion (new)
+    const { manufacturerRegion } = req.query as any;
+    if (manufacturerRegion) {
+      if (Array.isArray(manufacturerRegion) && manufacturerRegion.length > 0) {
+        query.manufacturerRegion = { $in: manufacturerRegion };
+      } else if (typeof manufacturerRegion === 'string') {
+        query.manufacturerRegion = manufacturerRegion;
+      }
+    }
+    
     // Pagination
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -133,6 +144,14 @@ export const getFoodProducts = async (
       // Default sort
       sortOptions = { createdAt: -1 };
     }
+
+    // 🔒  Ensure deterministic pagination order by adding _id as a secondary key.
+    //     When multiple documents share the same primary sort value (e.g. identical
+    //     createdAt timestamps because they were imported in a batch), Mongo will
+    //     return them in an arbitrary order on each query. This caused the same
+    //     products to appear on multiple pages.  Adding _id guarantees a stable
+    //     ordering so "skip" works reliably.
+    sortOptions = { ...sortOptions, _id: -1 };
     
     const totalCount = await FoodProduct.countDocuments(query);
     const foodProducts = await FoodProduct.find(query)
