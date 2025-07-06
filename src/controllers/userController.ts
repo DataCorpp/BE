@@ -1,10 +1,10 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import User, { IUser } from "../models/User";
-import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../utils/mailService";
 import { sendPasswordResetEmail } from "../utils/mailService";
 import { generatePasswordResetToken, hashToken, buildResetUrl } from "../utils/passwordResetUtils";
+import axios from "axios";
 
 // Define a custom Request type that includes the user property
 interface RequestWithUser extends Request {
@@ -12,13 +12,6 @@ interface RequestWithUser extends Request {
     _id: mongoose.Types.ObjectId | string;
   };
 }
-
-// Helper function để tạo JWT
-const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "fallbacksecret", {
-    expiresIn: "30d",
-  });
-};
 
 // Store email verification codes in memory (for development purposes)
 // In production, you would use a database or cache like Redis
@@ -36,18 +29,30 @@ const generateVerificationCode = (): string => {
   return code;
 };
 
-// @desc    Đăng nhập người dùng & lấy token
+// @desc    Đăng nhập người dùng với session
 // @route   POST /api/users/login
 // @access  Public
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
+
+    // Kiểm tra email + password có tồn tại không
+    if (!email || !password) {
+      res.status(400).json({ 
+        success: false,
+        message: "Email and password are required." 
+      });
+      return;
+    }
 
     // Kiểm tra xem có email hay không
     const user = await User.findOne({ email });
 
     if (!user) {
-      res.status(401).json({ message: "Invalid email or password" });
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
       return;
     }
 
@@ -55,25 +60,80 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      res.status(401).json({ message: "Invalid email or password" });
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
       return;
     }
 
-    const userId = user._id.toString();
+    // Kiểm tra status user
+    if (user.status !== 'active') {
+      res.status(401).json({
+        success: false,
+        message: "Account is not active. Please verify your email first."
+      });
+      return;
+    }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      token: generateToken(userId),
+    // Cập nhật lastLogin
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Sau khi đã xác thực email + password thành công
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
+      
+      // Store additional user info in session
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        companyName: user.companyName,
+        profileComplete: user.profileComplete
+      };
+      
+      // 👇 Quan trọng: lưu & gửi cookie
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log(`User logged in successfully: ${user.email}`);
+        console.log(`Session created with userId: ${req.session.userId}, userRole: ${req.session.userRole}`);
+        console.log(`Session ID: ${req.sessionID}`);
+        
+        res.json({
+          success: true,
+          message: "Login successful",
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            companyName: user.companyName,
+            profileComplete: user.profileComplete
+          }
+        });
+      });
     });
   } catch (error) {
+    console.error("Login error:", error);
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
     } else {
-      res.status(500).json({ message: "Unknown error occurred" });
+      res.status(500).json({
+        success: false,
+        message: "Unknown error occurred"
+      });
     }
   }
 };
@@ -96,6 +156,7 @@ export const registerUser = async (
       website,
       address,
       companyDescription,
+      establish,
     } = req.body;
 
     // Check for required fields
@@ -141,11 +202,10 @@ export const registerUser = async (
       website,
       address,
       companyDescription,
+      establish,
     });
 
     if (user) {
-      const userId = user._id.toString();
-
       // Generate a verification code for the new user
       const verificationCode = generateVerificationCode();
       
@@ -183,7 +243,6 @@ export const registerUser = async (
         email: user.email,
         role: user.role,
         status: user.status,
-        token: generateToken(userId),
       };
 
       // In development, include verification code to help with testing
@@ -196,6 +255,10 @@ export const registerUser = async (
           
           if (!hasEmailConfig) {
             console.log('ℹ️ User automatically activated in development mode without email verification');
+            
+            // Automatically activate the user in development mode if email fails
+            await User.findByIdAndUpdate(user._id, { status: 'active' });
+            responseObj.status = 'active';
           }
         }
       }
@@ -243,6 +306,7 @@ export const getUserProfile = async (
         industry: user.industry,
         certificates: user.certificates,
         avatar: user.avatar,
+        establish: user.establish,
         connectionPreferences: user.connectionPreferences,
         manufacturerSettings: user.manufacturerSettings,
         brandSettings: user.brandSettings,
@@ -319,6 +383,7 @@ export const updateUserProfile = async (
       if (req.body.industry) user.industry = req.body.industry;
       if (req.body.certificates) user.certificates = req.body.certificates;
       if (req.body.avatar) user.avatar = req.body.avatar;
+      if (req.body.establish !== undefined) user.establish = req.body.establish;
 
       // Update profileComplete flag if provided
       if (req.body.profileComplete !== undefined) {
@@ -433,7 +498,19 @@ export const updateUserProfile = async (
       }
 
       const updatedUser = await user.save();
-      const userId = updatedUser._id.toString();
+
+      // Update session with new user data
+      if (req.session) {
+        (req.session as any).user = {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          status: updatedUser.status,
+          companyName: updatedUser.companyName,
+          profileComplete: updatedUser.profileComplete
+        };
+      }
 
       res.json({
         _id: updatedUser._id,
@@ -452,11 +529,11 @@ export const updateUserProfile = async (
         industry: updatedUser.industry,
         certificates: updatedUser.certificates,
         avatar: updatedUser.avatar,
+        establish: updatedUser.establish,
         connectionPreferences: updatedUser.connectionPreferences,
         manufacturerSettings: updatedUser.manufacturerSettings,
         brandSettings: updatedUser.brandSettings,
         retailerSettings: updatedUser.retailerSettings,
-        token: generateToken(userId),
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -490,19 +567,51 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // If user is already active
-    if (user.status === 'active') {
+    // Helper to create a logged-in session for the verified user
+    const createSessionAndRespond = () => {
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regenerate error after email verification", err);
+          return res.status(500).json({ message: "Failed to create session" });
+        }
+
+        req.session.userId = user._id.toString();
+        req.session.userRole = user.role;
+        (req.session as any).role = user.role;
+        (req.session as any).user = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          companyName: user.companyName,
+          profileComplete: user.profileComplete,
+        };
+
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error after email verification", saveErr);
+            return res.status(500).json({ message: "Failed to save session" });
+          }
+
+          // Successful response with session cookie set
       res.json({
         success: true,
-        message: "Your email has already been verified",
+            message: "Email verified successfully",
         user: {
           _id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
-        }
+              role: user.role,
+            },
+          });
+        });
       });
-      return;
+    };
+
+    // If user is already active
+    if (user.status === 'active') {
+      return createSessionAndRespond();
     }
 
     // Check if we have a verification code for this email
@@ -520,18 +629,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       delete verificationCodes[email];
 
       console.log(`✅ Email verified in development mode: ${email}`);
-      
-      res.json({
-        success: true,
-        message: "Email verified successfully (development mode)",
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
-      });
-      return;
+      return createSessionAndRespond();
     }
 
     if (!storedVerification) {
@@ -542,17 +640,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
         user.status = 'active';
         await user.save();
 
-        res.json({
-          success: true,
-          message: "Auto-verified in development mode",
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }
-        });
-        return;
+        return createSessionAndRespond();
       } else {
         res.status(400).json({ message: "Verification code is invalid or has expired" });
         return;
@@ -583,16 +671,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     
     console.log(`✅ Email verified successfully: ${email}`);
 
-    res.json({
-      success: true,
-      message: "Email verified successfully",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    return createSessionAndRespond();
 
   } catch (error) {
     console.error('❌ Email verification error');
@@ -789,6 +868,255 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json({ message: "Password reset successful. You can now login with your new password." });
   } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred" });
+    }
+  }
+};
+
+// @desc    Authenticate user with Google OAuth
+// @route   POST /api/users/google-login
+// @access  Public
+export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { token, email, name, picture } = req.body;
+    
+    console.log("Google login request:", { email, name, picture: picture ? "provided" : "not provided" });
+    
+    if (!token || !email) {
+      res.status(400).json({ message: "Token and email are required" });
+      return;
+    }
+    
+    // Verify token with Google (additional security)
+    try {
+      await axios.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+      console.log("Google token verification successful");
+    } catch (verificationError) {
+      console.error("Google token verification failed:", verificationError);
+      res.status(401).json({ message: "Invalid Google token" });
+      return;
+    }
+
+    console.time("GoogleLoginProcess");
+    
+    // Check if user with this email already exists
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+    
+    if (user) {
+      console.log("Existing user found:", { id: user._id, role: user.role });
+      // Existing user - update their information
+      user.name = name || user.name; // Keep existing name if new one not provided
+      user.lastLogin = new Date();
+      
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+      }
+      
+      await user.save();
+    } else {
+      console.log("Creating new user with email:", email);
+      // Create new user
+      // Generate a random password since we won't use it for OAuth users
+      const randomPassword = Math.random().toString(36).slice(-10);
+      
+      user = await User.create({
+        name,
+        email,
+        password: randomPassword, // This will be hashed by the User model pre-save hook
+        role: "manufacturer", // Default role, can be changed during profile setup
+        status: "active", // OAuth users are pre-verified by Google
+        avatar: picture
+      });
+      
+      isNewUser = true;
+      console.log("New user created:", { id: user._id, role: user.role });
+    }
+
+    console.timeEnd("GoogleLoginProcess");
+    
+    // Regenerate session for secure authentication
+    req.session.regenerate(err => {
+      if (err) return next(err);
+      
+      req.session.userId = user._id.toString();
+      req.session.userRole = user.role;
+      (req.session as any).role = user.role; // Add both userRole and role for compatibility
+      
+      // Store additional user info in session
+      (req.session as any).user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profileComplete: user.profileComplete,
+        avatar: user.avatar
+      };
+      
+      // Save session and send response
+      req.session.save(err2 => {
+        if (err2) return next(err2);
+        
+        console.log("User info saved to session:", { userId: req.session.userId, userRole: req.session.userRole });
+        console.log(`Google login session created with ID: ${req.sessionID}`);
+        
+        // Prepare response data
+        const userData = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          profileComplete: user.profileComplete,
+          avatar: user.avatar
+        };
+        
+        console.log("Response data:", JSON.stringify({ user: userData, isNewUser }));
+
+        // Clear possible legacy cookies that may exist on parent domain
+        try {
+          res.clearCookie('sessionId', { domain: '.datacorpsolutions.com', path: '/' });
+          res.clearCookie('sessionId', { domain: 'datacorpsolutions.com', path: '/' });
+        } catch (clearErr) {
+          console.warn('Unable to clear legacy cookies:', clearErr);
+        }
+        
+        // Send response with user data directly at top level
+        res.json({
+          ...userData,
+          isNewUser
+        });
+      });
+    });
+    
+  } catch (error) {
+    console.error("Google login error:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Unknown error occurred during Google authentication" });
+    }
+  }
+};
+
+// @desc    Lấy danh sách manufacturers
+// @route   GET /api/users/manufacturers
+// @access  Public
+export const getManufacturers = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    const query = req.query.q as string || '';
+    const searchType = req.query.searchType as string || 'basic';
+
+    // Build search filter based on search type and query
+    let searchFilter: any = { role: 'manufacturer' };
+    
+    if (query && query.trim()) {
+      // Split search terms for more advanced searching
+      const searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
+      
+      if (searchTerms.length > 0) {
+        // Create simple regex search conditions - same for basic and advanced
+        // The front-end will handle additional filtering/ranking for advanced search
+        const searchConditions = searchTerms.map(term => {
+          const regex = new RegExp(term, 'i');
+          return {
+            $or: [
+              { name: regex },
+              { companyName: regex },
+              { industry: regex },
+              { address: regex },
+              { description: regex },
+              { companyDescription: regex },
+              { 'manufacturerSettings.certifications': regex },
+              { certificates: regex }
+            ]
+          };
+        });
+        
+        // All terms must match at least one field (AND of ORs)
+        searchFilter.$and = searchConditions;
+      }
+    }
+
+    // Additional filters if provided
+    if (req.query.industry) {
+      searchFilter.industry = new RegExp(req.query.industry as string, 'i');
+    }
+    
+    if (req.query.location) {
+      searchFilter.address = new RegExp(req.query.location as string, 'i');
+    }
+    
+    // Add establish year filtering
+    if (req.query.establish_gte || req.query.establish_lte) {
+      searchFilter.establish = {};
+      
+      if (req.query.establish_gte) {
+        searchFilter.establish.$gte = parseInt(req.query.establish_gte as string);
+      }
+      
+      if (req.query.establish_lte) {
+        searchFilter.establish.$lte = parseInt(req.query.establish_lte as string);
+      }
+    }
+
+    console.log('Search filter:', JSON.stringify(searchFilter));
+
+    // Get manufacturers with pagination
+    const manufacturers = await User.find(searchFilter)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .sort({ companyName: 1, name: 1 })
+      .skip(skip)
+      .limit(limit);
+    
+    // Get total count for pagination
+    const total = await User.countDocuments(searchFilter);
+    
+    res.json({
+      success: true,
+      manufacturers,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    });
+    
+  } catch (error) {
+    console.error('Error fetching manufacturers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+// @desc    Logout user (destroy session)
+// @route   POST /api/users/logout
+// @access  Public
+export const logoutUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Xóa session
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          res.status(500).json({ message: "Could not log out, please try again" });
+        } else {
+          res.json({ message: "Logout successful" });
+        }
+      });
+    } else {
+      res.json({ message: "No active session" });
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
     if (error instanceof Error) {
       res.status(500).json({ message: error.message });
     } else {

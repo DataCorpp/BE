@@ -1,9 +1,18 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { Session } from 'express-session';
 
-interface JwtPayload {
-  id: string;
+// Extend SessionData
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string;
+    userRole?: string;
+  }
+}
+
+// Extend Request interface to include user
+interface AuthenticatedRequest extends Request {
+  user?: any;
 }
 
 // Mở rộng interface Request để thêm trường user
@@ -15,40 +24,73 @@ declare global {
   }
 }
 
-// Middleware bảo vệ route
-export const protect = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  let token;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      // Lấy token từ header
-      token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "fallbacksecret"
-      ) as JwtPayload;
-
-      // Lấy user từ token
-      (req as any).user = await User.findById(decoded.id).select("-password");
-
-      next();
-    } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: "Not authorized, token failed" });
-    }
+// Simple authentication middleware
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  console.log('Session', req.session);
+  
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
   }
+  
+  next();
+};
 
-  if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+// Protect middleware - xác thực session
+export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  let user: any = null;
+
+  try {
+    console.log('=== AUTH MIDDLEWARE DEBUG ===');
+    console.log('Headers:', req.headers);
+    console.log('Session:', req.session ? 'EXISTS' : 'NONE');
+    console.log('Session userId:', req.session?.userId || 'NONE');
+    
+    // Kiểm tra Session authentication
+    if (req.session && req.session.userId) {
+      console.log('Session authentication attempt...');
+      console.log('Session userId:', req.session.userId);
+      
+      try {
+        // Tìm user từ session
+        user = await User.findById(req.session.userId).select("-password");
+        
+        if (user) {
+          console.log('Session User found:', {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            companyName: user.companyName
+          });
+          
+          if (user.status !== 'active') {
+            return res.status(401).json({ 
+              message: "User account is not active",
+              code: "USER_INACTIVE"
+            });
+          }
+          
+          req.user = user;
+          console.log('✅ Session authentication successful');
+          return next();
+        } else {
+          console.log('Session User not found in database');
+        }
+      } catch (sessionError) {
+        console.log('Session verification failed:', sessionError);
+      }
+    }
+
+    // Nếu không có session hợp lệ
+    console.log('❌ No valid authentication found');
+    res.status(401).json({ 
+      message: "Not authorized, please login again",
+      authType: "session_failed",
+      hasSession: !!(req.session && req.session.userId)
+    });
+    
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ message: "Server error in authentication" });
   }
 };
 
@@ -163,32 +205,48 @@ export const authorize = (roles: string[]) => {
   };
 };
 
-// Middleware kiểm tra role
-export const admin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(401).json({ message: "Not authorized as an admin" });
+// Admin middleware - kiểm tra role admin
+export const admin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    console.log('=== ADMIN MIDDLEWARE DEBUG ===');
+    console.log('User role:', req.user?.role);
+    
+    if (req.user && req.user.role === "admin") {
+      console.log('✅ Admin access granted');
+      next();
+    } else {
+      console.log('❌ Admin access denied - wrong role');
+      res.status(403).json({ 
+        message: "Access denied. Admin role required.",
+        currentRole: req.user?.role || 'undefined'
+      });
+    }
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    res.status(500).json({ message: "Server error in role verification" });
   }
 };
 
 // Middleware kiểm tra role manufacturer
-export const manufacturer = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  if (
-    req.user &&
-    (req.user.role === "manufacturer" || req.user.role === "admin")
-  ) {
-    next();
-  } else {
-    res.status(401).json({ message: "Not authorized as a manufacturer" });
+export const manufacturer = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    console.log('=== MANUFACTURER MIDDLEWARE DEBUG ===');
+    console.log('User in request:', req.user ? 'YES' : 'NO');
+    console.log('User role:', req.user?.role);
+    
+    if (req.user && (req.user.role === "manufacturer" || req.user.role === "admin")) {
+      console.log('✅ Manufacturer access granted');
+      next();
+    } else {
+      console.log('❌ Manufacturer access denied - wrong role');
+      res.status(403).json({ 
+        message: "Access denied. Manufacturer role required.",
+        currentRole: req.user?.role || 'undefined'
+      });
+    }
+  } catch (error) {
+    console.error('Manufacturer middleware error:', error);
+    res.status(500).json({ message: "Server error in role verification" });
   }
 };
 

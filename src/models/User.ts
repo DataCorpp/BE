@@ -61,6 +61,7 @@ export interface IUser extends Document {
   certificates: string;
   websiteUrl: string;
   companyDescription: string;
+  establish: number;
   connectionPreferences: {
     connectWith: string[];
     industryInterests: string[];
@@ -115,7 +116,7 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       required: true,
-      enum: ["manufacturer", "brand", "retailer"],
+      enum: ["manufacturer", "brand", "retailer", "admin"],
       default: "manufacturer",
     },
     status: {
@@ -169,6 +170,9 @@ const userSchema = new Schema<IUser>(
     // Password reset fields
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+
+    // Add establish field
+    establish: { type: Number },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields

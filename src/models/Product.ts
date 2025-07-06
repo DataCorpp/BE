@@ -12,18 +12,15 @@ interface IInventoryItem extends Document {
   location: string;
 }
 
-// Định nghĩa interface cho Product
+// Định nghĩa interface cho Product cơ bản - chỉ lưu thông tin chung
 export interface IProduct extends Document {
-  user: mongoose.Types.ObjectId;
-  name: string;
-  brand: string;
-  category: string;
-  description: string;
-  price: number;
-  countInStock: number;
-  image: string;
-  rating: number;
-  numReviews: number;
+  manufacturerName: string; // tên nhà sản xuất
+  productName: string; // tên sản phẩm
+  type: string; // discriminator: 'food', 'beverage', 'health', 'other'
+  productId: mongoose.Types.ObjectId; // ID tham chiếu đến collection con
+  createdAt?: Date;
+  updatedAt?: Date;
+  user: mongoose.Types.ObjectId; // Tham chiếu user (manufacturer) sở hữu sản phẩm
 }
 
 // Schema cho Inventory
@@ -38,59 +35,50 @@ const InventoryItemSchema = new Schema<IInventoryItem>({
   location: { type: String, required: true },
 });
 
-// Schema cho Product
+// Schema cơ bản cho Product - chỉ lưu thông tin chung
 const productSchema = new Schema(
   {
+    manufacturerName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    productName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: "User",
+      required: true,
     },
-    name: {
+    type: {
       type: String,
       required: true,
+      enum: ['food', 'beverage', 'health', 'other'],
     },
-    brand: {
-      type: String,
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
-    },
-    category: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    countInStock: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    image: {
-      type: String,
-      required: true,
-    },
-    rating: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    numReviews: {
-      type: Number,
-      required: true,
-      default: 0,
+      // Reference sẽ được set động dựa trên type
     },
   },
   {
     timestamps: true,
   }
 );
+
+// Index cho tìm kiếm hiệu quả
+productSchema.index({ type: 1 });
+productSchema.index({ manufacturerName: 1 });
+productSchema.index({ productName: 1 });
+productSchema.index({ productId: 1 });
+productSchema.index({ user: 1 });
+
+// Compound index cho tìm kiếm kết hợp
+productSchema.index({ type: 1, manufacturerName: 1 });
+productSchema.index({ type: 1, productName: 'text', manufacturerName: 'text' });
 
 const Product = mongoose.model<IProduct>("Product", productSchema);
 
