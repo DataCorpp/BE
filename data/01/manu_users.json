@@ -1,6 +1,8 @@
 [
   {
-    "_id": "68504311bd7da6832650547a",
+    "_id": {
+      "$oid": "68504311bd7da6832650547a"
+    },
     "name": "Kikkoman Corporation",
     "email": "info@kikkoman.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -15,7 +17,7 @@
     "address": "250 Noda, Noda-shi, Chiba 278-8601, Japan; Tokyo: 2-1-1 Nishi-Shinbashi, Minato-ku, Tokyo 105-8428, Japan",
     "description": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
     "companyDescription": "Global leader in naturally brewed soy sauce and seasonings, world's largest producer as of 2002.",
-    "avatar": "https://www.kikkoman.com/_resources/images/logo.png",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/1%2C+Kikkoman+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 9001, FSSC 22000, Halal, GFSI",
     "connectionPreferences": {
@@ -72,7 +74,9 @@
     "establish": 1917
   },
   {
-    "_id": "68504311bd7da6832650547b",
+    "_id": {
+      "$oid": "68504311bd7da6832650547b"
+    },
     "name": "Yamasa Corporation",
     "email": "contact@yamasa.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -87,7 +91,7 @@
     "address": "2-10-1 Araoicho, Choshi, Chiba 288-0056, Japan",
     "description": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
     "companyDescription": "Japanese corporation founded 1645, primary business manufacturing soy sauce and various seasonings.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/2%2C+Yamasa+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "FSSC 22000, HACCP, GFSI",
     "connectionPreferences": {
@@ -143,7 +147,9 @@
     "establish": 1645
   },
   {
-    "_id": "68504311bd7da6832650547c",
+    "_id": {
+      "$oid": "68504311bd7da6832650547c"
+    },
     "name": "Marunaka Shoyu Co., Ltd.",
     "email": "info@marunaka-shouyu.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -158,7 +164,7 @@
     "address": "229, HIGASHIDE, AISHOCHO, ECHI-GUN, SHIGA 529-1233, Japan",
     "description": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
     "companyDescription": "Naturally brewed soy sauce aged for three years using traditional Edo-period methods.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/3%2C+Marunaka+Shoyu+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "National Tangible Cultural Property",
     "connectionPreferences": {
@@ -212,7 +218,9 @@
     "establish": 1907
   },
   {
-    "_id": "68504311bd7da6832650547d",
+    "_id": {
+      "$oid": "68504311bd7da6832650547d"
+    },
     "name": "Marukome Co., Ltd.",
     "email": "info@marukome.co.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -227,7 +235,7 @@
     "address": "883 Amori, Nagano-shi, Nagano Prefecture 380-8533, Japan",
     "description": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
     "companyDescription": "Japanese miso soup paste producer, one of the top in Japan, founded 1854.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/4%2C+Marukome+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 22000",
     "connectionPreferences": {
@@ -281,7 +289,9 @@
     "establish": 1854
   },
   {
-    "_id": "68504311bd7da6832650547e",
+    "_id": {
+      "$oid": "68504311bd7da6832650547e"
+    },
     "name": "Hikari Miso Co., Ltd.",
     "email": "info@hikarimiso.co.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -296,7 +306,7 @@
     "address": "4848-1 Shimosuwa, Suwa-gun, Nagano 393-0041, Japan",
     "description": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
     "companyDescription": "Japan's leading organic miso manufacturer, first to earn organic certification, founded 1936 in Nagano.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/5%2C+Hikari+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "JAS Organic, USDA Certified Organic, EU Organic, OCIA",
     "connectionPreferences": {
@@ -353,7 +363,9 @@
     "establish": 1936
   },
   {
-    "_id": "68504311bd7da6832650547f",
+    "_id": {
+      "$oid": "68504311bd7da6832650547f"
+    },
     "name": "Shinsyuichi Miso Co., Ltd.",
     "email": "contact@shinsyuichi.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -368,7 +380,7 @@
     "address": "Yebisu Garden Place, 4-20-1 Ebisu, Shibuya-ku, Tokyo 150-0013, Japan",
     "description": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
     "companyDescription": "Producer of Shinsyuichi Miso, supporting healthy diet traditions since 1662.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/6%2C+Shinsyuichi+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "USDA Organic, Kosher",
     "connectionPreferences": {
@@ -423,7 +435,9 @@
     "establish": 1662
   },
   {
-    "_id": "68504311bd7da68326505480",
+    "_id": {
+      "$oid": "68504311bd7da68326505480"
+    },
     "name": "Kenko Mayonnaise Co., Ltd.",
     "email": "info@kenkomayo.co.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -438,7 +452,7 @@
     "address": "3-8-13 Takaido-Higashi No.3 Bldg., Suginami-ku, Tokyo 168-0072, Japan",
     "description": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
     "companyDescription": "Manufacturer of mayonnaise, dressings, sauces and prepared foods, founded March 1958.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/7%2C+Kenko+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "Halal (MUI), ISO 22000",
     "connectionPreferences": {
@@ -494,7 +508,9 @@
     "establish": 1958
   },
   {
-    "_id": "68504311bd7da68326505481",
+    "_id": {
+      "$oid": "68504311bd7da68326505481"
+    },
     "name": "Kewpie Corporation",
     "email": "makoto_onodera@kewpie.co.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -509,7 +525,7 @@
     "address": "1-4-13 Shibuya, Shibuya-ku, Tokyo 150-0002, Japan",
     "description": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
     "companyDescription": "Best-selling Japanese mayonnaise brand introduced 1925 by Kewpie Corporation.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/8%2C+Kewpie+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "GFSI, ISO 14001, Outstanding Health and Productivity Management",
     "connectionPreferences": {
@@ -566,7 +582,9 @@
     "establish": 1925
   },
   {
-    "_id": "68504311bd7da68326505482",
+    "_id": {
+      "$oid": "68504311bd7da68326505482"
+    },
     "name": "Mizkan Holdings Co., Ltd.",
     "email": "info@mizkan.co.jp",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -581,7 +599,7 @@
     "address": "2-6 Nakamura-cho, Handa City, Aichi Prefecture 475-8585, Japan",
     "description": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
     "companyDescription": "Japanese producer of vinegars, sauces, dressings and condiments, founded 1804.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/9%2C+Mizkan+Holdings+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
     "connectionPreferences": {
@@ -639,7 +657,9 @@
     "establish": 1804
   },
   {
-    "_id": "68504311bd7da68326505483",
+    "_id": {
+      "$oid": "68504311bd7da68326505483"
+    },
     "name": "Otafuku Sauce Co., Ltd.",
     "email": "info@otafukusauce.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -654,7 +674,7 @@
     "address": "1-1-10 Higashi-Shinbashi, Minato-ku, Tokyo 105-0004, Japan",
     "description": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
     "companyDescription": "One of Japan's largest seasoning sauce makers, famous for okonomiyaki & yakisoba sauces.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/10%2C+Otafuku+Sauce+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 22000, GFSI, ISO 14001, Outstanding Health and Productivity Management",
     "connectionPreferences": {
@@ -712,7 +732,9 @@
     "establish": 1922
   },
   {
-    "_id": "68504311bd7da68326505484",
+    "_id": {
+      "$oid": "68504311bd7da68326505484"
+    },
     "name": "Lee Kum Kee Co., Ltd.",
     "email": "info@lkk.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -727,7 +749,7 @@
     "address": "Lee Kum Kee Building, 8 Tai Yip Street, Chai Wan, Hong Kong",
     "description": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
     "companyDescription": "World's leading Chinese sauce manufacturer, producing premium oyster sauce and Asian condiments since 1888.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/11%2C+Lee+Kum+Kee+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "HACCP, ISO 22000, SQF, BRC",
     "connectionPreferences": {
@@ -785,7 +807,9 @@
     "establish": 1888
   },
   {
-    "_id": "68504311bd7da68326505485",
+    "_id": {
+      "$oid": "68504311bd7da68326505485"
+    },
     "name": "Barilla G. e R. Fratelli S.p.A.",
     "email": "info@barilla.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -800,7 +824,7 @@
     "address": "Via Mantova 166, 43122 Parma, Italy",
     "description": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
     "companyDescription": "Italian multinational food company, world's largest pasta producer and leading producer of pasta sauces in Europe.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/12%2C+Barilla+G.+e+R.+Fratelli+S.p.A+corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, IFS",
     "connectionPreferences": {
@@ -859,7 +883,9 @@
     "establish": 1877
   },
   {
-    "_id": "68504311bd7da68326505486",
+    "_id": {
+      "$oid": "68504311bd7da68326505486"
+    },
     "name": "Maesri (Thai) Co., Ltd.",
     "email": "export@maesri.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -874,7 +900,7 @@
     "address": "898/1 Moo 1, Bangpoo Industrial Estate, Sukhumvit Road, Samutprakarn 10280, Thailand",
     "description": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
     "companyDescription": "Leading Thai curry paste and coconut cream manufacturer, authentic Thai flavors for global market.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/13%2C+Maesri+(Thai)+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "HACCP, GMP, Halal (CICOT), Kosher",
     "connectionPreferences": {
@@ -932,7 +958,9 @@
     "establish": 1966
   },
   {
-    "_id": "68504311bd7da68326505487",
+    "_id": {
+      "$oid": "68504311bd7da68326505487"
+    },
     "name": "Knorr (Unilever)",
     "email": "contact@unilever.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -947,7 +975,7 @@
     "address": "Unilever House, 100 Victoria Embankment, London EC4Y 0DY, United Kingdom",
     "description": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
     "companyDescription": "World's leading food and seasoning brand, part of Unilever, specializing in soups, bouillons, and seasonings.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/14%2C+Knorr+(Unilever)+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 9001, ISO 14001, OHSAS 18001, BRC, Rainforest Alliance",
     "connectionPreferences": {
@@ -1006,7 +1034,9 @@
     "establish": 1838
   },
   {
-    "_id": "68504311bd7da68326505488",
+    "_id": {
+      "$oid": "68504311bd7da68326505488"
+    },
     "name": "Ajinomoto Co., Inc.",
     "email": "info@ajinomoto.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1021,7 +1051,7 @@
     "address": "15-1 Kyoboshi 1-chome, Chuo-ku, Tokyo 104-8315, Japan",
     "description": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
     "companyDescription": "Japanese multinational food company, world's largest producer of MSG and amino acids for food industry.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/15%2C+Ajinomoto+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 9001, ISO 14001, FSSC 22000, Halal, Kosher",
     "connectionPreferences": {
@@ -1080,7 +1110,9 @@
     "establish": 1909
   },
   {
-    "_id": "68504311bd7da68326505489",
+    "_id": {
+      "$oid": "68504311bd7da68326505489"
+    },
     "name": "McCormick & Company, Inc.",
     "email": "info@mccormick.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1095,7 +1127,7 @@
     "address": "18 Loveton Circle, Sparks, MD 21152, USA",
     "description": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
     "companyDescription": "American multinational corporation, world's largest spice company and leading manufacturer of spices and seasonings.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/16%2C+McCormick+%26+Company.png",
     "industry": "Food and Beverage",
     "certificates": "SQF, BRC, ISO 9001, Organic Certified, Non-GMO Project Verified",
     "connectionPreferences": {
@@ -1154,7 +1186,9 @@
     "establish": 1889
   },
   {
-    "_id": "68504311bd7da68326505490",
+    "_id": {
+      "$oid": "68504311bd7da68326505490"
+    },
     "name": "Maggi (Nestlé S.A.)",
     "email": "contact@nestle.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1169,7 +1203,7 @@
     "address": "Avenue Nestlé 55, 1800 Vevey, Switzerland",
     "description": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
     "companyDescription": "International brand of instant soups, stocks, bouillon cubes, sauces and seasonings, owned by Nestlé.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/17%2C+Maggi+(Nestl%C3%A9+S.A.)+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "ISO 9001, ISO 14001, FSSC 22000, Rainforest Alliance, UTZ",
     "connectionPreferences": {
@@ -1228,7 +1262,9 @@
     "establish": 1884
   },
   {
-    "_id": "68504311bd7da68326505491",
+    "_id": {
+      "$oid": "68504311bd7da68326505491"
+    },
     "name": "Sriracha Panich Co., Ltd.",
     "email": "info@srirachapanich.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1243,7 +1279,7 @@
     "address": "79/3 Moo 6, Sriracha District, Chonburi 20110, Thailand",
     "description": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
     "companyDescription": "Original creator of Sriracha sauce from Si Racha, Thailand, authentic Thai chili sauce manufacturer since 1949.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/18%2C+Sriracha+Panich+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "GMP, HACCP, Halal (CICOT), Thai FDA",
     "connectionPreferences": {
@@ -1301,7 +1337,9 @@
     "establish": 1949
   },
   {
-    "_id": "68504311bd7da68326505492",
+    "_id": {
+      "$oid": "68504311bd7da68326505492"
+    },
     "name": "Cholula Food Company",
     "email": "info@cholula.com",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1316,7 +1354,7 @@
     "address": "Carretera México-Puebla Km 116.5, Chapulco, Puebla 74230, Mexico",
     "description": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
     "companyDescription": "Mexican hot sauce manufacturer, producer of authentic Cholula Hot Sauce made with pequin and arbol peppers.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/19%2C+Cholula+Food+Company.png",
     "industry": "Food and Beverage",
     "certificates": "SQF, BRC, HACCP, Kosher, Gluten-Free",
     "connectionPreferences": {
@@ -1375,7 +1413,9 @@
     "establish": 1989
   },
   {
-    "_id": "68504311bd7da68326505493",
+    "_id": {
+      "$oid": "68504311bd7da68326505493"
+    },
     "name": "Pataks Foods Ltd.",
     "email": "info@pataks.co.uk",
     "password": "$2a$10$defaultHashedPassword123456789012345678901234567890123456",
@@ -1390,7 +1430,7 @@
     "address": "Patak's Foods Ltd, Lockwood Road, Huddersfield HD1 3QX, United Kingdom",
     "description": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
     "companyDescription": "Leading manufacturer of Indian curry pastes, sauces and spices, bringing authentic Indian flavors to global markets.",
-    "avatar": "",
+    "avatar": "https://datacom-imgs.s3.ap-southeast-2.amazonaws.com/images/Manufacturer_logo/20%2C+Pataks+Foods+Corporation.png",
     "industry": "Food and Beverage",
     "certificates": "BRC, ISO 9001, Halal (HFA), Kosher, Vegetarian Society",
     "connectionPreferences": {

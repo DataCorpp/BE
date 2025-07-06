@@ -1,121 +1,87 @@
-const fs = require('fs');
-const path = require('path');
-const { Types: { ObjectId } } = require('mongoose');
-
 /*
-  ---------------------------------------------------------------------------
   prepareData.js
-  ---------------------------------------------------------------------------
-  Purpose:
-    1. Convert primitive/string IDs in Manu_users.json, food_product.json, and
-       product.json to proper MongoDB ObjectId strings (24-hex chars).
-    2. Preserve and propagate relationships so that:
-         • food_product.user  →  manufacturer._id
-         • product.productId  →  food_product._id
-    3. Write the transformed arrays to new *_ready.json files
-       (original data remains untouched).
+  ----------------
+  Utility script to normalise demo JSON files so they match the data model:
+  1.  users      → unchanged (already valid)
+  2.  products   → rename `user_id` → `user` and wrap in {$oid: ...}
+  3.  foodproducts → ensure `user` is ObjectId wrapped in {$oid: ...}
 
-  Usage:
-       node BE/scripts/prepareData.js
-
-  Requirements:
-       npm install mongoose
-  ---------------------------------------------------------------------------
+  After running the script the files are overwritten in-place so they can be
+  imported with `mongoimport --jsonArray` and all relations (user ⇄ product ⇄ food)
+  will resolve correctly.
 */
 
-/* Resolve absolute paths */
-const dataDir = path.join(__dirname, '..', 'data');
+const fs = require('fs');
+const path = require('path');
+
+// -------- helper ---------
+const baseDir = path.join(__dirname, '../data/01');
 const files = {
-  manufacturers: path.join(dataDir, 'Manu_users.json'),
-  foods: path.join(dataDir, 'food_product.json'),
-  products: path.join(dataDir, 'product.json'),
+  users: path.join(baseDir, 'cpg-matching.users.json'),
+  products: path.join(baseDir, 'cpg-matching.products.json'),
+  food: path.join(baseDir, 'cpg-matching.foodproducts.json'),
 };
 
-/* Helper to read JSON file */
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
+// Wrap raw id string in extended JSON so mongoimport recognises ObjectId
+const toOid = (val) => ({ $oid: typeof val === 'string' ? val : String(val) });
 
-/* Helper to write JSON array pretty-printed */
-function writeJson(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  console.log(`✔ Wrote ${data.length} records → ${filePath}`);
-}
+// ---------- USERS (read-only) ----------
+const usersRaw = fs.readFileSync(files.users, 'utf8');
+const users = JSON.parse(usersRaw).map((u) => {
+  const clone = { ...u };
+  if (typeof clone._id === 'string') {
+    clone._id = toOid(clone._id);
+  }
+  return clone;
+});
+// Persist users back (optional) – keeps file Mongo-ready
+fs.writeFileSync(files.users, JSON.stringify(users, null, 2));
+// quick map for validation / future use
+const userIds = new Set(users.map((u) => (typeof u._id === 'object' && u._id.$oid ? u._id.$oid : u._id)));
 
-/* MAIN */
-(function convert() {
-  console.log('📦  Loading source JSON files...');
-  const manufacturers = readJson(files.manufacturers);
-  const foods         = readJson(files.foods);
-  const products      = readJson(files.products);
+// ---------- PRODUCTS (parent) ----------
+const productsRaw = fs.readFileSync(files.products, 'utf8');
+const products = JSON.parse(productsRaw).map((p) => {
+  const clone = { ...p };
 
-  // ---------------------------------------------------------------------
-  // Step 1: Ensure manufacturer._id is ObjectId string (already 24-hex)
-  // ---------------------------------------------------------------------
-  const manufacturerMap = new Map(); // oldId (string) -> newId (string)
+  // wrap _id
+  if (typeof clone._id === 'string') {
+    clone._id = toOid(clone._id);
+  }
 
-  manufacturers.forEach(man => {
-    const oldId = man._id;
-    let newId;
+  // 1) rename user_id → user  (if present)
+  if (clone.user_id) {
+    clone.user = toOid(clone.user_id);
+    delete clone.user_id;
+  } else if (clone.user && typeof clone.user === 'string') {
+    clone.user = toOid(clone.user);
+  }
 
-    if (typeof oldId === 'string' && oldId.length === 24 && /^[0-9a-fA-F]+$/.test(oldId)) {
-      newId = oldId; // already looks like ObjectId
-    } else {
-      newId = new ObjectId().toString();
-      man._id = newId;
-    }
+  // 2) ensure productId stored as ObjectId wrapper
+  if (clone.productId && typeof clone.productId === 'string') {
+    clone.productId = toOid(clone.productId);
+  }
 
-    manufacturerMap.set(oldId, newId);
-  });
+  return clone;
+});
 
-  // ---------------------------------------------------------------------
-  // Step 2: Convert FoodProduct IDs & fix user reference
-  // ---------------------------------------------------------------------
-  const foodMap = new Map(); // oldFoodId -> newFoodId
+// ---------- FOODPRODUCTS (child) ----------
+const foodRaw = fs.readFileSync(files.food, 'utf8');
+const foods = JSON.parse(foodRaw).map((f) => {
+  const clone = { ...f };
 
-  foods.forEach(fp => {
-    const oldFoodId = fp._id;
-    const newFoodId = new ObjectId().toString();
-    fp._id = newFoodId;
-    foodMap.set(oldFoodId, newFoodId);
+  if (typeof clone._id === 'string') {
+    clone._id = toOid(clone._id);
+  }
 
-    // Update `user` → manufacturer._id
-    if (fp.user && manufacturerMap.has(fp.user)) {
-      fp.user = manufacturerMap.get(fp.user);
-    } else if (fp.user && manufacturerMap.get(fp.user) === undefined) {
-      console.warn(`⚠  Unknown manufacturer for food_product._id=${oldFoodId} (user=${fp.user})`);
-    }
-  });
+  if (typeof clone.user === 'string') {
+    clone.user = toOid(clone.user);
+  }
+  return clone;
+});
 
-  // ---------------------------------------------------------------------
-  // Step 3: Convert Product IDs & fix productId + (optional) manufacturerId
-  // ---------------------------------------------------------------------
-  products.forEach(p => {
-    p._id = new ObjectId().toString();
+// ---------- write back ----------
+fs.writeFileSync(files.products, JSON.stringify(products, null, 2));
+fs.writeFileSync(files.food, JSON.stringify(foods, null, 2));
 
-    // Update productId reference
-    if (foodMap.has(p.productId)) {
-      p.productId = foodMap.get(p.productId);
-    } else {
-      console.warn(`⚠  Unknown food product for product._id=${p._id} (productId=${p.productId})`);
-    }
-
-    // Optionally add manufacturerId for easier lookups
-    const manu = manufacturers.find(m =>
-      m.name === p.manufacturerName || m.companyName === p.manufacturerName
-    );
-    if (manu) {
-      p.manufacturerId = manu._id;
-    }
-  });
-
-  // ---------------------------------------------------------------------
-  // OUTPUT
-  // ---------------------------------------------------------------------
-  console.log('💾  Writing transformed JSON files...');
-  writeJson(path.join(dataDir, 'Manu_users_ready.json'), manufacturers);
-  writeJson(path.join(dataDir, 'food_product_ready.json'), foods);
-  writeJson(path.join(dataDir, 'product_ready.json'), products);
-
-  console.log('\n✅  Conversion completed. Import these *_ready.json files into MongoDB.');
-})(); 
+console.log('✅ JSON normalisation done.');

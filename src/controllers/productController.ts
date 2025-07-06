@@ -51,7 +51,13 @@ export const getProducts = async (
 
     // Filter by user (owner)
     if (req.query.user) {
-      query.user = req.query.user;
+      const userParam = req.query.user as string;
+      if (mongoose.Types.ObjectId.isValid(userParam)) {
+        query.user = new mongoose.Types.ObjectId(userParam);
+      } else {
+        // fallback: try exact string match (in case data stored as string)
+        query.user = userParam;
+      }
     }
 
     // Pagination

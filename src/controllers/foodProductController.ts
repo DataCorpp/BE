@@ -24,6 +24,7 @@ export const getFoodProducts = async (
       leadTime,
       inStockOnly,
       manufacturer,
+      manufacturerId,
       page = 1,
       limit = 10 
     } = req.query;
@@ -99,12 +100,36 @@ export const getFoodProducts = async (
       query.currentAvailable = { $gt: 0 };
     }
     
-    // Filter by manufacturer
+    // =============================
+    // NEW: Filter by manufacturerId (user ObjectId)
+    // =============================
+    if (manufacturerId) {
+      if (!mongoose.Types.ObjectId.isValid(manufacturerId as string)) {
+        res.status(400).json({ message: 'Invalid manufacturerId format' });
+        return;
+      }
+      query.user = manufacturerId;
+    }
+    
+    // Filter by manufacturer (support exact, partial & multiple values)
     if (manufacturer) {
-      if (Array.isArray(manufacturer) && manufacturer.length > 0) {
-        query.manufacturer = { $in: manufacturer };
-      } else if (typeof manufacturer === 'string') {
-        query.manufacturer = manufacturer;
+      const buildRegex = (value: string) => new RegExp(`^${value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+
+      // If manufacturer comes as object (e.g. { '0': 'Kikkoman' }) convert to values
+      const getValues = (mf: any): string[] => {
+        if (Array.isArray(mf)) return mf as string[];
+        if (typeof mf === 'object') return Object.values(mf) as string[];
+        if (typeof mf === 'string') return [mf as string];
+        return [];
+      };
+
+      const manufacturerValues = getValues(manufacturer);
+
+      if (manufacturerValues.length === 1) {
+        // Use regex for partial / case-insensitive match
+        query.manufacturer = buildRegex(manufacturerValues[0]);
+      } else if (manufacturerValues.length > 1) {
+        query.manufacturer = { $in: manufacturerValues.map(val => buildRegex(val)) };
       }
     }
     
@@ -202,12 +227,13 @@ export const getFoodProductById = async (
   res: Response
 ): Promise<void> => {
   try {
+    // console.debug(`Searching FoodProduct by ID ${req.params.id}`);
     console.log('=== GET FOOD PRODUCT BY ID ===');
     console.log('Requested product ID:', req.params.id);
     
     // Validate the ID format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      console.error('❌ Invalid MongoDB ObjectId format:', req.params.id);
+      // console.error('❌ Invalid MongoDB ObjectId format:', req.params.id);
       res.status(400).json({ 
         message: "Invalid product ID format", 
         error: "INVALID_ID_FORMAT" 
@@ -219,15 +245,16 @@ export const getFoodProductById = async (
     let productReference = null;
     
     // PHƯƠNG PHÁP 1: Tìm kiếm trực tiếp FoodProduct bằng ID
-    console.log('🔍 Phương pháp 1: Tìm kiếm FoodProduct trực tiếp với ID:', req.params.id);
+    // console.log('�� Phương pháp 1: Tìm kiếm FoodProduct trực tiếp với ID:', req.params.id);
     foodProduct = await FoodProduct.findById(req.params.id);
     
     // Nếu tìm thấy FoodProduct, tìm thêm Product reference
     if (foodProduct) {
-      console.log('✅ Tìm thấy FoodProduct trực tiếp:', {
-        _id: foodProduct._id,
-        name: foodProduct.name
-      });
+      // console.debug(`Found FoodProduct directly: ${foodProduct._id}`);
+      // console.log('✅ Tìm thấy FoodProduct trực tiếp:', {
+      //   _id: foodProduct._id,
+      //   name: foodProduct.name
+      // });
       
       // Tìm Product reference
       productReference = await Product.findOne({
@@ -236,20 +263,23 @@ export const getFoodProductById = async (
       });
       
       if (productReference) {
-        console.log('✅ Tìm thấy Product reference:', {
-          _id: productReference._id,
-          name: productReference.productName
-        });
+        // console.debug(`Found Product reference: ${productReference._id}`);
+        // console.log('✅ Tìm thấy Product reference:', {
+        //   _id: productReference._id,
+        //   name: productReference.productName
+        // });
       }
     } 
     // PHƯƠNG PHÁP 2: Nếu không tìm thấy FoodProduct trực tiếp, thử tìm qua Product
     else {
+      // console.debug('FoodProduct not found directly, try via Product reference');
       console.log('⚠️ Không tìm thấy FoodProduct trực tiếp, thử tìm qua Product...');
       
       // Tìm Product với ID được cung cấp
       productReference = await Product.findById(req.params.id);
       
       if (productReference && productReference.type === 'food') {
+        // console.debug(`Found Product reference ${productReference._id}`);
         console.log('✅ Tìm thấy Product reference:', {
           _id: productReference._id,
           productId: productReference.productId,
@@ -260,6 +290,7 @@ export const getFoodProductById = async (
         foodProduct = await FoodProduct.findById(productReference.productId);
         
         if (foodProduct) {
+          // console.debug(`Found FoodProduct via Product reference: ${foodProduct._id}`);
           console.log('✅ Tìm thấy FoodProduct qua Product reference:', {
             _id: foodProduct._id,
             name: foodProduct.name
@@ -268,6 +299,7 @@ export const getFoodProductById = async (
           console.error('❌ Không tìm thấy FoodProduct từ Product reference! ID không khớp hoặc đã bị xóa.');
         }
       } else {
+        // console.debug('Product ref not found or not food type');
         console.log('❌ Không tìm thấy Product với ID đã cung cấp hoặc không phải loại food');
       }
     }
@@ -294,18 +326,10 @@ export const getFoodProductById = async (
       
       // If there are products, show some samples for comparison
       if (count > 0) {
-        const samples = await FoodProduct.find().limit(3);
-        console.log('📋 Sample FoodProduct IDs for comparison:');
-        samples.forEach((sample, i) => {
-          console.log(`  FoodProduct ${i+1}: ${sample._id} (${sample.name})`);
-        });
-        
-        // Also show some Product references
-        const productSamples = await Product.find({type: 'food'}).limit(3);
-        console.log('📋 Sample Product IDs for comparison:');
-        productSamples.forEach((sample, i) => {
-          console.log(`  Product ${i+1}: ${sample._id} → references → ${sample.productId} (${sample.productName})`);
-        });
+        // skip diagnostic sampling logs
+        if (count > 0) {
+          /* diagnostics disabled */
+        }
       }
       
       // Return 404 with detailed message
